@@ -235,13 +235,15 @@ L'architecture générale envisagée est la suivante :
         IDP[Microsoft Entra ID]
     end
 
+    RP[Reverse proxy nginx<br/>TLS · statique · rate limit]
+
     subgraph APP[Application]
         API[Web / API]
         DB[(PostgreSQL)]
     end
 
     subgraph EVAL[Évaluation]
-        Q[Queue<br/>Backpressure · Priorités · Fairness]
+        Q[Queue PostgreSQL<br/>Backpressure · Priorités · Fairness]
         S[Judge Scheduler]
         J1[Judge]
         J2[Judge]
@@ -256,7 +258,8 @@ L'architecture générale envisagée est la suivante :
     end
 
     B -->|OIDC| IDP
-    B -->|HTTPS + token| API
+    B -->|HTTPS + token| RP
+    RP --> API
 
     API --> DB
     API -->|Soumission| Q
@@ -275,7 +278,7 @@ L'architecture générale envisagée est la suivante :
     SB -->|gVisor / Firecracker| P
     SB -->|Accès contrôlé| T
 
-    SB -->|Verdict| API
+    S -->|Verdict| DB
   ",
   document-context: true,
   width: 100%,
@@ -296,6 +299,43 @@ Cela permet de découpler :
 - le nombre de juges disponibles ;
 - le nombre d'exécutions simultanées.
 
+== Couche d'entrée
+
+La plateforme est initialement déployée sur une VM unique dont les ressources sont limitées. Chaque composant d'infrastructure supplémentaire consomme de la mémoire et du CPU qui ne sont plus disponibles pour le jugement.
+
+#decision[
+  Un composant d'infrastructure n'est ajouté que lorsqu'un besoin mesuré le justifie.
+]
+
+=== Reverse proxy
+
+Un reverse proxy nginx constitue le seul point d'entrée HTTP de la plateforme. Il est responsable de :
+
+- la terminaison TLS (certificats gérés par NixOS via ACME) ;
+- la distribution des fichiers statiques de l'interface web ;
+- la compression des réponses ;
+- la limitation du débit des requêtes (`limit_req`), notamment sur les soumissions ;
+- le relais des connexions longues (SSE ou WebSocket) utilisées pour notifier les verdicts.
+
+#decision[
+  nginx est retenu pour sa faible empreinte mémoire, sa limitation de débit native et son intégration déclarative dans NixOS.
+]
+
+#hypothesis[
+  Si l'établissement termine déjà le TLS en amont de la VM, nginx demeure utile pour les fichiers statiques et la limitation de débit.
+]
+
+=== Répartition de charge
+
+Aucun load balancer dédié n'est prévu dans la topologie initiale.
+
+- Côté HTTP, l'API est exécutée par plusieurs processus (workers uvicorn) partageant la même socket ; le noyau répartit les connexions entre eux.
+- Côté jugement, les juges _tirent_ les travaux de la file plutôt que de les recevoir. La file joue donc elle-même le rôle de répartiteur, et la capacité s'ajuste en modifiant le nombre de juges.
+
+#decision[
+  Un load balancer (par exemple un bloc `upstream` nginx) ne sera introduit que si l'application est répartie sur plusieurs VM.
+]
+
 == File de soumissions
 
 La file constitue une abstraction importante entre l'application et le moteur de jugement.
@@ -315,6 +355,16 @@ Elle doit éventuellement prendre en charge :
 #hypothesis[
   La politique exacte de file d'attente et d'ordonnancement devra être déterminée
   expérimentalement en fonction des charges observées.
+]
+
+#decision[
+  La file est initialement implémentée dans PostgreSQL (`SELECT … FOR UPDATE SKIP LOCKED` et `LISTEN/NOTIFY`) plutôt qu'avec un service dédié comme Redis ou RabbitMQ.
+]
+
+Ce choix n'ajoute aucun service à la VM et place l'état de la file dans la même transaction que l'état des soumissions. Les retries, la détection des travaux abandonnés et la priorité des examens s'expriment alors directement en SQL.
+
+#validation[
+  Les tests de charge devront confirmer que PostgreSQL suffit comme file pour une charge d'examen. Un broker dédié ne sera envisagé que si une limite est mesurée.
 ]
 
 = Moteur de jugement
@@ -578,6 +628,35 @@ Par exemple :
 )
 
 Cette architecture permet d'ajuster la capacité sans modifier la logique pédagogique.
+
+== Cache
+
+Aucun serveur de cache dédié (Redis, Memcached) n'est prévu initialement. Le cache est plutôt placé là où il réduit un coût réel :
+
+#table(
+  columns: (3.2cm, 1fr),
+  stroke: 0.5pt,
+  [*Emplacement*], [*Contenu*],
+
+  [Navigateur / nginx],
+  [Fichiers statiques versionnés par empreinte et servis avec des en-têtes `Cache-Control` de longue durée.],
+
+  [API],
+  [Données d'exercice publiées, peu modifiées, conservées en mémoire du processus.],
+
+  [Juge],
+  [Images et chaînes de compilation préchargées, sandboxes préparées à l'avance et, éventuellement, artefacts compilés des tests privés.],
+)
+
+L'authentification repose sur des jetons OIDC émis par Microsoft Entra ID, ce qui évite de maintenir un stockage de sessions côté serveur.
+
+#hypothesis[
+  Le coût dominant d'une soumission se situe dans le démarrage de la sandbox et la compilation plutôt que dans l'accès aux données. Le cache côté juge devrait donc avoir un impact plus important que tout cache applicatif.
+]
+
+#decision[
+  Un cache partagé ne sera introduit que si plusieurs instances de l'API doivent partager un même état.
+]
 
 == Métriques
 
@@ -1206,6 +1285,18 @@ stroke: 0.5pt,
 [Topologie],
 [Une ou plusieurs VM],
 [Charge, sécurité et ressources disponibles],
+
+[Reverse proxy],
+[nginx, sans load balancer dédié],
+[Prise en charge du TLS par l'établissement],
+
+[File],
+[PostgreSQL (`SKIP LOCKED`)],
+[Tests de charge d'examen],
+
+[Cache],
+[Aucun service dédié ; cache côté juge],
+[Profilage du coût d'une soumission],
 )
 
 L'architecture sera considérée comme stabilisée uniquement après validation des hypothèses ayant un impact important sur la sécurité, la performance ou l'opérabilité du système.
@@ -1214,7 +1305,7 @@ L'architecture sera considérée comme stabilisée uniquement après validation 
 
 Plusieurs questions importantes restent volontairement ouvertes.
 
-1. Quelle architecture de queue est la plus adaptée ?
+1. PostgreSQL suffit-il comme file de soumissions sous une charge d'examen ?
 2. Quelle politique d'ordonnancement minimise la latence perçue pendant un
    examen ?
 3. Combien de workers sont nécessaires pour une charge de 400 étudiants ?
