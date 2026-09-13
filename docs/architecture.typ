@@ -1,4 +1,4 @@
-#import "@preview/cetz:0.3.4"
+#import "@preview/cetz:0.5.2"
 #import "@preview/fletcher:0.5.8"
 #import "@preview/merman:0.3.0": mermaid
 
@@ -953,23 +953,17 @@ Ansible peut néanmoins rester pertinent pour des opérations qui ne constituent
 
 La frontière recherchée est donc :
 
-```text
-Terraform
-    │
-    └── Provisionnement de l'infrastructure
-
-NixOS
-    │
-    └── État déclaratif de la machine
-
-Ansible
-    │
-    └── Orchestration et opérations lorsque nécessaire
-
-CI/CD
-    │
-    └── Construction et déploiement de l'application
-```
+#mermaid(
+  "
+  flowchart LR
+    T[Terraform] --> T1[Provisionnement de l'infrastructure]
+    N[NixOS]     --> N1[État déclaratif de la machine]
+    A[Ansible]   --> A1[Orchestration et opérations lorsque nécessaire]
+    C[CI/CD]     --> C1[Construction et déploiement de l'application]
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 #decision[
   Ansible n'est plus considéré comme le mécanisme obligatoire de configuration des machines. Lorsque NixOS est disponible, la configuration persistante du système doit autant que possible être déclarée dans NixOS.
@@ -1006,36 +1000,35 @@ L'environnement de validation permet notamment de tester une nouvelle version du
 
 Le pipeline envisagé est :
 
-```text
-Git push
-   │
-   ▼
-Tests
-   │
-   ├── tests unitaires
-   ├── tests d'intégration
-   └── tests de sécurité
-   │
-   ▼
-Build
-   │
-   ├── Web
-   ├── API
-   └── Judge
-   │
-   ▼
-Images / artefacts
-   │
-   ▼
-Registry / artefact storage
-   │
-   ▼
-Déploiement
-   │
-   ├── environnement de validation
-   │
-   └── production
-```
+#mermaid(
+  "
+  flowchart TD
+    G[Git push] --> T
+
+    subgraph T[Tests]
+      T1[Tests unitaires]
+      T2[Tests d'intégration]
+      T3[Tests de sécurité]
+    end
+
+    T --> B
+
+    subgraph B[Build]
+      B1[Web]
+      B2[API]
+      B3[Judge]
+    end
+
+    B --> IMG[Images / artefacts]
+    IMG --> REG[Registry / stockage d'artefacts]
+    REG --> D[Déploiement]
+
+    D --> VAL[Environnement de validation]
+    D --> PROD[Production]
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 La configuration NixOS doit elle-même être testée et versionnée dans le même cycle de développement.
 
@@ -1114,30 +1107,20 @@ La sécurité de l'exécution ne repose pas sur le système d'exploitation ou su
 
 Une exécution doit idéalement traverser plusieurs niveaux de protection :
 
-```text
-Student code
-     │
-     ▼
-Application validation
-     │
-     ▼
-Judge
-     │
-     ▼
-Resource limits
-     │
-     ▼
-Container / runtime
-     │
-     ▼
-gVisor / microVM
-     │
-     ▼
-NixOS / Linux host
-     │
-     ▼
-VM de l'établissement
-```
+#mermaid(
+  "
+  flowchart TD
+    C[Code étudiant]            --> V[Validation applicative]
+    V                           --> J[Judge]
+    J                           --> R[Limites de ressources]
+    R                           --> RT[Conteneur / runtime]
+    RT                          --> ISO[gVisor / microVM]
+    ISO                         --> H[Hôte NixOS / Linux]
+    H                           --> VM[VM de l'établissement]
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 Chaque couche doit réduire les conséquences potentielles d'une défaillance d'une autre couche.
 
@@ -1218,25 +1201,20 @@ L'objectif global de l'infrastructure est de pouvoir répondre à la question :
 
 Le niveau de reproductibilité recherché est :
 
-```text
-                Git repository
-                      │
-          ┌───────────┴───────────┐
-          ▼                       ▼
-   Application source       Infrastructure
-                                  │
-                                  ▼
-                              NixOS config
-                                  │
-                                  ▼
-                                 VM
-                                  │
-                                  ▼
-                         Services configurés
-                                  │
-                                  ▼
-                           Application
-```
+#mermaid(
+  "
+  flowchart TD
+    G[Dépôt Git] --> SRC[Code source de l'application]
+    G            --> INF[Infrastructure]
+
+    INF --> N[Configuration NixOS]
+    N   --> VM
+    VM  --> SVC[Services configurés]
+    SVC --> APP[Application]
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 La reproductibilité ne signifie pas nécessairement que chaque donnée de production doit être reconstruite à partir de zéro. Les données persistantes, les secrets et certaines ressources fournies par l'établissement constituent des dépendances externes qui doivent être explicitement identifiées.
 
@@ -1328,23 +1306,20 @@ Les décisions importantes doivent être accompagnées d'une justification techn
 
 Le cycle de conception privilégié est :
 
-```text
-Problème
-   ↓
-Hypothèse
-   ↓
-Conception
-   ↓
-Implémentation
-   ↓
-Expérience
-   ↓
-Mesure
-   ↓
-Analyse
-   ↓
-Décision
-```
+#mermaid(
+  "
+  flowchart LR
+    P[Problème]       --> H[Hypothèse]
+    H                 --> C[Conception]
+    C                 --> I[Implémentation]
+    I                 --> E[Expérience]
+    E                 --> M[Mesure]
+    M                 --> A[Analyse]
+    A                 --> D[Décision]
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 Cette approche permet d'éviter de choisir une technologie uniquement sur la base de ses caractéristiques théoriques.
 
@@ -1378,29 +1353,24 @@ Les sections suivantes devraient progressivement être complétées par :
 
 Le point le plus important est que ce document **ne dit pas seulement “voici notre architecture”**. Il commence à constituer la trace du raisonnement du PFE :
 
-```text
-                  PROBLÈME
-                     │
-                     ▼
-               CONTRAINTES
-                     │
-          ┌──────────┼──────────┐
-          ▼          ▼          ▼
-       sécurité   performance  pédagogie
-          │          │          │
-          └──────────┼──────────┘
-                     ▼
-                ARCHITECTURE
-                     │
-                     ▼
-                 HYPOTHÈSES
-                     │
-                     ▼
-                EXPÉRIMENTS
-                     │
-                     ▼
-                  MESURES
-                     │
-                     ▼
-                 DÉCISIONS
-```
+#mermaid(
+  "
+  flowchart TD
+    P[Problème] --> C[Contraintes]
+
+    C --> S[Sécurité]
+    C --> PERF[Performance]
+    C --> PED[Pédagogie]
+
+    S    --> A[Architecture]
+    PERF --> A
+    PED  --> A
+
+    A --> H[Hypothèses]
+    H --> E[Expériences]
+    E --> M[Mesures]
+    M --> D[Décisions]
+  ",
+  document-context: true,
+  width: 100%,
+)
