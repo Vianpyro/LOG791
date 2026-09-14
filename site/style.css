@@ -61,7 +61,8 @@ tr:nth-child(even) td { background: var(--surface); }
 
 /* Les diagrammes sont des SVG peints en noir sur fond transparent : on leur
    donne un fond clair, sinon ils disparaissent en thème sombre. */
-svg { max-width: 100%; height: auto; background: #fff; border-radius: 4px; }
+/* !important : html.frame pose width/height en style en ligne, qui bat le CSS. */
+svg { width: 100% !important; max-width: 43em; height: auto !important; background: #fff; border-radius: 4px; }
 
 blockquote { border-left: 3px solid var(--trait); margin-inline: 0; padding-left: 1em; color: var(--doux); }
 

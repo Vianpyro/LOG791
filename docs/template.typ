@@ -16,7 +16,9 @@
 // jamais directement de merman.
 #import "@preview/merman:0.3.0": mermaid as _mermaid
 #let mermaid(..args) = context {
-  if target() == "html" { html.frame(_mermaid(..args)) } else { _mermaid(..args) }
+  // Dans html.frame, `width: 100%` n'a aucune largeur de référence : le cadre
+  // sortait en 0x0. On lui donne celle d'une page A4 ; le CSS le remet à l'échelle.
+  if target() == "html" { html.frame(block(width: 16cm, _mermaid(..args))) } else { _mermaid(..args) }
 }
 
 // ---------------------------------------------------------------------------
