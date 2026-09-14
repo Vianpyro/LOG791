@@ -1,7 +1,6 @@
 // Contenu seul : la page et le titre sont posés par le point d'entrée
 // (pdf/architecture.typ) ou par le rapport. Ne pas ajouter de #set page ici.
-#import "@preview/merman:0.3.0": mermaid
-#import "template.typ": decision, hypothesis, validation
+#import "template.typ": decision, hypothesis, mermaid, validation
 
 = Objet du document
 

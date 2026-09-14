@@ -11,32 +11,47 @@
 #let _gris = luma(140)
 #let _rayure = luma(248)
 
+// Mermaid : merman dessine par `layout`, que l'export HTML ignore. En HTML le
+// diagramme passe donc par html.frame (SVG en ligne). Importer `mermaid` d'ici,
+// jamais directement de merman.
+#import "@preview/merman:0.3.0": mermaid as _mermaid
+#let mermaid(..args) = context {
+  if target() == "html" { html.frame(_mermaid(..args)) } else { _mermaid(..args) }
+}
+
 // ---------------------------------------------------------------------------
 // Blocs de conception
 // ---------------------------------------------------------------------------
 
-#let _encadre(label, fond, body) = block(
-  fill: fond,
-  inset: 10pt,
-  radius: 3pt,
-  width: 100%,
-)[*#label* #body]
+#let _encadre(label, fond, body, classe: "") = context {
+  if target() == "html" {
+    html.elem("div", attrs: (class: "encadre " + classe))[*#label* #body]
+  } else {
+    block(fill: fond, inset: 10pt, radius: 3pt, width: 100%)[*#label* #body]
+  }
+}
 
 // L'identifiant est facultatif : `#decision(id: "D-03")[...]`. Il sert à la
 // traçabilité (exigence -> décision -> expérience -> résultat).
 #let _titre(nom, id) = if id == none { nom + "." } else { nom + " " + id + "." }
 
-#let decision(id: none, body) = _encadre(_titre("Décision actuelle", id), luma(245), body)
-#let hypothesis(id: none, body) = _encadre(_titre("Hypothèse", id), luma(250), body)
-#let validation(id: none, body) = _encadre(_titre("À valider", id), luma(250), body)
+#let decision(id: none, body) = _encadre(_titre("Décision actuelle", id), luma(245), body, classe: "decision")
+#let hypothesis(id: none, body) = _encadre(_titre("Hypothèse", id), luma(250), body, classe: "hypothese")
+#let validation(id: none, body) = _encadre(_titre("À valider", id), luma(250), body, classe: "validation")
 
 // Section à rédiger : visible, donc impossible à remettre par oubli.
-#let todo(body) = block(
-  fill: rgb("#fff4e5"),
-  stroke: (left: 2pt + rgb("#e8a33d")),
-  inset: 8pt,
-  width: 100%,
-)[_À rédiger :_ #body]
+#let todo(body) = context {
+  if target() == "html" {
+    html.elem("div", attrs: (class: "encadre todo"))[_À rédiger :_ #body]
+  } else {
+    block(
+      fill: rgb("#fff4e5"),
+      stroke: (left: 2pt + rgb("#e8a33d")),
+      inset: 8pt,
+      width: 100%,
+    )[_À rédiger :_ #body]
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Document
@@ -54,6 +69,7 @@
   superviseurs: none,
   date: datetime.today().display("[day]/[month]/[year]"),
   logo: "ets.svg",
+  slug: "document", // nom de fichier sur le site (slug.html, slug.pdf)
   departement: "Département de génie logiciel et des TI",
   body,
 ) = {
@@ -71,6 +87,37 @@
 
   show raw.where(block: false): box.with(fill: luma(235), inset: (x: 3pt, y: 0pt), outset: (y: 3pt), radius: 2pt)
   show raw.where(block: true): block.with(fill: luma(240), inset: (x: 1em, y: 0.8em), radius: 4pt, width: 100%)
+
+  let lignes = (
+    (if etudiants.len() > 1 { "Étudiants" } else { "Étudiant" }, etudiants.sorted().join(linebreak())),
+    ("Cours", cours),
+    ("Session", session),
+    ("Groupe", groupe),
+  )
+  if superviseurs != none { lignes.push(("Professeurs attitrés", superviseurs)) }
+  if version != none { lignes.push(("Version", version)) }
+  lignes.push(("Date", date))
+  let infos = table(
+    columns: (auto, 1fr),
+    stroke: 0.4pt + luma(200),
+    inset: (x: 9pt, y: 6pt),
+    fill: (_, row) => if calc.odd(row) { _rayure } else { white },
+    ..lignes.map(((k, v)) => (strong(k), v)).flatten(),
+  )
+
+  // ---- HTML (site) : ni page, ni espacement ; le style vient de site/style.css ----
+  context if target() == "html" {
+    html.elem("link", attrs: (rel: "stylesheet", href: "style.css"))
+    html.elem("nav", html.elem("a", attrs: (href: "index.html"))[← Documentation])
+    html.elem("header", attrs: (class: "titre"))[
+      #heading(level: 1, numbering: none, outlined: false, titre)
+      #if sous-titre != none { html.elem("p", attrs: (class: "sous-titre"), sous-titre) }
+      #html.elem("p", attrs: (class: "pdf"), html.elem("a", attrs: (href: slug + ".pdf"))[Version PDF])
+      #infos
+    ]
+    outline(depth: 2)
+    body
+  } else {
 
   set page(
     paper: "a4",
@@ -114,23 +161,7 @@
     v(1.6em)
 
     set align(left)
-    let lignes = (
-      (if etudiants.len() > 1 { "Étudiants" } else { "Étudiant" }, etudiants.sorted().join(linebreak())),
-      ("Cours", cours),
-      ("Session", session),
-      ("Groupe", groupe),
-    )
-    if superviseurs != none { lignes.push(("Professeurs attitrés", superviseurs)) }
-    if version != none { lignes.push(("Version", version)) }
-    lignes.push(("Date", date))
-
-    table(
-      columns: (auto, 1fr),
-      stroke: 0.4pt + luma(200),
-      inset: (x: 9pt, y: 6pt),
-      fill: (_, row) => if calc.odd(row) { _rayure } else { white },
-      ..lignes.map(((k, v)) => (strong(k), v)).flatten(),
-    )
+    infos
   }
 
   pagebreak()
@@ -139,4 +170,5 @@
   outline(depth: 2, indent: auto)
   pagebreak()
   body
+}
 }

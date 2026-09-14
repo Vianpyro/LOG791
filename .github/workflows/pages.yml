@@ -1,0 +1,55 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  # Même version qu'en local : l'export HTML change d'une version à l'autre.
+  TYPST_VERSION: "0.15.1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Installer Typst
+        run: |
+          curl -fsSL "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
+            | tar -xJ --strip-components=1 -C /usr/local/bin typst-x86_64-unknown-linux-musl/typst
+          typst --version
+
+      # Les paquets @preview (merman) sont téléchargés au premier build.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/typst
+          key: typst-packages-${{ env.TYPST_VERSION }}-${{ hashFiles('**/*.typ') }}
+          restore-keys: typst-packages-${{ env.TYPST_VERSION }}-
+
+      - name: Construire
+        run: sh site/build.sh
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5

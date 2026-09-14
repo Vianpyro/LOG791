@@ -11,6 +11,7 @@
 #show: document.with(
   titre: "Rapport technique final",
   sous-titre: [Plateforme d'apprentissage et d'évaluation de la programmation],
+  slug: "rapport",
 )
 
 = Introduction
