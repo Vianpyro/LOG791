@@ -1,0 +1,142 @@
+// Mise en forme commune. Les documents de contenu n'importent que les blocs
+// (decision, hypothesis, validation, todo) ; seuls les points d'entrée
+// appliquent `document` — sinon un #include dans le rapport réappliquerait
+// la page et le titre.
+//
+// Logo : curl -fsSL https://www.etsmtl.ca/assets/img/ets.svg -o docs/ets.svg
+// (résolu depuis CE fichier ; `logo: none` pour l'omettre).
+
+#let _bleu = rgb("#003087") // bleu marine ÉTS
+#let _rouge = rgb("#DA291C") // rouge ÉTS
+#let _gris = luma(140)
+#let _rayure = luma(248)
+
+// ---------------------------------------------------------------------------
+// Blocs de conception
+// ---------------------------------------------------------------------------
+
+#let _encadre(label, fond, body) = block(
+  fill: fond,
+  inset: 10pt,
+  radius: 3pt,
+  width: 100%,
+)[*#label* #body]
+
+// L'identifiant est facultatif : `#decision(id: "D-03")[...]`. Il sert à la
+// traçabilité (exigence -> décision -> expérience -> résultat).
+#let _titre(nom, id) = if id == none { nom + "." } else { nom + " " + id + "." }
+
+#let decision(id: none, body) = _encadre(_titre("Décision actuelle", id), luma(245), body)
+#let hypothesis(id: none, body) = _encadre(_titre("Hypothèse", id), luma(250), body)
+#let validation(id: none, body) = _encadre(_titre("À valider", id), luma(250), body)
+
+// Section à rédiger : visible, donc impossible à remettre par oubli.
+#let todo(body) = block(
+  fill: rgb("#fff4e5"),
+  stroke: (left: 2pt + rgb("#e8a33d")),
+  inset: 8pt,
+  width: 100%,
+)[_À rédiger :_ #body]
+
+// ---------------------------------------------------------------------------
+// Document
+// ---------------------------------------------------------------------------
+
+#let document(
+  titre: "",
+  sous-titre: none,
+  version: none,
+  cours: "LOG795",
+  nom-cours: "Projet de fin d'études en génie logiciel",
+  etudiants: ("Vianney Veremme",),
+  session: "Automne 2026",
+  groupe: "01",
+  superviseurs: none,
+  date: datetime.today().display("[day]/[month]/[year]"),
+  logo: "ets.svg",
+  departement: "Département de génie logiciel et des TI",
+  body,
+) = {
+  let entete = cours + " \u{2014} " + titre
+
+  set std.document(title: titre, author: etudiants)
+  set text(font: "New Computer Modern", size: 10.5pt, lang: "fr")
+  set par(justify: true, leading: 0.65em, spacing: 1.2em)
+  set heading(numbering: "1.1")
+  show link: set text(fill: blue)
+
+  show heading.where(level: 1): set text(size: 14pt, fill: _bleu)
+  show heading.where(level: 2): set text(size: 12pt, fill: _bleu)
+  show heading.where(level: 3): set text(fill: _bleu)
+
+  show raw.where(block: false): box.with(fill: luma(235), inset: (x: 3pt, y: 0pt), outset: (y: 3pt), radius: 2pt)
+  show raw.where(block: true): block.with(fill: luma(240), inset: (x: 1em, y: 0.8em), radius: 4pt, width: 100%)
+
+  set page(
+    paper: "a4",
+    margin: (top: 2.5cm, bottom: 2.5cm, x: 2.4cm),
+    header: context if counter(page).get().first() > 1 {
+      set text(size: 9pt, fill: _gris)
+      entete
+      v(-0.5em)
+      line(length: 100%, stroke: 0.4pt + luma(210))
+    },
+  )
+
+  // ---- Page de titre ----
+  {
+    set align(center)
+    if logo != none {
+      v(0.4cm)
+      image(logo, height: 4.5cm)
+      v(0.4cm)
+    } else {
+      v(1.6cm)
+    }
+    text(size: 14pt, weight: "bold", "École de technologie supérieure")
+    linebreak()
+    text(size: 10.5pt, fill: _gris, departement)
+
+    v(1.6em)
+    line(length: 58%, stroke: 1.2pt + _rouge)
+    v(1.6em)
+
+    text(size: 22pt, weight: "bold", fill: _bleu, titre)
+    if sous-titre != none {
+      v(0.4em)
+      text(size: 14pt, fill: _bleu, sous-titre)
+    }
+    v(0.8em)
+    text(size: 12pt, style: "italic")[#cours \u{2014} #nom-cours]
+
+    v(1.6em)
+    line(length: 58%, stroke: 0.5pt + luma(190))
+    v(1.6em)
+
+    set align(left)
+    let lignes = (
+      (if etudiants.len() > 1 { "Étudiants" } else { "Étudiant" }, etudiants.sorted().join(linebreak())),
+      ("Cours", cours),
+      ("Session", session),
+      ("Groupe", groupe),
+    )
+    if superviseurs != none { lignes.push(("Professeurs attitrés", superviseurs)) }
+    if version != none { lignes.push(("Version", version)) }
+    lignes.push(("Date", date))
+
+    table(
+      columns: (auto, 1fr),
+      stroke: 0.4pt + luma(200),
+      inset: (x: 9pt, y: 6pt),
+      fill: (_, row) => if calc.odd(row) { _rayure } else { white },
+      ..lignes.map(((k, v)) => (strong(k), v)).flatten(),
+    )
+  }
+
+  pagebreak()
+  set page(numbering: "1")
+  counter(page).update(1)
+  outline(depth: 2, indent: auto)
+  pagebreak()
+  body
+}
