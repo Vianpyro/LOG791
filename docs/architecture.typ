@@ -59,24 +59,24 @@
   #text(size: 22pt, weight: "bold")[
     Architecture de la plateforme
   ]
-
+  
   #v(0.4cm)
-
+  
   #text(size: 15pt)[
     Plateforme d'apprentissage et d'évaluation
     de la programmation
   ]
-
+  
   #v(1.2cm)
-
+  
   Version 0 — document de conception initiale
-
+  
   #v(0.4cm)
-
+  
   Vianney Veremme
-
+  
   #v(0.2cm)
-
+  
   École de technologie supérieure
 ]
 
@@ -139,22 +139,20 @@ Les propriétés suivantes sont considérées comme particulièrement importante
   columns: (2.8cm, 1fr),
   stroke: 0.5pt,
   [*Propriété*], [*Objectif*],
-
+  
   [Sécurité],
   [Limiter les possibilités d'un programme étudiant d'accéder au système d'hébergement, aux autres soumissions ou aux données sensibles.],
-
-  [Performance],
-  [Maintenir une latence acceptable même lors de fortes concentrations de   soumissions.],
-
+  
+  [Performance], [Maintenir une latence acceptable même lors de fortes concentrations de   soumissions.],
+  
   [Scalabilité],
   [Permettre d'augmenter la capacité de jugement indépendamment de la capacité de l'application principale.],
-
+  
   [Reproductibilité],
   [Pouvoir reconstruire l'infrastructure et les environnements de déploiement de manière automatisée.],
-
-  [Extensibilité],
-  [Ajouter un langage ou un type d'exercice sans modifier inutilement le reste du système.],
-
+  
+  [Extensibilité], [Ajouter un langage ou un type d'exercice sans modifier inutilement le reste du système.],
+  
   [Maintenabilité],
   [Conserver des responsabilités clairement séparées et des composants pouvant être testés indépendamment.],
 )
@@ -548,27 +546,21 @@ Chaque exécution doit disposer d'un ensemble explicite de limites.
 On considère notamment :
 
 #table(
-columns: (4cm, 1fr),
-stroke: 0.5pt,
-[*Ressource*], [*Limite envisagée*],
-
-[Temps],
-[Timeout maximal par étape et par soumission.],
-
-[CPU],
-[Nombre de cœurs ou quantité de CPU utilisable.],
-
-[Mémoire],
-[Limite de mémoire par exécution.],
-
-[Processus],
-[Nombre maximal de processus ou threads.],
-
-[Stockage],
-[Espace temporaire maximal.],
-
-[Réseau],
-[Accès réseau explicitement refusé ou limité.],
+  columns: (4cm, 1fr),
+  stroke: 0.5pt,
+  [*Ressource*], [*Limite envisagée*],
+  
+  [Temps], [Timeout maximal par étape et par soumission.],
+  
+  [CPU], [Nombre de cœurs ou quantité de CPU utilisable.],
+  
+  [Mémoire], [Limite de mémoire par exécution.],
+  
+  [Processus], [Nombre maximal de processus ou threads.],
+  
+  [Stockage], [Espace temporaire maximal.],
+  
+  [Réseau], [Accès réseau explicitement refusé ou limité.],
 )
 
 Ces limites doivent être appliquées indépendamment de la correction du programme.
@@ -637,13 +629,12 @@ Aucun serveur de cache dédié (Redis, Memcached) n'est prévu initialement. Le 
   columns: (3.2cm, 1fr),
   stroke: 0.5pt,
   [*Emplacement*], [*Contenu*],
-
+  
   [Navigateur / nginx],
   [Fichiers statiques versionnés par empreinte et servis avec des en-têtes `Cache-Control` de longue durée.],
-
-  [API],
-  [Données d'exercice publiées, peu modifiées, conservées en mémoire du processus.],
-
+  
+  [API], [Données d'exercice publiées, peu modifiées, conservées en mémoire du processus.],
+  
   [Juge],
   [Images et chaînes de compilation préchargées, sandboxes préparées à l'avance et, éventuellement, artefacts compilés des tests privés.],
 )
@@ -1109,7 +1100,7 @@ Une exécution doit idéalement traverser plusieurs niveaux de protection :
 
 #mermaid(
   "
-  flowchart TD
+  flowchart LR
     C[Code étudiant]            --> V[Validation applicative]
     V                           --> J[Judge]
     J                           --> R[Limites de ressources]
@@ -1203,7 +1194,7 @@ Le niveau de reproductibilité recherché est :
 
 #mermaid(
   "
-  flowchart TD
+  flowchart LR
     G[Dépôt Git] --> SRC[Code source de l'application]
     G            --> INF[Infrastructure]
 
@@ -1227,54 +1218,34 @@ La reproductibilité ne signifie pas nécessairement que chaque donnée de produ
 Les choix suivants restent conditionnels ou devront être confirmés expérimentalement :
 
 #table(
-columns: (3.2cm, 5cm, 1fr),
-stroke: 0.5pt,
-
-[*Sujet*], [*Position actuelle*], [*Validation*],
-
-[OS principal],
-[NixOS si accepté par l'établissement],
-[Compatibilité avec l'infrastructure et capacité d'administration],
-
-[Provisionnement],
-[Terraform si une API compatible est disponible],
-[Capacités réelles de l'environnement ÉTS],
-
-[Configuration],
-[NixOS déclaratif],
-[Reproductibilité et déploiement],
-
-[Orchestration],
-[Ansible lorsque nécessaire],
-[Besoin réel après adoption de NixOS],
-
-[Runtime],
-[Docker ou Podman],
-[Compatibilité avec le mécanisme d'isolation],
-
-[Isolation],
-[gVisor initialement envisagé],
-[Benchmark et tests de sécurité],
-
-[Alternative d'isolation],
-[Firecracker],
-[Benchmark comparatif],
-
-[Topologie],
-[Une ou plusieurs VM],
-[Charge, sécurité et ressources disponibles],
-
-[Reverse proxy],
-[nginx, sans load balancer dédié],
-[Prise en charge du TLS par l'établissement],
-
-[File],
-[PostgreSQL (`SKIP LOCKED`)],
-[Tests de charge d'examen],
-
-[Cache],
-[Aucun service dédié ; cache côté juge],
-[Profilage du coût d'une soumission],
+  columns: (3.2cm, 5cm, 1fr),
+  stroke: 0.5pt,
+  
+  [*Sujet*], [*Position actuelle*], [*Validation*],
+  
+  [OS principal],
+  [NixOS si accepté par l'établissement],
+  [Compatibilité avec l'infrastructure et capacité d'administration],
+  
+  [Provisionnement], [Terraform si une API compatible est disponible], [Capacités réelles de l'environnement ÉTS],
+  
+  [Configuration], [NixOS déclaratif], [Reproductibilité et déploiement],
+  
+  [Orchestration], [Ansible lorsque nécessaire], [Besoin réel après adoption de NixOS],
+  
+  [Runtime], [Docker ou Podman], [Compatibilité avec le mécanisme d'isolation],
+  
+  [Isolation], [gVisor initialement envisagé], [Benchmark et tests de sécurité],
+  
+  [Alternative d'isolation], [Firecracker], [Benchmark comparatif],
+  
+  [Topologie], [Une ou plusieurs VM], [Charge, sécurité et ressources disponibles],
+  
+  [Reverse proxy], [nginx, sans load balancer dédié], [Prise en charge du TLS par l'établissement],
+  
+  [File], [PostgreSQL (`SKIP LOCKED`)], [Tests de charge d'examen],
+  
+  [Cache], [Aucun service dédié ; cache côté juge], [Profilage du coût d'une soumission],
 )
 
 L'architecture sera considérée comme stabilisée uniquement après validation des hypothèses ayant un impact important sur la sécurité, la performance ou l'opérabilité du système.
@@ -1285,13 +1256,13 @@ Plusieurs questions importantes restent volontairement ouvertes.
 
 1. PostgreSQL suffit-il comme file de soumissions sous une charge d'examen ?
 2. Quelle politique d'ordonnancement minimise la latence perçue pendant un
-   examen ?
+  examen ?
 3. Combien de workers sont nécessaires pour une charge de 400 étudiants ?
 4. Quelle quantité de ressources doit être attribuée à chaque soumission ?
 5. Quel est le coût réel de gVisor pour des compilations réalistes ?
 6. Dans quelles conditions Firecracker devient-il préférable à gVisor ?
 7. Quelle stratégie permet de limiter efficacement les attaques par
-   consommation de ressources ?
+  consommation de ressources ?
 8. Quelle granularité doit avoir l'abstraction des langages ?
 9. Comment gérer les dépendances spécifiques à chaque langage ?
 10. Quelle quantité d'état doit être persistée dans PostgreSQL ?
@@ -1346,7 +1317,7 @@ Les sections suivantes devraient progressivement être complétées par :
 #v(1cm)
 
 #align(center)[
-*Version 0 — Architecture initiale*
+  *Version 0 — Architecture initiale*
 ]
 
 === Ce que je changerais déjà par rapport à une simple documentation technique
