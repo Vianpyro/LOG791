@@ -255,6 +255,16 @@ L'architecture générale envisagée est la suivante :
         T[Tests privés]
     end
 
+    subgraph CONTENT[Contenu]
+        CR[Dépôt de contenu]
+        PUB[Publication<br/>validation · projection · rendu Typst]
+        REL[(Releases publiques)]
+    end
+
+    CR --> PUB --> REL
+    REL -->|lecture seule| API
+    CR -->|données d'évaluation| S
+
     B -->|OIDC| IDP
     B -->|HTTPS + token| RP
     RP --> API
@@ -283,6 +293,12 @@ L'architecture générale envisagée est la suivante :
 )
 
 Cette représentation décrit les responsabilités plutôt qu'une topologie de déploiement définitive.
+
+Le contenu pédagogique suit un chemin distinct des soumissions : il est publié à partir de son propre dépôt, sans passer par l'API ni par la file.
+
+#decision[
+  L'API ne voit que la projection publique du contenu. Seul le moteur de jugement lit les données d'évaluation. Le cycle de vie du contenu est détaillé dans la section dédiée.
+]
 
 == Application et API
 
@@ -835,6 +851,223 @@ L'architecture doit donc favoriser un modèle déclaratif.
 
 Le moteur d'évaluation interprète les données de l'exercice et sélectionne le runtime correspondant au langage demandé.
 
+= Cycle de vie du contenu
+
+Dans CTester, la plupart des incidents liés au contenu ne venaient pas du juge, mais du chemin entre le dépôt des enseignants et ce que l'étudiant reçoit : un corrigé exposé par accident, un exercice qui disparaît du menu la veille du cours, un catalogue vide servi en silence. Ce chemin est donc traité comme un composant architectural à part entière.
+
+== Vue d'ensemble
+
+#mermaid(
+  "
+  flowchart LR
+    D[Dépôt privé<br/>du contenu] --> V[Validation]
+    V --> P[Projection publique]
+    P --> R[Release immuable<br/>révision = hachage]
+    R --> PTR[Pointeur<br/>current]
+
+    PTR --> API[API<br/>données publiques]
+    D --> J[Juge<br/>tests privés]
+    PTR -.->|revalide l'ouverture| J
+  ",
+  document-context: true,
+  width: 100%,
+)
+
+Le contenu est édité dans un dépôt distinct du code de la plateforme. Chaque exercice y regroupe ses métadonnées, son énoncé, ses fichiers publics (gabarits) et ses données d'évaluation privées :
+
+```text
+exercises/<id>/
+├── exercise.json      métadonnées, compétences, règles d'ouverture
+├── statement.md       ou statement.typ, jamais les deux
+├── public/            gabarits remis à l'étudiant
+└── assessment/        tests, cas, configuration du juge (privé)
+```
+
+#decision[
+  La publication est déclenchée par une modification du dépôt de contenu et ne nécessite aucun redéploiement ni redémarrage de l'application ou du juge.
+]
+
+== Validation
+
+Un contenu invalide ne doit jamais remplacer la publication active.
+
+La validation vérifie notamment le schéma des métadonnées, l'unicité des identifiants, la cohérence des collections et l'absence d'ambiguïté, par exemple deux formats d'énoncé pour un même exercice. Elle échoue *avant* la première écriture.
+
+#decision[
+  Une erreur de validation arrête la publication en nommant l'exercice et le champ fautifs. La release précédente reste servie.
+]
+
+== Projection publique
+
+La release publique n'est pas une copie du dépôt de contenu. Elle est reconstruite champ par champ à partir d'une liste explicite de ce qui peut être montré.
+
+Une seconde vérification relit ensuite la projection produite et refuse de publier si une clé réservée aux données d'évaluation (`answer`, `expect`, `cases`, `stdin`, chemins internes…) y apparaît.
+
+#decision[
+  La projection est construite par énumération positive (ce qui est publié) et contrôlée par énumération négative (ce qui ne doit jamais l'être). La première protège contre l'oubli d'aujourd'hui, la seconde contre le champ ajouté demain.
+]
+
+Le catalogue publié contient *tous* les exercices, y compris ceux qui ne sont pas encore ouverts, avec leur date d'ouverture. Le détail d'un exercice (énoncé, gabarits, questions) n'est écrit que pour les exercices ouverts.
+
+#hypothesis[
+  Montrer un exercice verrouillé avec sa date est préférable à le masquer : dans CTester, un exercice absent du menu était perçu par les étudiants comme une panne.
+]
+
+== Releases et rollback
+
+Chaque publication produit un répertoire de release dont l'identifiant est le hachage de son contenu. Republier un contenu inchangé ne crée rien, et une modification crée une nouvelle release qui coexiste avec les précédentes.
+
+La release active est désignée par un pointeur, un fichier plutôt qu'un lien symbolique. Un montage de conteneur résout le lien au démarrage, donc un changement de lien ne serait visible qu'au redémarrage.
+
+#decision[
+  Le rollback du contenu consiste à réécrire le pointeur vers une release précédente. Il est instantané et ne redéploie aucun composant.
+]
+
+L'élagage conserve les dernières releases selon une date de publication écrite dans leur manifeste, et non selon la date de modification du système de fichiers. Dans CTester, cette dernière avait une granularité différente sous Windows et sous Linux, ce qui faisait supprimer une release qu'on avait promis de garder.
+
+== Ouverture dans le temps
+
+Chaque exercice porte un état (`draft`, `scheduled`, `open`, `archived`) et, au besoin, une date d'ouverture.
+
+#decision[
+  Une seule fonction décide si un exercice est accessible à un instant donné. Un exercice `scheduled` dont la date est passée est ouvert, sans commit ni tâche planifiée le matin du cours.
+]
+
+Toutes les lectures d'un exercice (détail, soumission, brouillon, discussion) passent par une porte unique qui résout l'identifiant dans la release active et refuse ce qui n'est pas ouvert. Un lien partagé en avance ne contourne donc rien.
+
+== Double contrôle par le juge
+
+L'API ne transmet au juge qu'un identifiant d'exercice. Le juge résout lui-même cet identifiant contre la release active avant de lire les données d'évaluation.
+
+#decision[
+  Le juge ne fait pas confiance à l'API sur l'ouverture d'un exercice. Une API compromise peut mentir sur l'auteur d'une soumission, mais ne peut pas obtenir l'exécution des tests d'un exercice fermé.
+]
+
+== Aperçu enseignant
+
+Un enseignant doit pouvoir consulter et soumettre un exercice avant son ouverture, dans les conditions réelles, sans l'ouvrir aux étudiants.
+
+La projection écrit donc une copie restreinte des exercices non ouverts, servie uniquement aux comptes enseignants et jamais mise en cache par un intermédiaire. Le rôle est recalculé côté serveur à chaque requête, et à nouveau par le juge, à partir de l'identité authentifiée.
+
+#decision[
+  L'aperçu est une propriété de l'identité authentifiée, pas un drapeau global. Le comportement par défaut de la porte d'accès est fermé.
+]
+
+== Preuve du contenu
+
+Un test incorrect produit un verdict faux que l'étudiant ne peut pas contester.
+
+#decision[
+  Chaque exercice est accompagné d'une solution de référence conservée hors du dépôt publié. Un contrôle compile cette solution et la fait passer dans le véritable juge avant l'ouverture. Un exercice sans solution est signalé comme « non prouvé ».
+]
+
+#validation[
+  Ce contrôle doit être intégré à la CI du dépôt de contenu, et les exercices non prouvés doivent être visibles avant leur date d'ouverture.
+]
+
+= Rendu des énoncés
+
+Un énoncé de programmation contient du texte, du code, des formules et parfois des tableaux, des figures ou des diagrammes. Deux formats sont pris en charge, avec des modèles de rendu opposés.
+
+#table(
+  columns: (2.8cm, 1fr, 1fr),
+  stroke: 0.5pt,
+  [], [*Markdown*], [*Typst*],
+  [Usage], [Défaut, la grande majorité des énoncés], [Tableaux, diagrammes, figures, mise en page multi-page],
+  [Rendu], [Dans le navigateur, à l'affichage], [À la publication, dans un conteneur],
+  [Livré], [Texte source], [HTML, avec SVG clair et sombre en repli],
+  [Accessibilité], [Complète], [Réduite pour le SVG],
+)
+
+== Markdown
+
+Le Markdown est rendu côté client par une grammaire volontairement restreinte : paragraphes, titres, listes, code en ligne, blocs de code colorés et emphase. Une bibliothèque générale n'est pas utilisée.
+
+Cette décision découle de deux constats faits dans CTester :
+
+- une bibliothèque Markdown complète et son assainisseur pesaient plusieurs fois le reste de la page, sur le chemin des étudiants non connectés ;
+- les règles de CommonMark sont mal adaptées au C : l'astérisque est aussi l'opérateur de déréférencement et de multiplication, et `*quotient et *reste` devient de l'italique en perdant ses deux astérisques.
+
+#decision[
+  L'emphase n'est reconnue que lorsque le délimiteur est collé à un mot du côté intérieur et séparé du texte du côté extérieur. Le soulignement `_` n'est pas une syntaxe d'emphase, car il apparaît dans la plupart des identifiants.
+]
+
+Les formules sont délimitées explicitement par `$…$` et converties en MathML natif. Le navigateur les dessine sans bibliothèque ni police externe, ce qui ne demande aucune exception à la politique de sécurité du contenu (CSP).
+
+#decision[
+  Une formule n'est jamais devinée. En C, `z/4` est une division entière et non une fraction, et une barre de fraction enseignerait le contraire. Une formule qui ne s'analyse pas est affichée comme du code en ligne, jamais comme une erreur.
+]
+
+Le contenu Markdown provient du dépôt privé relu par l'équipe enseignante. Toute sortie HTML est néanmoins construite à partir de fragments échappés.
+
+#hypothesis[
+  Les contenus rédigés par les étudiants (forum, discussions) demandent une chaîne différente : échappement avant l'analyse et assainissement par liste blanche à chaque affichage. Les deux chaînes ne doivent pas être fusionnées.
+]
+
+== Typst
+
+Typst est réservé à ce que la grammaire Markdown ne permet pas d'écrire.
+
+#mermaid(
+  "
+  flowchart LR
+    S[statement.typ] --> C[Copie sans<br/>données privées]
+    C --> T[Conteneur typst<br/>--root · sans réseau]
+    L[Gabarit partagé<br/>paquets vendorés] --> T
+    T --> H[HTML]
+    T --> SV[SVG clair / sombre]
+    H --> R[Release]
+    SV --> R
+  ",
+  document-context: true,
+  width: 100%,
+)
+
+#decision[
+  Rien n'est compilé à la requête. Typst est exécuté pendant la publication, et l'étudiant reçoit des fichiers statiques. Le service exposé à Internet n'a ni compilateur Typst, ni accès au contenu privé, ni accès au runtime de conteneurs.
+]
+
+La compilation traite le document comme non fiable, même s'il est rédigé par l'équipe enseignante :
+
+- elle est faite depuis une *copie* de l'exercice qui ne contient pas les données d'évaluation ;
+- la racine du projet Typst est limitée à cette copie, ce qui refuse les chemins relatifs sortants et ré-enracine les chemins absolus ;
+- le conteneur n'a pas d'accès réseau, et les paquets utilisés (gabarit du cours, Mermaid) sont vendorés ;
+- un délai maximal borne un document lourd qui bloquerait la publication.
+
+Le gabarit du cours est distribué comme paquet Typst local. L'enseignant n'écrit aucun préambule : la plateforme applique le gabarit puis inclut l'énoncé.
+
+=== Thèmes et formats
+
+Un SVG est peint une fois pour toutes et ne peut pas suivre le thème de la page. Chaque énoncé est donc rendu deux fois, en clair et en sombre.
+
+L'export HTML de Typst est privilégié lorsqu'il est complet. La publication détecte les éléments ignorés par l'export HTML et ne publie alors que les SVG.
+
+#decision[
+  Le HTML est affiché en priorité et le SVG sert de repli, sans choix exposé à l'étudiant. Un échec du HTML ne bloque pas la publication, un échec du SVG la bloque.
+]
+
+=== Cache de rendu
+
+La clé de cache couvre tout ce dont le rendu dépend : version de Typst, gabarit, paquets vendorés et arbre de l'exercice *sauf* ses données d'évaluation. Corriger un cas de test ne recompile donc aucun énoncé.
+
+Les fichiers rendus entrent dans le hachage de la release. Une modification du gabarit produit alors une nouvelle release, qui peut être annulée par le pointeur comme toute autre publication.
+
+#decision[
+  Le cache de rendu est adressé par contenu et conservé hors du répertoire des releases, qui est élagué à chaque publication.
+]
+
+=== Limite d'accessibilité
+
+Typst vectorise ses glyphes dans le SVG : le texte n'y est ni sélectionnable, ni trouvable par recherche, ni lisible par un lecteur d'écran. Le HTML n'a pas cette limite, mais il n'est pas toujours disponible.
+
+#decision[
+  Markdown reste le format par défaut. Typst n'est utilisé que pour un contenu qui ne peut pas être exprimé autrement.
+]
+
+#validation[
+  La maturité de l'export HTML de Typst devra être réévaluée à chaque version. Si elle devient suffisante, le repli SVG pourra être abandonné et la limite d'accessibilité disparaîtra.
+]
+
 = Infrastructure
 
 L'infrastructure doit être reproductible, versionnée et suffisamment indépendante des opérations manuelles pour permettre de reconstruire un environnement de déploiement de manière fiable.
@@ -1270,6 +1503,7 @@ Plusieurs questions importantes restent volontairement ouvertes.
 12. Quelle observabilité est nécessaire pour diagnostiquer un examen en cours ?
 13. Comment intégrer proprement Moodle et Safe Exam Browser ?
 14. Quelle partie de l'architecture doit être commune aux différents cours ?
+15. Comment les données d'évaluation sont-elles distribuées aux juges lorsqu'ils sont répartis sur plusieurs machines : montage partagé, copie à la publication ou artefact versionné ?
 
 = Méthodologie de validation
 
