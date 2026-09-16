@@ -62,7 +62,6 @@
 #let document(
   titre: "",
   sous-titre: none,
-  version: none,
   cours: "LOG795",
   nom-cours: "Projet de fin d'études en génie logiciel",
   etudiants: ("Vianney Veremme",),
@@ -97,7 +96,6 @@
     ("Groupe", groupe),
   )
   if superviseurs != none { lignes.push(("Professeurs attitrés", superviseurs)) }
-  if version != none { lignes.push(("Version", version)) }
   lignes.push(("Date", date))
   let infos = table(
     columns: (auto, 1fr),
