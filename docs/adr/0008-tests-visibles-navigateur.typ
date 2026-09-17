@@ -21,9 +21,17 @@ Le serveur est situé à l'ÉTS, sur le même réseau que les salles d'examen.
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
   [*Option*], [*Avantages*], [*Inconvénients*],
-  [Tout exécuter sur le serveur], [Un seul chemin d'exécution, fidèle au juge.], [Chaque clic occupe la file, même pour un test visible qui échoue.],
-  [Tests visibles dans le navigateur pour tous les langages], [Charge serveur minimale.], [Irréaliste pour Java, Rust ou Go.],
-  [Tests visibles dans le navigateur pour les langages où c'est facile], [Chaque langage déchargé raccourcit la file de tous ; les tests visibles sont publics, donc rien ne fuit.], [Deux chemins d'exécution ; risque d'écart avec le juge.],
+  [Tout exécuter sur le serveur],
+  [Un seul chemin d'exécution, fidèle au juge.],
+  [Chaque clic occupe la file, même pour un test visible qui échoue.],
+
+  [Tests visibles dans le navigateur pour tous les langages],
+  [Charge serveur minimale.],
+  [Irréaliste pour Java, Rust ou Go.],
+
+  [Tests visibles dans le navigateur pour les langages où c'est facile],
+  [Chaque langage déchargé raccourcit la file de tous ; les tests visibles sont publics, donc rien ne fuit.],
+  [Deux chemins d'exécution ; risque d'écart avec le juge.],
 )
 
 === Décision

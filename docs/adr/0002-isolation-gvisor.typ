@@ -15,9 +15,18 @@ Le code étudiant est non fiable. Un conteneur classique partage le noyau de l'h
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
   [*Option*], [*Avantages*], [*Inconvénients*],
-  [gVisor (Systrap)], [Noyau applicatif en espace utilisateur ; fonctionne sans KVM ; s'intègre à Docker/Podman comme runtime OCI ; éprouvé dans CTester.], [Surcoût sur les appels système ; certaines limites cgroup ne comptent pas les processus internes.],
-  [Firecracker], [Frontière forte (microVM sous KVM).], [Exige KVM, donc la virtualisation imbriquée ; cycle de vie des microVM à gérer.],
-  [WebAssembly], [Sandbox forte par construction.], [Chaîne d'outils et bibliothèques par langage ; ne couvre pas un cours multi-langage général.],
+  [gVisor (Systrap)],
+  [Noyau applicatif en espace utilisateur ; fonctionne sans KVM ; s'intègre à Docker/Podman comme runtime OCI ; éprouvé dans CTester.],
+  [Surcoût sur les appels système ; certaines limites cgroup ne comptent pas les processus internes.],
+
+  [Firecracker],
+  [Frontière forte (microVM sous KVM).],
+  [Exige KVM, donc la virtualisation imbriquée ; cycle de vie des microVM à gérer.],
+
+  [WebAssembly],
+  [Sandbox forte par construction.],
+  [Chaîne d'outils et bibliothèques par langage ; ne couvre pas un cours multi-langage général.],
+
   [Conteneur seul (runc)], [Le plus simple et le plus rapide.], [Frontière insuffisante contre du code hostile.],
 )
 

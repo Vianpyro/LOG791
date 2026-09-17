@@ -15,8 +15,13 @@ L'établissement fournit une VM sous Ubuntu LTS ; NixOS (ADR-0003) n'est pas ret
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
   [*Option*], [*Avantages*], [*Inconvénients*],
-  [Ubuntu + Ansible dans le monorepo], [Connu, supporté par l'établissement ; déjà utilisé pour CTester ; versionné avec l'application.], [Convergence impérative : l'état réel peut dériver ; pas de rollback système natif.],
-  [Ubuntu + images de conteneurs seules], [Application reproductible.], [L'hôte (runtime, gVisor, pare-feu) reste configuré à la main.],
+  [Ubuntu + Ansible dans le monorepo],
+  [Connu, supporté par l'établissement ; déjà utilisé pour CTester ; versionné avec l'application.],
+  [Convergence impérative : l'état réel peut dériver ; pas de rollback système natif.],
+
+  [Ubuntu + images de conteneurs seules],
+  [Application reproductible.],
+  [L'hôte (runtime, gVisor, pare-feu) reste configuré à la main.],
 )
 
 === Décision

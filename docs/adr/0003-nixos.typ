@@ -15,9 +15,17 @@ L'infrastructure doit pouvoir être reconstruite à partir du dépôt. Dans CTes
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
   [*Option*], [*Avantages*], [*Inconvénients*],
-  [NixOS], [Configuration déclarative et versionnée ; générations et rollback du système entier.], [Courbe d'apprentissage ; peut ne pas être supporté par l'équipe d'infrastructure.],
-  [Distribution classique + Ansible], [Connue, supportée ; déjà utilisée pour CTester.], [Convergence impérative : l'état réel peut dériver de ce que le dépôt décrit.],
-  [Distribution classique + images de conteneurs], [Application reproductible.], [L'hôte (runtime, gVisor, pare-feu) reste configuré à la main.],
+  [NixOS],
+  [Configuration déclarative et versionnée ; générations et rollback du système entier.],
+  [Courbe d'apprentissage ; peut ne pas être supporté par l'équipe d'infrastructure.],
+
+  [Distribution classique + Ansible],
+  [Connue, supportée ; déjà utilisée pour CTester.],
+  [Convergence impérative : l'état réel peut dériver de ce que le dépôt décrit.],
+
+  [Distribution classique + images de conteneurs],
+  [Application reproductible.],
+  [L'hôte (runtime, gVisor, pare-feu) reste configuré à la main.],
 )
 
 === Décision

@@ -59,20 +59,20 @@ Les propriétés suivantes sont considérées comme particulièrement importante
   columns: (2.8cm, 1fr),
   stroke: 0.5pt,
   [*Propriété*], [*Objectif*],
-  
+
   [Sécurité],
   [Limiter les possibilités d'un programme étudiant d'accéder au système d'hébergement, aux autres soumissions ou aux données sensibles.],
-  
+
   [Performance], [Maintenir une latence acceptable même lors de fortes concentrations de   soumissions.],
-  
+
   [Scalabilité],
   [Permettre d'augmenter la capacité de jugement indépendamment de la capacité de l'application principale.],
-  
+
   [Reproductibilité],
   [Pouvoir reconstruire l'infrastructure et les environnements de déploiement de manière automatisée.],
-  
+
   [Extensibilité], [Ajouter un langage ou un type d'exercice sans modifier inutilement le reste du système.],
-  
+
   [Maintenabilité],
   [Conserver des responsabilités clairement séparées et des composants pouvant être testés indépendamment.],
 )
@@ -326,7 +326,7 @@ Le modèle conceptuel envisagé est :
         Other[...] -.-> Other1[...]
     end
 
-    LR --> C 
+    LR --> C
     LR --> PY
     LR --> JAVA
     LR --> RUST
@@ -487,17 +487,17 @@ On considère notamment :
   columns: (4cm, 1fr),
   stroke: 0.5pt,
   [*Ressource*], [*Limite envisagée*],
-  
+
   [Temps], [Timeout maximal par étape et par soumission.],
-  
+
   [CPU], [Nombre de cœurs ou quantité de CPU utilisable.],
-  
+
   [Mémoire], [Limite de mémoire par exécution.],
-  
+
   [Processus], [Nombre maximal de processus ou threads.],
-  
+
   [Stockage], [Espace temporaire maximal.],
-  
+
   [Réseau], [Accès réseau explicitement refusé ou limité.],
 )
 
@@ -575,12 +575,12 @@ Aucun serveur de cache dédié (Redis, Memcached) n'est prévu initialement. Le 
   columns: (3.2cm, 1fr),
   stroke: 0.5pt,
   [*Emplacement*], [*Contenu*],
-  
+
   [Navigateur / nginx],
   [Fichiers statiques versionnés par empreinte et servis avec des en-têtes `Cache-Control` de longue durée.],
-  
+
   [API], [Données d'exercice publiées, peu modifiées, conservées en mémoire du processus.],
-  
+
   [Juge],
   [Images et chaînes de compilation préchargées, sandboxes préparées à l'avance et, éventuellement, artefacts compilés des tests privés.],
 )
@@ -1385,34 +1385,36 @@ Les choix suivants restent conditionnels ou devront être confirmés expériment
 #table(
   columns: (3.2cm, 5cm, 1fr),
   stroke: 0.5pt,
-  
+
   [*Sujet*], [*Position actuelle*], [*Validation*],
-  
-  [OS principal],
-  [Ubuntu LTS (imposé par l'établissement)],
-  [Compatibilité de gVisor avec le noyau fourni],
+
+  [OS principal], [Ubuntu LTS (imposé par l'établissement)], [Compatibilité de gVisor avec le noyau fourni],
 
   [Provisionnement], [Terraform si une API compatible est disponible], [Capacités réelles de l'environnement ÉTS],
 
   [Configuration], [Playbooks Ansible], [Détection de dérive, snapshots de VM et accès `sudo`],
-  
+
   [Runtime], [Docker ou Podman], [Compatibilité avec le mécanisme d'isolation],
-  
+
   [Isolation], [gVisor initialement envisagé], [Benchmark et tests de sécurité],
-  
+
   [Alternative d'isolation], [Firecracker], [Benchmark comparatif],
-  
+
   [Topologie], [Une ou plusieurs VM], [Charge, sécurité et ressources disponibles],
-  
+
   [Reverse proxy], [nginx, sans load balancer dédié], [Prise en charge du TLS par l'établissement],
-  
+
   [File], [PostgreSQL (`SKIP LOCKED`)], [Tests de charge d'examen],
-  
+
   [Cache], [Aucun service dédié ; cache côté juge], [Profilage du coût d'une soumission],
 
-  [Mesure de performance], [Comptage d'instructions sous QEMU (ADR-0007)], [Déterminisme sous charge et compatibilité avec gVisor],
+  [Mesure de performance],
+  [Comptage d'instructions sous QEMU (ADR-0007)],
+  [Déterminisme sous charge et compatibilité avec gVisor],
 
-  [Tests visibles], [Navigateur pour les langages faciles (ADR-0008)], [Gain de charge, écarts avec le juge, Safe Exam Browser],
+  [Tests visibles],
+  [Navigateur pour les langages faciles (ADR-0008)],
+  [Gain de charge, écarts avec le juge, Safe Exam Browser],
 )
 
 L'architecture sera considérée comme stabilisée uniquement après validation des hypothèses ayant un impact important sur la sécurité, la performance ou l'opérabilité du système.

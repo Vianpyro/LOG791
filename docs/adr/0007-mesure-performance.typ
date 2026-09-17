@@ -21,9 +21,17 @@ La plateforme tourne sous gVisor (ADR-0002), dans une VM où KVM n'est pas garan
   stroke: 0.5pt,
   [*Option*], [*Avantages*], [*Inconvénients*],
   [Temps réel ou temps CPU], [Aucun surcoût ; simple.], [Bruit de 5 à 30 % ; dépend du langage.],
-  [Compteurs matériels (`perf`)], [Précis, sans ralentissement.], [Rarement exposés dans une VM ; indisponibles sous gVisor.],
-  [Valgrind (`callgrind`)], [Compte d'instructions déterministe.], [Ralentissement de 20 à 100$times$ ; fragile avec le JIT de la JVM.],
-  [QEMU en mode utilisateur avec un plugin de comptage d'instructions], [Compte déterministe ; ni KVM ni compteurs matériels requis ; ralentissement de 5 à 10$times$.], [Compatibilité avec gVisor Systrap à confirmer.],
+  [Compteurs matériels (`perf`)],
+  [Précis, sans ralentissement.],
+  [Rarement exposés dans une VM ; indisponibles sous gVisor.],
+
+  [Valgrind (`callgrind`)],
+  [Compte d'instructions déterministe.],
+  [Ralentissement de 20 à 100$times$ ; fragile avec le JIT de la JVM.],
+
+  [QEMU en mode utilisateur avec un plugin de comptage d'instructions],
+  [Compte déterministe ; ni KVM ni compteurs matériels requis ; ralentissement de 5 à 10$times$.],
+  [Compatibilité avec gVisor Systrap à confirmer.],
 )
 
 === Décision

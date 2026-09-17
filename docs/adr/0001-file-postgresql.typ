@@ -18,9 +18,12 @@ L'application et le moteur de jugement doivent être découplés par une file ca
   [PostgreSQL (`SKIP LOCKED`, `LISTEN/NOTIFY`)],
   [Aucun service ajouté ; file et état des soumissions dans la même transaction ; priorités et reprises exprimées en SQL.],
   [Débit plafonné par la base ; pas conçu comme broker.],
+
   [Redis], [Rapide, simple.], [Service de plus ; persistance et transactions séparées de l'état.],
   [RabbitMQ], [Sémantique de file complète.], [Service lourd à opérer pour une seule VM.],
-  [Répertoire de spool (CTester)], [Aucune dépendance ; éprouvé en production.], [Un seul hôte ; ordonnancement et équité à réécrire à la main.],
+  [Répertoire de spool (CTester)],
+  [Aucune dépendance ; éprouvé en production.],
+  [Un seul hôte ; ordonnancement et équité à réécrire à la main.],
 )
 
 === Décision

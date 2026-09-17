@@ -16,8 +16,13 @@ En examen, la plateforme doit refuser un navigateur autre que Safe Exam Browser 
   stroke: 0.5pt,
   [*Option*], [*Avantages*], [*Inconvénients*],
   [User-Agent], [Trivial.], [Falsifiable ; ne prouve rien.],
-  [Se fier à Moodle (`quizaccess_seb`)], [Rien à écrire.], [Ne protège pas les requêtes adressées directement à la plateforme.],
-  [Vérifier la Config Key sur chaque requête d'examen], [Lie l'accès à un fichier `.seb` précis.], [Il faut reconstruire l'URL d'origine derrière nginx.],
+  [Se fier à Moodle (`quizaccess_seb`)],
+  [Rien à écrire.],
+  [Ne protège pas les requêtes adressées directement à la plateforme.],
+
+  [Vérifier la Config Key sur chaque requête d'examen],
+  [Lie l'accès à un fichier `.seb` précis.],
+  [Il faut reconstruire l'URL d'origine derrière nginx.],
 )
 
 === Décision
