@@ -82,5 +82,6 @@ Technologies : Python/FastAPI, PostgreSQL, gVisor, Docker ou Podman, Ubuntu LTS 
   [R2], [Évasion du bac à sable par du code hostile.], [Défense en profondeur, pas de réseau ni de secrets dans le juge, tests hostiles en CI.],
   [R3], [Charge d'examen non tenue.], [Mesures tôt ; capacité réservée ; contre-pression.],
   [R4], [Portée trop large pour une seule personne.], [Exclusions explicites ; prototype centré sur le jugement.],
-  [R5], [Accès Moodle / SEB bloqués.], [Intégration traitée comme optionnelle.],
+  [R5], [La plateforme ne fonctionne pas sous SEB (condition nécessaire au projet).], [SEB est libre et s'installe sans l'ÉTS : prototype testé sous SEB dès les premières semaines, avec un `.seb` de test (ADR-0009) ; confirmer tôt la version de SEB et l'image des postes d'examen ; démarrage direct par lien `sebs://`, sans Moodle.],
+  [R6], [Accès Moodle bloqué.], [Intégration Moodle optionnelle : l'examen démarre directement dans la plateforme.],
 )
