@@ -4,7 +4,7 @@
 #show: document.with(
   titre: "Plan de projet",
   sous-titre: [Plateforme d'apprentissage et d'évaluation de la programmation],
-  superviseurs: [Patrick Cardinal],
+  superviseurs: ([Patrick Cardinal],),
   slug: "plan-de-projet",
 )
 

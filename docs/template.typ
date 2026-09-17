@@ -95,7 +95,12 @@
     ("Session", session),
     ("Groupe", groupe),
   )
-  if superviseurs != none { lignes.push(("Professeurs attitrés", superviseurs)) }
+  if superviseurs != none {
+    lignes.push((
+      if superviseurs.len() > 1 { "Professeurs attitrés" } else { "Professeur attitré" },
+      superviseurs.join(linebreak()),
+    ))
+  }
   lignes.push(("Date", date))
   let infos = table(
     columns: (auto, 1fr),
