@@ -245,14 +245,14 @@ La plateforme est initialement déployée sur une VM unique dont les ressources 
 
 Un reverse proxy nginx constitue le seul point d'entrée HTTP de la plateforme. Il est responsable de :
 
-- la terminaison TLS (certificats gérés par NixOS via ACME) ;
+- la terminaison TLS (certificats ACME obtenus et renouvelés par certbot) ;
 - la distribution des fichiers statiques de l'interface web ;
 - la compression des réponses ;
 - la limitation du débit des requêtes (`limit_req`), notamment sur les soumissions ;
 - le relais des connexions longues (SSE ou WebSocket) utilisées pour notifier les verdicts.
 
 #decision[
-  nginx est retenu pour sa faible empreinte mémoire, sa limitation de débit native et son intégration déclarative dans NixOS.
+  nginx est retenu pour sa faible empreinte mémoire, sa limitation de débit native et sa disponibilité dans les dépôts Ubuntu.
 ]
 
 #hypothesis[
@@ -1004,11 +1004,12 @@ L'architecture envisagée distingue plusieurs niveaux de responsabilité :
 
     T -.->|Provisionnement si disponible| VM
 
-    VM --> N[NixOS]
+    VM --> U[Ubuntu LTS]
+    A[Ansible] -->|Configuration| U
 
-    N --> SYS[Système]
-    N --> SEC[Sécurité]
-    N --> SVC[Services]
+    U --> SYS[Système]
+    U --> SEC[Sécurité]
+    U --> SVC[Services]
 
     SVC --> API[API]
     SVC --> J[Judge]
@@ -1041,25 +1042,24 @@ Cette distinction permet de ne pas introduire Terraform artificiellement dans un
 
 == Système d'exploitation
 
-NixOS est envisagé comme système d'exploitation de référence pour la VM principale, sous réserve de l'acceptation et du support de cette distribution par l'équipe responsable de l'infrastructure de l'établissement.
+La VM principale fournie par l'établissement fonctionne sous Ubuntu LTS. NixOS, initialement envisagé (ADR-0003), n'est pas retenu ; voir ADR-0006.
 
-NixOS permet de décrire de manière déclarative une grande partie de la configuration du système. La configuration peut ainsi être versionnée avec le reste du projet et reconstruite à partir du dépôt.
+Ubuntu n'offre pas de configuration déclarative native. La configuration du système est donc décrite par des playbooks Ansible idempotents, versionnés avec le reste du projet, afin de pouvoir reconstruire la machine à partir du dépôt.
 
 Le modèle recherché est :
 
 #mermaid(
   "
   flowchart LR
-    Git   --> NixOS[Configuration NixOS]
-    NixOS --> Build[Build/déploiment]
-    Build --> VM
-    VM    --> A[État système reproductible]
+    Git     --> Ansible[Playbooks Ansible]
+    Ansible --> VM[VM Ubuntu]
+    VM      --> A[État système reproductible]
   ",
   document-context: true,
   width: 100%,
 )
 
-La configuration peut notamment décrire :
+Les playbooks décrivent notamment :
 
 - les paquets installés ;
 - les services système ;
@@ -1072,28 +1072,26 @@ La configuration peut notamment décrire :
 - les composants nécessaires à l'isolation des soumissions.
 
 #decision[
-  NixOS est le système d'exploitation privilégié pour la VM principale si l'établissement autorise son utilisation et si son équipe d'administration peut raisonnablement en assurer l'exploitation.
+  La VM principale utilise Ubuntu LTS, imposé par l'établissement. Son état permanent est décrit par les playbooks Ansible du dépôt.
 ]
 
-Le choix de NixOS n'est pas motivé par une recherche de performance du système d'exploitation. Son intérêt principal est la reproductibilité et le caractère déclaratif de la configuration.
+Contrairement à NixOS, Ubuntu ne conserve pas de générations du système permettant de revenir à une configuration précédente. Ce risque est compensé par :
 
-Il permet également de conserver différentes générations d'une configuration et de revenir à une génération précédente en cas de problème.
+- un snapshot de la VM avant chaque mise à jour du système ou de la plateforme ;
+- l'épinglage des versions des paquets critiques (runtime de conteneurs, gVisor, nginx, PostgreSQL) ;
+- la limitation de `unattended-upgrades` aux correctifs de sécurité, suspendue à l'approche d'un examen.
 
 #hypothesis[
-  La reproductibilité et les possibilités de rollback de NixOS peuvent réduire le risque opérationnel lors des mises à jour de la plateforme, notamment à l'approche d'une période d'évaluation.
+  Les snapshots de VM et l'épinglage des versions peuvent réduire le risque opérationnel lors des mises à jour de la plateforme, notamment à l'approche d'une période d'évaluation.
 ]
 
 == Rôle d'Ansible
 
-L'utilisation de NixOS réduit le besoin d'utiliser Ansible pour configurer individuellement les machines.
+Ansible est le mécanisme de configuration de l'hôte. Il couvre à la fois l'état permanent de la machine et les opérations ponctuelles, par exemple :
 
-Ansible peut néanmoins rester pertinent pour des opérations qui ne constituent pas l'état permanent du système, par exemple :
-
-- l'orchestration de plusieurs machines ;
-- certaines opérations de déploiement ;
-- des tâches administratives ;
 - la coordination d'une mise à jour ;
-- des environnements qui ne peuvent pas utiliser NixOS.
+- certaines opérations de déploiement ;
+- des tâches administratives.
 
 La frontière recherchée est donc :
 
@@ -1101,8 +1099,7 @@ La frontière recherchée est donc :
   "
   flowchart LR
     T[Terraform] --> T1[Provisionnement de l'infrastructure]
-    N[NixOS]     --> N1[État déclaratif de la machine]
-    A[Ansible]   --> A1[Orchestration et opérations lorsque nécessaire]
+    A[Ansible]   --> A1[État de la machine et opérations]
     C[CI/CD]     --> C1[Construction et déploiement de l'application]
   ",
   document-context: true,
@@ -1110,10 +1107,10 @@ La frontière recherchée est donc :
 )
 
 #decision[
-  Ansible n'est plus considéré comme le mécanisme obligatoire de configuration des machines. Lorsque NixOS est disponible, la configuration persistante du système doit autant que possible être déclarée dans NixOS.
+  La configuration persistante du système est déclarée dans les playbooks Ansible. Toute modification manuelle de la machine doit y être répercutée.
 ]
 
-Cette organisation évite de maintenir simultanément plusieurs sources de vérité pour la configuration d'une même machine.
+Une convergence impérative peut laisser l'état réel dériver de ce que décrit le dépôt. Les playbooks sont donc exécutés régulièrement en mode `--check --diff` pour détecter toute dérive.
 
 == Environnement de déploiement
 
@@ -1174,7 +1171,7 @@ Le pipeline envisagé est :
   width: 100%,
 )
 
-La configuration NixOS doit elle-même être testée et versionnée dans le même cycle de développement.
+La configuration Ansible doit elle-même être testée (`ansible-lint`, exécution en `--check`) et versionnée dans le même cycle de développement.
 
 Le pipeline doit notamment permettre de vérifier qu'une modification du système ou de l'application peut être construite avant d'être déployée.
 
@@ -1210,15 +1207,12 @@ log-platform/
 ├── content/
 │
 ├── infrastructure/
-│   ├── nixos/
-│   │   ├── flake.nix
-│   │   ├── hosts/
-│   │   ├── modules/
-│   │   └── services/
+│   ├── ansible/
+│   │   ├── site.yml
+│   │   ├── inventory/
+│   │   └── roles/
 │   │
-│   ├── terraform/
-│   │
-│   └── ansible/
+│   └── terraform/
 │
 ├── deployment/
 │
@@ -1229,11 +1223,9 @@ log-platform/
 └── .github/
 ```
 
-Le répertoire `infrastructure/nixos/` contient la configuration déclarative des machines administrées par le projet.
+Le répertoire `infrastructure/ansible/` contient la configuration des machines administrées par le projet ainsi que les opérations d'administration.
 
 Le répertoire `terraform/` contient uniquement les ressources effectivement gérées par Terraform.
-
-Le répertoire `ansible/` peut contenir les opérations d'orchestration qui ne sont pas naturellement exprimées comme configuration NixOS.
 
 #decision[
   Le monorepo est privilégié afin de conserver une version cohérente de l'application, du moteur de jugement, du contenu pédagogique et de l'infrastructure.
@@ -1259,7 +1251,7 @@ Une exécution doit idéalement traverser plusieurs niveaux de protection :
     J                           --> R[Limites de ressources]
     R                           --> RT[Conteneur / runtime]
     RT                          --> ISO[gVisor / microVM]
-    ISO                         --> H[Hôte NixOS / Linux]
+    ISO                         --> H[Hôte Ubuntu]
     H                           --> VM[VM de l'établissement]
   ",
   document-context: true,
@@ -1268,7 +1260,7 @@ Une exécution doit idéalement traverser plusieurs niveaux de protection :
 
 Chaque couche doit réduire les conséquences potentielles d'une défaillance d'une autre couche.
 
-Le rôle de NixOS dans cette architecture est principalement de fournir un environnement système reproductible et administrable. Il ne constitue pas à lui seul la frontière d'isolation des programmes étudiants.
+Le rôle d'Ubuntu et d'Ansible dans cette architecture est principalement de fournir un environnement système reproductible et administrable. Il ne constitue pas à lui seul la frontière d'isolation des programmes étudiants.
 
 == Séparation des secrets
 
@@ -1287,7 +1279,7 @@ Un modèle possible est :
 #mermaid(
   "
   flowchart TB
-    subgraph VM[VM NixOS]
+    subgraph VM[VM Ubuntu]
         API[Application<br/>API / Web]
         J[Judge]
 
@@ -1351,7 +1343,7 @@ Le niveau de reproductibilité recherché est :
     G[Dépôt Git] --> SRC[Code source de l'application]
     G            --> INF[Infrastructure]
 
-    INF --> N[Configuration NixOS]
+    INF --> N[Configuration Ansible]
     N   --> VM
     VM  --> SVC[Services configurés]
     SVC --> APP[Application]
@@ -1377,14 +1369,12 @@ Les choix suivants restent conditionnels ou devront être confirmés expériment
   [*Sujet*], [*Position actuelle*], [*Validation*],
   
   [OS principal],
-  [NixOS si accepté par l'établissement],
-  [Compatibilité avec l'infrastructure et capacité d'administration],
-  
+  [Ubuntu LTS (imposé par l'établissement)],
+  [Compatibilité de gVisor avec le noyau fourni],
+
   [Provisionnement], [Terraform si une API compatible est disponible], [Capacités réelles de l'environnement ÉTS],
-  
-  [Configuration], [NixOS déclaratif], [Reproductibilité et déploiement],
-  
-  [Orchestration], [Ansible lorsque nécessaire], [Besoin réel après adoption de NixOS],
+
+  [Configuration], [Playbooks Ansible], [Détection de dérive, snapshots de VM et accès `sudo`],
   
   [Runtime], [Docker ou Podman], [Compatibilité avec le mécanisme d'isolation],
   

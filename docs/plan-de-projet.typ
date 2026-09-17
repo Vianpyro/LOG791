@@ -56,7 +56,7 @@ Le projet suit un processus itératif : chaque itération part d'une hypothèse 
 *Économiques.*
 - Coût d'hébergement : l'utilisation d'une VM de l'établissement évite un coût infonuagique récurrent, mais contraint les ressources ; l'architecture n'ajoute un service que sur un besoin mesuré.
 - Coût d'exploitation : une plateforme développée localement doit rester maintenable après le projet. La reproductibilité de l'infrastructure réduit la dépendance à une seule personne.
-- Licences : les composants envisagés (PostgreSQL, gVisor, Firecracker, NixOS, FastAPI) sont libres, sans coût de licence.
+- Licences : les composants envisagés (PostgreSQL, gVisor, Firecracker, Ubuntu, Ansible, FastAPI) sont libres, sans coût de licence.
 
 *Sociaux et éthiques.*
 - Confidentialité : la plateforme traite des renseignements personnels (identité, code, résultats) et est soumise à la Loi 25 du Québec. Minimisation des données, droit à l'effacement et absence d'identifiants dans les échanges non nécessaires.
@@ -77,7 +77,7 @@ L'analyse détaillée est consignée dans le document d'architecture et les ADR.
   [*Question*], [*Solutions considérées*], [*Retenue*],
   [Isolation], [conteneur seul, gVisor, Firecracker, WebAssembly], [gVisor, comparé à Firecracker (ADR-0002)],
   [File], [PostgreSQL, Redis, RabbitMQ, spool fichiers], [PostgreSQL (ADR-0001)],
-  [Système], [NixOS, distribution + Ansible, conteneurs seuls], [NixOS si accepté (ADR-0003)],
+  [Système], [NixOS, distribution + Ansible, conteneurs seuls], [Ubuntu + Ansible (imposé, ADR-0006)],
   [Moteur], [Python, Rust], [À décider par profilage],
   [Contenu], [base de données, copie servie, releases immuables], [Releases (ADR-0005)],
   [Faire ou réutiliser], [étendre CTester, adopter un juge existant (DMOJ, Judge0), nouvelle plateforme], [À justifier],
@@ -104,7 +104,7 @@ L'analyse détaillée est consignée dans le document d'architecture et les ADR.
   columns: (0.9cm, 1fr, 1.4cm, 1.4cm, 1fr),
   stroke: 0.5pt,
   [*ID*], [*Risque*], [*Prob.*], [*Impact*], [*Mitigation*],
-  [R1], [La VM de l'ÉTS n'est pas disponible à temps ou ne permet pas KVM / NixOS.], [Moy.], [Élevé], [Environnement de validation reproductible hors ÉTS ; gVisor ne demande pas KVM.],
+  [R1], [La VM de l'ÉTS n'est pas disponible à temps ou ne permet pas KVM.], [Moy.], [Élevé], [Environnement de validation reproductible hors ÉTS ; gVisor ne demande pas KVM.],
   [R2], [Évasion du bac à sable par du code hostile.], [Faible], [Critique], [Défense en profondeur, pas de réseau, pas de secrets dans le juge, tests hostiles en CI.],
   [R3], [Charge d'examen non tenue.], [Moy.], [Élevé], [Benchmarks tôt ; capacité réservée ; contre-pression.],
   [R4], [Portée trop large pour 180 heures.], [Élevée], [Élevé], [Exclusions explicites ; prototypage centré sur le jugement.],
@@ -115,7 +115,7 @@ L'analyse détaillée est consignée dans le document d'architecture et les ADR.
 
 = Technologies
 
-Python/FastAPI (API), PostgreSQL (état et file), Rust envisagé (moteur de jugement), gVisor et Firecracker (isolation), Docker ou Podman (runtime), NixOS (système), nginx (entrée), Microsoft Entra ID (authentification), Typst (énoncés et documentation), GitHub Actions (CI).
+Python/FastAPI (API), PostgreSQL (état et file), Rust envisagé (moteur de jugement), gVisor et Firecracker (isolation), Docker ou Podman (runtime), Ubuntu LTS et Ansible (système), nginx (entrée), Microsoft Entra ID (authentification), Typst (énoncés et documentation), GitHub Actions (CI).
 
 = Références
 

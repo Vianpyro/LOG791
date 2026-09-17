@@ -2,7 +2,7 @@
 
 == ADR-0003 — NixOS pour la configuration de la VM
 
-*Statut :* proposé, conditionnel à l'accord de l'établissement. \
+*Statut :* remplacé par ADR-0006 (l'établissement fournit une VM Ubuntu). \
 *Voir aussi :* architecture, section « Infrastructure ».
 
 === Contexte

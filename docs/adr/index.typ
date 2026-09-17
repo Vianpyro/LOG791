@@ -10,9 +10,10 @@
   [*ADR*], [*Décision*], [*Statut*],
   [0001], [File de soumissions dans PostgreSQL], [Accepté, à valider],
   [0002], [gVisor comme isolation initiale], [Accepté, à comparer],
-  [0003], [NixOS pour la VM], [Proposé],
+  [0003], [NixOS pour la VM], [Remplacé (0006)],
   [0004], [Monorepo], [Accepté],
   [0005], [Publication du contenu par releases immuables], [Accepté],
+  [0006], [Ubuntu et Ansible pour la VM], [Accepté, à valider],
 )
 
 #include "0001-file-postgresql.typ"
@@ -20,3 +21,4 @@
 #include "0003-nixos.typ"
 #include "0004-monorepo.typ"
 #include "0005-publication-contenu.typ"
+#include "0006-ubuntu-ansible.typ"
