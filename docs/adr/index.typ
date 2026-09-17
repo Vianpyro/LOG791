@@ -10,7 +10,7 @@
   [*ADR*], [*Décision*], [*Statut*],
   [0001], [File de soumissions dans PostgreSQL], [Accepté, à valider],
   [0002], [gVisor comme isolation initiale], [Accepté, à comparer],
-  [0003], [NixOS pour la VM], [#link(<adr-0006>)[Remplacé (0006)]],
+  [0003], [NixOS pour la VM], [Remplacé (#link(<adr-0006>)[0006])],
   [0004], [Monorepo], [Accepté],
   [0005], [Publication du contenu par releases immuables], [Accepté],
   [0006 <adr-0006>], [Ubuntu et Ansible pour la VM], [Accepté, à valider],
