@@ -1432,7 +1432,7 @@ Plusieurs questions importantes restent volontairement ouvertes.
   consommation de ressources ?
 8. Quelle granularité doit avoir l'abstraction des langages ?
 9. Comment gérer les dépendances spécifiques à chaque langage ?
-10. Quelle quantité d'état doit être persistée dans PostgreSQL ?
+10. Quelle quantité d'état doit être persistée dans PostgreSQL, et combien de temps ? La durée de conservation des soumissions, des résultats et des journaux suit la _Loi sur l'accès_ et le calendrier de conservation de l'ÉTS (_Loi sur les archives_) ; elle reste à confirmer auprès de l'ÉTS. La purge s'appuie sur l'autovacuum et, si le volume le justifie, sur le partitionnement par date plutôt que sur `VACUUM FULL`.
 11. Comment garantir la reprise après panne d'un worker ?
 12. Quelle observabilité est nécessaire pour diagnostiquer un examen en cours ?
 13. Comment intégrer proprement Moodle et Safe Exam Browser ? La vérification de SEB est proposée dans l'ADR-0009 ; le passage de Moodle à la plateforme par LTI reste à préciser.
