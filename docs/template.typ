@@ -93,8 +93,8 @@
     (if etudiants.len() > 1 { "Étudiants" } else { "Étudiant" }, etudiants.sorted().join(linebreak())),
     ("Cours", cours),
     ("Session", session),
-    ("Groupe", groupe),
   )
+  if groupe != none { lignes.push(("Groupe", groupe)) }
   if superviseurs != none {
     lignes.push((
       if superviseurs.len() > 1 { "Professeurs attitrés" } else { "Professeur attitré" },
