@@ -12,7 +12,7 @@ Le cours LOG200 souhaite disposer d'une plateforme comparable, avec des contrain
 
 Le problème combine quatre dimensions en tension : la *sécurité* (le code soumis est potentiellement hostile), la *performance* (des pointes de soumissions concentrées dans le temps), la *pédagogie* (rétroaction utile, confidentialité des tests) et l'*opérabilité* (une infrastructure reproductible, maintenable au-delà du projet).
 
-#todo[Faire valider la formulation du problème par les professeurs attitrés (indicateur Q4-I1).]
+#todo[Faire valider la formulation du problème par le(s) professeur(s) attitré(s) (indicateur Q4-I1).]
 
 = Objectifs du projet
 
