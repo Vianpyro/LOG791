@@ -1448,7 +1448,7 @@ Le cycle de conception privilégié est :
 
 Cette approche permet d'éviter de choisir une technologie uniquement sur la base de ses caractéristiques théoriques.
 
-Elle permet également de transformer certaines parties du projet en contributions mesurables dans le cadre du projet de fin d'études.
+Elle permet également de transformer certaines parties du projet en contributions mesurables dans le cadre du projet spécial.
 
 = Évolution prévue du document
 

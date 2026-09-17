@@ -1,6 +1,6 @@
 #!/bin/sh
 # Construit le site : un PDF et un HTML par document, dans _site/.
-# Le même script tourne en CI et en local (depuis LOG795/) :   sh site/build.sh
+# Le même script tourne en CI et en local (depuis LOG791/) :   sh site/build.sh
 #
 # Ajouter un document = une ligne ici + une carte dans site/index.html.
 # Le slug doit être celui passé à `document.with(slug: ...)`, qui s'en sert

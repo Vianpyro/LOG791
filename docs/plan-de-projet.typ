@@ -1,4 +1,4 @@
-// Plan de projet — sections exigées par le plan de cours LOG795 (A2026).
+// Plan de projet — sections exigées par le plan de cours LOG791 (A2026).
 // Dû à la 2e semaine. Contenu seul ; point d'entrée : pdf/plan-de-projet.typ
 #import "template.typ": todo
 

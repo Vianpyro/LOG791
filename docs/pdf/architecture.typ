@@ -1,4 +1,4 @@
-// Point d'entrée : typst compile --root . docs/pdf/architecture.typ  (depuis LOG795/)
+// Point d'entrée : typst compile --root . docs/pdf/architecture.typ  (depuis LOG791/)
 #import "../template.typ": document
 
 #show: document.with(

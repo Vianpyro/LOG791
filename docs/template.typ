@@ -62,8 +62,8 @@
 #let document(
   titre: "",
   sous-titre: none,
-  cours: "LOG795",
-  nom-cours: "Projet de fin d'études en génie logiciel",
+  cours: "LOG791",
+  nom-cours: "projet spécial en génie logiciel",
   etudiants: ("Vianney Veremme",),
   session: "Automne 2026",
   groupe: "01",
