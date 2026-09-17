@@ -24,14 +24,15 @@ En examen, la plateforme doit refuser un navigateur autre que Safe Exam Browser 
 
 Sur les routes d'examen, l'API vérifie l'en-tête `X-SafeExamBrowser-ConfigKeyHash`, égal au SHA-256 de l'URL complète concaténée à la Config Key. Derrière nginx, l'URL est reconstruite à partir de `X-Forwarded-Proto` et `X-Forwarded-Host`. Pour les appels `fetch` et le flux SSE, le client transmet aussi la valeur de l'API JavaScript `SafeExamBrowser.security.configKey`. Le User-Agent sert seulement d'indice.
 
-Le fichier `.seb` est versionné dans le dépôt, puisque la Config Key en dépend.
+La Config Key attendue est enregistrée avec l'examen dans PostgreSQL et fournie par l'enseignant. Le fichier `.seb` reste chez l'enseignant, qui le distribue par Moodle ou le chiffre par mot de passe. Le dépôt, qui peut être public, ne contient aucun `.seb` ni aucune Config Key : quiconque connaît la clé peut forger l'en-tête.
 
 === Conséquences
 
-- Toute modification du `.seb` change la Config Key attendue par l'API.
+- À chaque modification du `.seb`, l'enseignant met à jour la Config Key de l'examen.
+- La Config Key est traitée comme un secret.
 - Le filtre d'URL de SEB permet la plateforme et `login.microsoftonline.com`, et aucun CDN.
 - Une requête d'examen sans empreinte valide est refusée.
 
 #validation(id: "V-0009")[
-  Sous SEB Windows avec le `.seb` du dépôt : l'accès fonctionne. Hors SEB ou avec une autre configuration, il est refusé. Vérifier aussi que la connexion Entra, l'exécution Pyodide et le flux SSE fonctionnent.
+  Sous SEB Windows avec le `.seb` de l'examen : l'accès fonctionne. Hors SEB ou avec une autre configuration, il est refusé. Vérifier aussi que la connexion Entra, l'exécution Pyodide et le flux SSE fonctionnent.
 ]
