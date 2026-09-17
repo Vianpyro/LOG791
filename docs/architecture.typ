@@ -451,6 +451,8 @@ Cependant, son utilisation pour une plateforme multi-langage générale pose une
   l'environnement universel initial de la plateforme.
 ]
 
+Cette piste est retenue côté client : dans les langages où c'est facile, les tests visibles s'exécutent dans le navigateur avant tout envoi au serveur (ADR-0008). Le juge reste la seule référence.
+
 == Runtime de conteneur
 
 Docker ou Podman peuvent servir à gérer le cycle de vie des environnements d'exécution.
@@ -502,6 +504,14 @@ On considère notamment :
 Ces limites doivent être appliquées indépendamment de la correction du programme.
 
 Un programme qui boucle infiniment doit produire un timeout plutôt que consommer indéfiniment une ressource du système.
+
+== Mesure de la performance
+
+Le temps d'exécution sert de garde-fou, pas de mesure. Il varie avec la charge de la VM et avec le langage, et ne permet donc pas de comparer équitablement des algorithmes.
+
+#decision(id: "ADR-0007")[
+  La performance est mesurée en instructions exécutées, de façon déterministe, et comparée à une solution de référence du même langage, la complexité étant le critère principal. La limite de la passe de mesure est un budget d'instructions. La mesure est faite après l'examen, sur la dernière soumission de chaque élève pour chaque exercice.
+]
 
 = Charge et performance
 
@@ -601,7 +611,9 @@ Les benchmarks devront notamment mesurer :
 - l'utilisation mémoire ;
 - le nombre maximal de jobs simultanés ;
 - le taux de timeout ;
-- le taux d'échec de l'infrastructure.
+- le taux d'échec de l'infrastructure ;
+- la part des exécutions de test traitées dans le navigateur (ADR-0008) ;
+- la durée de vidage de la file de mesure après un examen (ADR-0007).
 
 #decision[
   Les performances seront évaluées avec des charges reproductibles plutôt qu'avec une estimation théorique uniquement.
@@ -1389,6 +1401,10 @@ Les choix suivants restent conditionnels ou devront être confirmés expériment
   [File], [PostgreSQL (`SKIP LOCKED`)], [Tests de charge d'examen],
   
   [Cache], [Aucun service dédié ; cache côté juge], [Profilage du coût d'une soumission],
+
+  [Mesure de performance], [Comptage d'instructions sous QEMU (ADR-0007)], [Déterminisme sous charge et compatibilité avec gVisor],
+
+  [Tests visibles], [Navigateur pour les langages faciles (ADR-0008)], [Gain de charge, écarts avec le juge, Safe Exam Browser],
 )
 
 L'architecture sera considérée comme stabilisée uniquement après validation des hypothèses ayant un impact important sur la sécurité, la performance ou l'opérabilité du système.
@@ -1414,6 +1430,9 @@ Plusieurs questions importantes restent volontairement ouvertes.
 13. Comment intégrer proprement Moodle et Safe Exam Browser ?
 14. Quelle partie de l'architecture doit être commune aux différents cours ?
 15. Comment les données d'évaluation sont-elles distribuées aux juges lorsqu'ils sont répartis sur plusieurs machines : montage partagé, copie à la publication ou artefact versionné ?
+16. La performance est-elle notée par un verdict de complexité (une référence par exercice) ou par un classement complet (une référence par langage) ? À trancher avec l'enseignant.
+17. Un code qui ne passe pas tous les tests est-il mesuré ? Si la dernière soumission échoue alors qu'une précédente passait, laquelle mesure-t-on ?
+18. Quels langages chaque cours supporte-t-il, et lesquels peuvent être exécutés dans le navigateur ?
 
 = Méthodologie de validation
 

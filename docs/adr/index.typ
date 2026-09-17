@@ -14,6 +14,8 @@
   [0004], [Monorepo], [Accepté],
   [0005], [Publication du contenu par releases immuables], [Accepté],
   [0006], [Ubuntu et Ansible pour la VM], [Accepté, à valider],
+  [0007], [Mesure de performance par comptage d'instructions], [Proposé],
+  [0008], [Tests visibles exécutés dans le navigateur], [Proposé],
 )
 
 #include "0001-file-postgresql.typ"
@@ -22,3 +24,5 @@
 #include "0004-monorepo.typ"
 #include "0005-publication-contenu.typ"
 #include "0006-ubuntu-ansible.typ"
+#include "0007-mesure-performance.typ"
+#include "0008-tests-visibles-navigateur.typ"
