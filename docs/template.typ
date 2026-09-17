@@ -66,7 +66,7 @@
   nom-cours: "projet spécial en génie logiciel",
   etudiants: ("Vianney Veremme",),
   session: "Automne 2026",
-  groupe: "01",
+  groupe: none,
   superviseurs: none,
   date: datetime.today().display("[day]/[month]/[year]"),
   logo: "ets.svg",
