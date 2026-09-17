@@ -16,6 +16,7 @@
   [0006], [Ubuntu et Ansible pour la VM], [Accepté, à valider],
   [0007], [Mesure de performance par comptage d'instructions], [Proposé],
   [0008], [Tests visibles exécutés dans le navigateur], [Proposé],
+  [0009], [Vérification de Safe Exam Browser par le serveur], [Proposé],
 )
 
 #include "0001-file-postgresql.typ"
@@ -26,3 +27,4 @@
 #include "0006-ubuntu-ansible.typ"
 #include "0007-mesure-performance.typ"
 #include "0008-tests-visibles-navigateur.typ"
+#include "0009-verification-seb.typ"

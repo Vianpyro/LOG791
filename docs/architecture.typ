@@ -721,7 +721,15 @@ SEB contrôle principalement l'environnement de l'ordinateur étudiant, tandis q
   width: 100%,
 )
 
-L'intégration avec Moodle et les mécanismes de vérification de configuration de SEB devront être étudiés séparément.
+=== Contraintes imposées par SEB
+
+- *Vérification.* Le serveur vérifie la configuration de SEB sur les routes d'examen, même si l'examen démarre dans Moodle (ADR-0009).
+- *Authentification.* Le filtre d'URL permet `login.microsoftonline.com`. L'authentification multifacteur par téléphone est incompatible avec l'interdiction des téléphones : la session est ouverte avant l'examen, ou une politique d'accès conditionnel s'applique aux salles.
+- *Ressources.* Aucun CDN : les runtimes du navigateur (Pyodide, esbuild-wasm, etc.) sont servis par la plateforme.
+- *Navigation.* Aucune nouvelle fenêtre ni aucun téléchargement : les énoncés sont rendus en HTML ou en SVG, pas en PDF. La remise automatique redirige vers la « Quit URL » de SEB.
+- *Reprise.* Si SEB est relancé, l'élève retrouve ses brouillons autosauvegardés, le temps est calculé par le serveur et le flux SSE reprend grâce à `Last-Event-ID`.
+- *Éditeur.* Les raccourcis clavier et le presse-papiers, que SEB peut restreindre, sont testés.
+- *Moteurs.* SEB Windows repose sur Chromium ; SEB macOS et iOS reposent sur WebKit, où les service workers sont limités. Solution de repli : le cache HTTP.
 
 == Ressources réservées
 
@@ -1427,7 +1435,7 @@ Plusieurs questions importantes restent volontairement ouvertes.
 10. Quelle quantité d'état doit être persistée dans PostgreSQL ?
 11. Comment garantir la reprise après panne d'un worker ?
 12. Quelle observabilité est nécessaire pour diagnostiquer un examen en cours ?
-13. Comment intégrer proprement Moodle et Safe Exam Browser ?
+13. Comment intégrer proprement Moodle et Safe Exam Browser ? La vérification de SEB est proposée dans l'ADR-0009 ; le passage de Moodle à la plateforme par LTI reste à préciser.
 14. Quelle partie de l'architecture doit être commune aux différents cours ?
 15. Comment les données d'évaluation sont-elles distribuées aux juges lorsqu'ils sont répartis sur plusieurs machines : montage partagé, copie à la publication ou artefact versionné ?
 16. La performance est-elle notée par un verdict de complexité (une référence par exercice) ou par un classement complet (une référence par langage) ? À trancher avec l'enseignant.
