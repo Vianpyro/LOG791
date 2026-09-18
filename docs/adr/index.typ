@@ -17,6 +17,7 @@
   [0007], [Mesure de performance par comptage d'instructions], [Proposé],
   [0008], [Tests visibles exécutés dans le navigateur], [Proposé],
   [0009], [Vérification de Safe Exam Browser par le serveur], [Proposé],
+  [0010], [Plusieurs VM répliquables et tolérantes aux pannes], [Proposé],
 )
 
 #include "0001-file-postgresql.typ"
@@ -28,3 +29,4 @@
 #include "0007-mesure-performance.typ"
 #include "0008-tests-visibles-navigateur.typ"
 #include "0009-verification-seb.typ"
+#include "0010-topologie-multi-vm.typ"

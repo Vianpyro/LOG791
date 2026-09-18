@@ -4,7 +4,7 @@
 
 = Objet du document
 
-Ce document présente l'architecture envisagée pour une plateforme d'apprentissage et d'évaluation de la programmation destinée initialement au cours LOG200 de l'École de technologie supérieure.
+Ce document présente l'architecture envisagée pour une plateforme d'apprentissage et d'évaluation de la programmation destinée initialement au cours LOG200 de l'École de technologie supérieure. Le MVP vise environ 50 élèves ; à terme, la plateforme doit servir tous les enseignants du département LOG/TI et leurs groupes, ainsi qu'une partie du DEG.
 
 La plateforme constitue une évolution conceptuelle de CTester, un système initialement développé pour l'évaluation automatisée de programmes en C dans le contexte du cours TCH009.
 
@@ -235,7 +235,7 @@ Cela permet de découpler :
 
 == Couche d'entrée
 
-La plateforme est initialement déployée sur une VM unique dont les ressources sont limitées. Chaque composant d'infrastructure supplémentaire consomme de la mémoire et du CPU qui ne sont plus disponibles pour le jugement.
+La plateforme est déployée sur plusieurs VM aux ressources limitées, répliquables par Ansible, afin qu'une panne pendant un examen n'interrompe pas le service (ADR-0010). Chaque composant d'infrastructure supplémentaire consomme de la mémoire et du CPU qui ne sont plus disponibles pour le jugement.
 
 #decision[
   Un composant d'infrastructure n'est ajouté que lorsqu'un besoin mesuré le justifie.
@@ -261,13 +261,13 @@ Un reverse proxy nginx constitue le seul point d'entrée HTTP de la plateforme. 
 
 === Répartition de charge
 
-Aucun load balancer dédié n'est prévu dans la topologie initiale.
+Aucun load balancer dédié n'est prévu tant que l'API tient sur une VM.
 
 - Côté HTTP, l'API est exécutée par plusieurs processus (workers uvicorn) partageant la même socket ; le noyau répartit les connexions entre eux.
 - Côté jugement, les juges _tirent_ les travaux de la file plutôt que de les recevoir. La file joue donc elle-même le rôle de répartiteur, et la capacité s'ajuste en modifiant le nombre de juges.
 
 #decision[
-  Un load balancer (par exemple un bloc `upstream` nginx) ne sera introduit que si l'application est répartie sur plusieurs VM.
+  Si l'API est répartie sur plusieurs VM `web`, un bloc `upstream` nginx répartit la charge et écarte une instance défaillante ; ce choix sera tranché d'après les tests de charge (ADR-0010).
 ]
 
 == File de soumissions
@@ -1062,9 +1062,9 @@ Cette distinction permet de ne pas introduire Terraform artificiellement dans un
 
 == Système d'exploitation
 
-La VM principale fournie par l'établissement fonctionne sous Ubuntu LTS. NixOS, initialement envisagé (ADR-0003), n'est pas retenu ; voir ADR-0006.
+Les VM fournies par l'établissement fonctionnent sous Ubuntu LTS. NixOS, initialement envisagé (ADR-0003), n'est pas retenu ; voir ADR-0006.
 
-Ubuntu n'offre pas de configuration déclarative native. La configuration du système est donc décrite par des playbooks Ansible idempotents, versionnés avec le reste du projet, afin de pouvoir reconstruire la machine à partir du dépôt.
+Ubuntu n'offre pas de configuration déclarative native. La configuration du système est donc décrite par des playbooks Ansible idempotents, versionnés avec le reste du projet, afin de pouvoir reconstruire ou ajouter une machine à partir du dépôt. Un inventaire par groupes (`web`, `judge`, `db`) décrit les VM ; en ajouter une revient à l'inscrire dans l'inventaire et à exécuter un playbook (ADR-0010).
 
 Le modèle recherché est :
 
@@ -1321,7 +1321,7 @@ Un modèle possible est :
 Une séparation physique ou virtuelle plus forte entre l'application et le moteur de jugement pourra être envisagée si l'analyse de menace ou les contraintes de charge le justifient.
 
 #validation[
-  L'organisation finale des composants entre une ou plusieurs VM devra être déterminée en fonction des ressources disponibles, du modèle de menace et des résultats des tests de charge.
+  La répartition des rôles (`web`, `judge`, `db`) entre les VM (ADR-0010) devra être déterminée en fonction des ressources disponibles, du modèle de menace et des résultats des tests de charge.
 ]
 
 == Réseau
@@ -1400,9 +1400,9 @@ Les choix suivants restent conditionnels ou devront être confirmés expériment
 
   [Alternative d'isolation], [Firecracker], [Benchmark comparatif],
 
-  [Topologie], [Une ou plusieurs VM], [Charge, sécurité et ressources disponibles],
+  [Topologie], [Plusieurs VM répliquables par Ansible (ADR-0010)], [Charge, sécurité et ressources disponibles],
 
-  [Reverse proxy], [nginx, sans load balancer dédié], [Prise en charge du TLS par l'établissement],
+  [Reverse proxy], [nginx ; `upstream` si plusieurs VM `web`], [Prise en charge du TLS par l'établissement],
 
   [File], [PostgreSQL (`SKIP LOCKED`)], [Tests de charge d'examen],
 
@@ -1435,7 +1435,7 @@ Plusieurs questions importantes restent volontairement ouvertes.
 8. Quelle granularité doit avoir l'abstraction des langages ?
 9. Comment gérer les dépendances spécifiques à chaque langage ?
 10. Quelle quantité d'état doit être persistée dans PostgreSQL, et combien de temps ? La durée de conservation des soumissions, des résultats et des journaux suit la _Loi sur l'accès_ et le calendrier de conservation de l'ÉTS (_Loi sur les archives_) ; elle reste à confirmer auprès de l'ÉTS. La purge s'appuie sur l'autovacuum et, si le volume le justifie, sur le partitionnement par date plutôt que sur `VACUUM FULL`.
-11. Comment garantir la reprise après panne d'un worker ?
+11. Comment garantir la reprise après panne d'un worker, d'une VM ou du primaire PostgreSQL pendant un examen ? Une approche est proposée dans l'ADR-0010.
 12. Quelle observabilité est nécessaire pour diagnostiquer un examen en cours ?
 13. Comment intégrer proprement Moodle et Safe Exam Browser ? La vérification de SEB est proposée dans l'ADR-0009 ; le passage de Moodle à la plateforme par LTI reste à préciser.
 14. Quelle partie de l'architecture doit être commune aux différents cours ?
