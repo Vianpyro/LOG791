@@ -64,7 +64,7 @@ L'analyse détaillée est consignée dans le document d'architecture et les ADR.
   [Faire ou réutiliser], [étendre CTester, Judge0, DMOJ, CodeRunner], [À justifier],
 )
 
-Technologies : Python/FastAPI, PostgreSQL, gVisor, Docker ou Podman, Ubuntu LTS et Ansible, nginx, Microsoft Entra ID, Typst, GitHub Actions.
+Technologies : Python/FastAPI, PostgreSQL (file et réplication en continu), gVisor, Docker ou Podman, QEMU en mode utilisateur (mesure de performance), Pyodide/WebAssembly (tests visibles dans le navigateur), Ubuntu LTS et Ansible, nginx et certbot, Microsoft Entra ID, Safe Exam Browser, Moodle (LTI), Typst, GitHub Actions.
 
 #todo[Justifier pourquoi ne pas réutiliser un juge existant (Judge0, DMOJ, CodeRunner).]
 
