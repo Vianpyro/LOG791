@@ -5,9 +5,9 @@
 // its own file when it grows.
 //
 // ⚠ Provisional structure: to be aligned with the "Guide de rédaction du
-// rapport de fin d'études" (ACCROS) cited in the course outline, which is
-// authoritative.
-#import "../docs/template.typ": document, todo
+// rapport de fin d'études" (ACCROS, https://accros.etsmtl.ca/Rapports/index.asp)
+// cited in the course outline, which is authoritative.
+#import "../docs/template.typ": document, ext, plan, todo
 
 #show: document.with(
   title: "Final Technical Report",
@@ -17,11 +17,11 @@
 
 = Introduction
 
-#todo[Context, problem statement, objectives and outline of the report — condensed from the project plan, not copied.]
+#todo[Context, problem statement, objectives and outline of the report — condensed from the #plan("context-and-problem-statement")[project plan], not copied.]
 
 = State of the art
 
-#todo[Existing judges (Judge0, DMOJ, CodeRunner), isolation mechanisms, automated assessment in education. Create docs/state-of-the-art.typ.]
+#todo[Existing judges (#ext("judge0")[Judge0], #ext("dmoj")[DMOJ], #ext("coderunner")[CodeRunner]), isolation mechanisms, automated assessment in education. Create docs/state-of-the-art.typ.]
 
 = Methodology
 

@@ -22,6 +22,114 @@
 }
 
 // ---------------------------------------------------------------------------
+// Links
+// ---------------------------------------------------------------------------
+//
+// Every reference to another document or section is a link. Documents are
+// compiled separately (one PDF and one HTML per entry point) and also included
+// in the report, so a reference points inside the current document when it
+// contains the label, and otherwise to the published document: its HTML page
+// for the site, its PDF for a PDF.
+
+#let site = "https://vianpyro.github.io/LOG791/"
+
+#let xref(dest, slug, body) = context {
+  if query(dest).len() > 0 {
+    link(dest, body)
+  } else if target() == "html" {
+    link(site + slug + ".html#" + str(dest), body)
+  } else {
+    link(site + slug + ".pdf#nameddest=" + str(dest), body)
+  }
+}
+
+// ADR headings carry <adr-NNNN>; architecture and project plan headings carry
+// <arch-…> and <plan-…> (heading text in lowercase, words joined by "-").
+#let adr(n, body: none) = xref(label("adr-" + n), "adr", if body == none { "ADR-" + n } else { body })
+#let arch(name, body) = xref(label("arch-" + name), "architecture", body)
+#let plan(name, body) = xref(label("plan-" + name), "project-plan", body)
+
+#let course(code) = link("https://www.etsmtl.ca/etudes/cours/" + lower(code), code)
+
+// External documents and tools, in one place so a moved URL is fixed once.
+#let _ext = (
+  access-act: "https://www.legisquebec.gouv.qc.ca/en/document/cs/A-2.1",
+  acme: "https://www.rfc-editor.org/rfc/rfc8555",
+  ags: "https://www.imsglobal.org/spec/lti-ags/v2p0",
+  ansible: "https://docs.ansible.com/",
+  archives-act: "https://www.legisquebec.gouv.qc.ca/en/document/cs/A-21.1",
+  certbot: "https://certbot.eff.org/",
+  accros: "https://accros.etsmtl.ca/Rapports/index.asp",
+  cheerpj: "https://cheerpj.com/",
+  codingame: "https://www.codingame.com/",
+  coderunner: "https://coderunner.org.nz/",
+  commonmark: "https://commonmark.org/",
+  ctester: "https://github.com/Vianpyro/ctester",
+  csp: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP",
+  deg-planning: "https://horaire.etsmtl.ca/Horairepublication/Planification-SEG.pdf",
+  dmoj: "https://github.com/DMOJ/online-judge",
+  docker: "https://docs.docker.com/",
+  ena: "https://ena.etsmtl.ca/",
+  entra: "https://learn.microsoft.com/en-us/entra/identity/",
+  esbuild: "https://esbuild.github.io/",
+  fastapi: "https://fastapi.tiangolo.com/",
+  firecracker: "https://firecracker-microvm.github.io/",
+  github-actions: "https://docs.github.com/en/actions",
+  gvisor: "https://gvisor.dev/",
+  icu: "https://unicode-org.github.io/icu/userguide/format_parse/messages/",
+  import-linter: "https://import-linter.readthedocs.io/",
+  judge0: "https://judge0.com/",
+  junit: "https://junit.org/",
+  law25: "https://www.publicationsduquebec.gouv.qc.ca/fileadmin/Fichiers_client/lois_et_reglements/LoisAnnuelles/en/2021/2021C25A.PDF",
+  leetcode: "https://leetcode.com/",
+  listen-notify: "https://www.postgresql.org/docs/current/sql-notify.html",
+  lti: "https://www.imsglobal.org/spec/lti/v1p3",
+  mathml: "https://developer.mozilla.org/en-US/docs/Web/MathML",
+  memcached: "https://memcached.org/",
+  mermaid: "https://mermaid.js.org/",
+  moodle: "https://moodle.org/",
+  nginx: "https://nginx.org/en/docs/",
+  nginx-limit-req: "https://nginx.org/en/docs/http/ngx_http_limit_req_module.html",
+  nginx-upstream: "https://nginx.org/en/docs/http/ngx_http_upstream_module.html",
+  nixos: "https://nixos.org/",
+  nrps: "https://www.imsglobal.org/spec/lti-nrps/v2p0",
+  numpy: "https://numpy.org/",
+  oidc: "https://openid.net/specs/openid-connect-core-1_0.html",
+  oracle: "https://www.oracle.com/database/free/",
+  pep8: "https://github.com/StanWarford/pep8",
+  php-wasm: "https://github.com/seanmorris/php-wasm",
+  podman: "https://podman.io/",
+  postgresql: "https://www.postgresql.org/docs/current/",
+  powershell-linux: "https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-linux",
+  pyodide: "https://github.com/pyodide/pyodide",
+  pytest: "https://docs.pytest.org/",
+  qemu-user: "https://www.qemu.org/docs/master/user/main.html",
+  qemu-insn: "https://www.qemu.org/docs/master/devel/tcg-plugins.html",
+  rabbitmq: "https://www.rabbitmq.com/",
+  redis: "https://redis.io/",
+  ruby-wasm: "https://github.com/ruby/ruby.wasm",
+  seb: "https://safeexambrowser.org/",
+  seb-config-key: "https://safeexambrowser.org/developer/seb-config-key.html",
+  service-workers: "https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API",
+  skip-locked: "https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE",
+  sse: "https://html.spec.whatwg.org/multipage/server-sent-events.html",
+  streaming-replication: "https://www.postgresql.org/docs/current/warm-standby.html",
+  stress-ng: "https://github.com/ColinIanKing/stress-ng",
+  systrap: "https://gvisor.dev/docs/architecture_guide/platforms/",
+  teavm: "https://teavm.org/",
+  terraform: "https://developer.hashicorp.com/terraform",
+  typst: "https://typst.app/docs/",
+  typst-html: "https://github.com/typst/typst/issues/5512",
+  ubuntu: "https://ubuntu.com/about/release-cycle",
+  uvicorn: "https://uvicorn.dev/",
+  valgrind: "https://valgrind.org/docs/manual/cl-manual.html",
+  wasmoon: "https://github.com/ceifa/wasmoon",
+  wcag: "https://www.w3.org/TR/WCAG21/",
+  web-workers: "https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API",
+)
+#let ext(key, body) = link(_ext.at(key), body)
+
+// ---------------------------------------------------------------------------
 // Design blocks
 // ---------------------------------------------------------------------------
 
@@ -35,7 +143,9 @@
 
 // The identifier is optional: `#decision(id: "D-03")[...]`. It is used for
 // traceability (requirement -> decision -> experiment -> result).
-#let _heading(name, id) = if id == none { name + "." } else { name + " " + id + "." }
+#let _heading(name, id) = if id == none { name + "." } else if id.starts-with("ADR-") {
+  [#name #adr(id.slice(4)).]
+} else { name + " " + id + "." }
 
 #let decision(id: none, body) = _callout(_heading("Current decision", id), luma(245), body, class: "decision")
 #let hypothesis(id: none, body) = _callout(_heading("Hypothesis", id), luma(250), body, class: "hypothesis")

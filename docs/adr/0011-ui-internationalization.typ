@@ -1,9 +1,9 @@
-#import "../template.typ": validation
+#import "../template.typ": arch, ext, validation
 
-== ADR-0011 — User interface internationalization
+== ADR-0011 — User interface internationalization <adr-0011>
 
 *Status:* proposed. \
-*See also:* architecture, section "Internationalization".
+*See also:* #arch("purpose-of-the-document")[architecture], section #arch("internationalization")[Internationalization].
 
 === Context
 
@@ -17,7 +17,7 @@ The project is open source: code, comments and documentation are written in Engl
 
 === Decision
 
-Every user-facing string goes through a message key; no text is hard-coded in the interface. Each language has one translation file (`locales/<lang>.json` in the web application), using a format that supports placeholders and plurals (ICU MessageFormat). The library is chosen with the web stack.
+Every user-facing string goes through a message key; no text is hard-coded in the interface. Each language has one translation file (`locales/<lang>.json` in the web application), using a format that supports placeholders and plurals (#ext("icu")[ICU MessageFormat]). The library is chosen with the web stack.
 
 - *English* is the source language: a new key is always added to `en` first.
 - *English and French* are maintained by the project and must always be complete. CI fails if `fr` and `en` do not have exactly the same keys.
@@ -32,7 +32,7 @@ Out of scope: the pedagogical content (statements, test messages written by the 
 - Adding a language requires only one file and no code change.
 - An incomplete contributed language shows English text where a translation is missing, rather than a raw key.
 - Error and verdict codes become a public contract between the API and the interface, and must be versioned as such.
-- Safe Exam Browser does not change the language: the preference must be settable in the platform itself.
+- #ext("seb")[Safe Exam Browser] does not change the language: the preference must be settable in the platform itself.
 
 #validation(id: "V-0011")[
   Once the web application exists: a key missing from `fr` fails CI; a key missing from a contributed language falls back to English; the language chosen in the platform persists under SEB.

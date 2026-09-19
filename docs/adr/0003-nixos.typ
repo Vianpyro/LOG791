@@ -1,13 +1,13 @@
-#import "../template.typ": validation
+#import "../template.typ": adr, arch, ext, validation
 
-== ADR-0003 — NixOS for VM configuration
+== ADR-0003 — NixOS for VM configuration <adr-0003>
 
-*Status:* superseded by ADR-0006 (the institution provides an Ubuntu VM). \
-*See also:* architecture, section "Infrastructure".
+*Status:* superseded by #adr("0006") (the institution provides an Ubuntu VM). \
+*See also:* #arch("purpose-of-the-document")[architecture], section #arch("infrastructure")[Infrastructure].
 
 === Context
 
-The infrastructure must be rebuildable from the repository. In CTester, the configuration lives in a separate Ansible role (`VHome`), and several failures only surfaced in production because a configuration fact lived in one repository and its dependency in another.
+The infrastructure must be rebuildable from the repository. In #ext("ctester")[CTester], the configuration lives in a separate #ext("ansible")[Ansible] role (`VHome`), and several failures only surfaced in production because a configuration fact lived in one repository and its dependency in another.
 
 === Options considered
 
@@ -15,7 +15,7 @@ The infrastructure must be rebuildable from the repository. In CTester, the conf
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
   [*Option*], [*Pros*], [*Cons*],
-  [NixOS],
+  [#ext("nixos")[NixOS]],
   [Declarative, versioned configuration; generations and rollback of the whole system.],
   [Learning curve; may not be supported by the infrastructure team.],
 
@@ -25,7 +25,7 @@ The infrastructure must be rebuildable from the repository. In CTester, the conf
 
   [Classic distribution + container images],
   [Reproducible application.],
-  [The host (runtime, gVisor, firewall) is still configured by hand.],
+  [The host (runtime, #ext("gvisor")[gVisor], firewall) is still configured by hand.],
 )
 
 === Decision

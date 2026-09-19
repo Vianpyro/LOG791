@@ -1,9 +1,9 @@
-#import "../template.typ": validation
+#import "../template.typ": adr, arch, ext, validation
 
-== ADR-0007 — Deterministic and fair performance measurement
+== ADR-0007 — Deterministic and fair performance measurement <adr-0007>
 
 *Status:* proposed; prototype to build, grading model to settle with the instructor. \
-*See also:* architecture, sections "Resource management" and "Load and performance"; ADR-0001, ADR-0002.
+*See also:* #arch("purpose-of-the-document")[architecture], sections #arch("resource-management")[Resource management] and #arch("load-and-performance")[Load and performance]; #adr("0001"), #adr("0002").
 
 === Context
 
@@ -12,7 +12,7 @@ An exercise may assess a solution's performance, not only its correctness. The g
 - *Noise.* Wall-clock time and CPU time vary with the VM's load, time stolen by the hypervisor, the cache and the processor frequency. On a shared VM, the spread reaches 5 to 30%, which is not enough to tell solutions apart.
 - *Language.* The same algorithm is 10 to 100 times slower in Python than in Rust, and this factor varies with the operations. A fixed per-language multiplier therefore remains approximate.
 
-The platform runs under gVisor (ADR-0002), in a VM where KVM is not guaranteed. `perf_event_open` is not available inside the sandbox.
+The platform runs under #ext("gvisor")[gVisor] (#adr("0002")), in a VM where KVM is not guaranteed. `perf_event_open` is not available inside the sandbox.
 
 === Options considered
 
@@ -25,18 +25,18 @@ The platform runs under gVisor (ADR-0002), in a VM where KVM is not guaranteed. 
   [Accurate, no slowdown.],
   [Rarely exposed in a VM; unavailable under gVisor.],
 
-  [Valgrind (`callgrind`)],
+  [#ext("valgrind")[Valgrind] (`callgrind`)],
   [Deterministic instruction count.],
   [20 to 100$times$ slowdown; fragile with the JVM's JIT.],
 
-  [QEMU user mode with an instruction-counting plugin],
+  [#ext("qemu-user")[QEMU user mode] with an instruction-counting plugin],
   [Deterministic count; requires neither KVM nor hardware counters; 5 to 10$times$ slowdown.],
-  [Compatibility with gVisor Systrap to be confirmed.],
+  [Compatibility with gVisor #ext("systrap")[Systrap] to be confirmed.],
 )
 
 === Decision
 
-*Measurement.* Performance is measured in *executed instructions*, under QEMU user mode (`qemu-x86_64 -plugin libinsn.so`), not in time. For each runtime to behave deterministically:
+*Measurement.* Performance is measured in *executed instructions*, under QEMU user mode (#ext("qemu-insn")[`qemu-x86_64 -plugin libinsn.so`]), not in time. For each runtime to behave deterministically:
 
 - processes are limited to a single thread;
 - inputs and the random seed are fixed;
@@ -57,7 +57,7 @@ Memory follows the same logic: the peak memory, minus the runtime's baseline, is
 - *Correctness pass*: native execution, with generous time limits. It is the only one that responds during the exam.
 - *Measurement pass*: it runs after the exam and only covers the *last* submission of each student for each exercise (one unique key per student–exercise pair). The queue is drained when the server is lightly loaded. Accuracy does not depend on it; the point is to leave the CPU to live judging.
 
-The measurement queue is a lower-priority queue in PostgreSQL (ADR-0001). No new component is added.
+The measurement queue is a lower-priority queue in #ext("postgresql")[PostgreSQL] (#adr("0001")). No new component is added.
 
 === Consequences
 
@@ -75,7 +75,7 @@ The measurement queue is a lower-priority queue in PostgreSQL (ADR-0001). No new
   - how the result is presented to the student (for example "O(n log n), 1.8$times$ the reference").
 
 #validation(id: "V-0007")[
-  Measure an O(n²) sort and an O(n log n) sort in Python, Java and Rust, under QEMU and inside gVisor. Repeat each measurement 30 times, with and without `stress-ng` on the VM. Criteria:
+  Measure an O(n²) sort and an O(n log n) sort in Python, Java and Rust, under QEMU and inside gVisor. Repeat each measurement 30 times, with and without #ext("stress-ng")[`stress-ng`] on the VM. Criteria:
   - a coefficient of variation below 0.1%;
   - a slope that separates the two sorts in all three languages;
   - ratios to the reference of the same order from one language to another.

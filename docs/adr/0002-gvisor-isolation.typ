@@ -1,9 +1,9 @@
-#import "../template.typ": validation
+#import "../template.typ": arch, ext, validation
 
-== ADR-0002 — gVisor as the initial isolation mechanism
+== ADR-0002 — gVisor as the initial isolation mechanism <adr-0002>
 
-*Status:* accepted for the first implementation; comparison with Firecracker planned. \
-*See also:* architecture, section "Submission isolation".
+*Status:* accepted for the first implementation; comparison with #ext("firecracker")[Firecracker] planned. \
+*See also:* #arch("purpose-of-the-document")[architecture], section #arch("submission-isolation")[Submission isolation].
 
 === Context
 
@@ -15,8 +15,8 @@ Student code is untrusted. A classic container shares the host kernel and is not
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
   [*Option*], [*Pros*], [*Cons*],
-  [gVisor (Systrap)],
-  [User-space application kernel; works without KVM; plugs into Docker/Podman as an OCI runtime; proven in CTester.],
+  [#ext("gvisor")[gVisor] (#ext("systrap")[Systrap])],
+  [User-space application kernel; works without KVM; plugs into #ext("docker")[Docker]/Podman as an OCI runtime; proven in #ext("ctester")[CTester].],
   [Overhead on system calls; some cgroup limits do not count internal processes.],
 
   [Firecracker],
@@ -36,7 +36,7 @@ gVisor in Systrap mode, driven by a container runtime, is chosen for the first i
 
 === Consequences
 
-- The choice between Docker and Podman becomes secondary: the OCI runtime carries the isolation.
+- The choice between Docker and #ext("podman")[Podman] becomes secondary: the OCI runtime carries the isolation.
 - Limits must be verified by their *outcome* (the host is unaffected) rather than by their mechanism, since some cgroup controls cannot see inside the sandbox.
 - The judge's sandbox abstraction must remain independent of gVisor to allow the comparison.
 

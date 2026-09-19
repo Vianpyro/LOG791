@@ -1,7 +1,9 @@
-== ADR-0005 — Content publishing through immutable releases
+#import "../template.typ": arch, ext
 
-*Status:* accepted, carried over from CTester where it is in production. \
-*See also:* architecture, section "Content lifecycle".
+== ADR-0005 — Content publishing through immutable releases <adr-0005>
+
+*Status:* accepted, carried over from #ext("ctester")[CTester] where it is in production. \
+*See also:* #arch("purpose-of-the-document")[architecture], section #arch("content-lifecycle")[Content lifecycle].
 
 === Context
 
@@ -21,5 +23,5 @@ Content is published by projection into immutable releases. The active release i
 
 - Rolling back content is a pointer rewrite, with no redeployment.
 - The API can only expose what the projection wrote.
-- Typst statements are compiled at publication time; nothing is compiled per request.
+- #ext("typst")[Typst] statements are compiled at publication time; nothing is compiled per request.
 - Editing goes through Git: the teaching team must be comfortable with this workflow, or an editing tool will have to produce it.

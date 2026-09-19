@@ -1,15 +1,15 @@
-#import "../template.typ": validation
+#import "../template.typ": adr, arch, ext, validation
 
-== ADR-0008 — Running visible tests in the browser
+== ADR-0008 — Running visible tests in the browser <adr-0008>
 
 *Status:* proposed; the gain is to be quantified by load testing. \
-*See also:* architecture, sections "WebAssembly", "Load and performance" and "Exam mode"; ADR-0001, ADR-0007.
+*See also:* #arch("purpose-of-the-document")[architecture], sections #arch("webassembly")[WebAssembly], #arch("load-and-performance")[Load and performance] and #arch("exam-mode")[Exam mode]; #adr("0001"), #adr("0007").
 
 === Context
 
-During an exam, the time a student spends waiting on the queue is lost from their exam time. Giving it back is not a goal, since Moodle and Enaquiz most likely do not allow it. The project instead aims to reduce the waiting caused by the platform itself.
+During an exam, the time a student spends waiting on the queue is lost from their exam time. Giving it back is not a goal, since #ext("moodle")[Moodle] and #ext("ena")[Enaquiz] most likely do not allow it. The project instead aims to reduce the waiting caused by the platform itself.
 
-Each exercise is submitted automatically at the end of the exam. During the exam, the server therefore only receives *test runs*, started when the student clicks "test". The final submission does not wait for an immediate answer: its grading and its measurement (ADR-0007) are deferred.
+Each exercise is submitted automatically at the end of the exam. During the exam, the server therefore only receives *test runs*, started when the student clicks "test". The final submission does not wait for an immediate answer: its grading and its measurement (#adr("0007")) are deferred.
 
 Each exercise has about ten visible tests and some hidden tests. For each visible test, the student sees the expected output and the actual output. For hidden tests, they only see whether at least one fails.
 
@@ -48,14 +48,14 @@ The other languages keep running on the server.
   columns: (2.6cm, 1fr, 3.2cm),
   stroke: 0.5pt,
   [*Language*], [*Browser runtime*], [*Verdict*],
-  [Python], [Pyodide], [Retained],
-  [JavaScript], [Native (Web Worker)], [Retained],
-  [TypeScript], [Native, after transpilation by esbuild-wasm], [Retained],
-  [Lua], [wasmoon], [Retained],
-  [Ruby, PHP], [ruby.wasm, php-wasm], [To check],
+  [Python], [#ext("pyodide")[Pyodide]], [Retained],
+  [JavaScript], [Native (#ext("web-workers")[Web Worker])], [Retained],
+  [TypeScript], [Native, after transpilation by #ext("esbuild")[esbuild-wasm]], [Retained],
+  [Lua], [#ext("wasmoon")[wasmoon]], [Retained],
+  [Ruby, PHP], [#ext("ruby-wasm")[ruby.wasm], #ext("php-wasm")[php-wasm]], [To check],
   [C, C++], [clang compiled to WASM (30 to 100 MB)], [To evaluate],
   [C\#], [Roslyn and .NET in WASM], [Set aside],
-  [Java], [CheerpJ (license) or javac and TeaVM], [Set aside],
+  [Java], [#ext("cheerpj")[CheerpJ] (license) or javac and #ext("teavm")[TeaVM]], [Set aside],
   [Rust, Go], [No practical compiler], [Set aside],
 )
 
@@ -69,7 +69,7 @@ Flow of a test run for a retained language:
 
 For the other languages, the code is sent directly to the server.
 
-Server results arrive through *Server-Sent Events*, in a single stream per student. The judge notifies the API through PostgreSQL's `LISTEN`/`NOTIFY`. No new component is added.
+Server results arrive through *#ext("sse")[Server-Sent Events]*, in a single stream per student. The judge notifies the API through #ext("postgresql")[PostgreSQL]'s #ext("listen-notify")[`LISTEN`/`NOTIFY`]. No new component is added.
 
 On the server side, test runs share the same sandbox and a single compilation. Students are served in turn, with at most one run in progress per student. A new request replaces the previous one if it has not started yet. Hidden tests stop at the first failure.
 
@@ -77,9 +77,9 @@ On the server side, test runs share the same sandbox and a single compilation. S
 
 - For each retained language, the judge's runtime has the same version as the browser's; for example, the Pyodide version pins the CPython version. The allowed packages are the same on both sides.
 - The server remains the reference: the browser's result is presented as indicative.
-- Runtimes are preloaded at the start of the exam by a service worker. An infinite loop is interrupted by `terminate()` on the Web Worker.
-- The SSE stream requires disabling buffering in nginx. After a disconnection, it resumes using `Last-Event-ID`; if the stream does not work, the client polls the server periodically.
-- Compatibility with Safe Exam Browser (WebAssembly, Web Workers, service workers) must be verified.
+- Runtimes are preloaded at the start of the exam by a #ext("service-workers")[service worker]. An infinite loop is interrupted by `terminate()` on the Web Worker.
+- The SSE stream requires disabling buffering in #ext("nginx")[nginx]. After a disconnection, it resumes using `Last-Event-ID`; if the stream does not work, the client polls the server periodically.
+- Compatibility with #ext("seb")[Safe Exam Browser] (WebAssembly, Web Workers, service workers) must be verified.
 
 #validation(id: "V-0008")[
   Exam load test (about 400 students): compare the 95#super[th] percentile of the delay between clicking "test" and the server's answer, with and without in-browser execution. Measure, for each retained language, the rate of discrepancy between the browser and the judge. Verify that it works under Safe Exam Browser.

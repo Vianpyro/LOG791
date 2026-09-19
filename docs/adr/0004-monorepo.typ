@@ -1,11 +1,13 @@
-== ADR-0004 — Monorepo for code, infrastructure and documentation
+#import "../template.typ": arch, ext
+
+== ADR-0004 — Monorepo for code, infrastructure and documentation <adr-0004>
 
 *Status:* accepted. \
-*See also:* architecture, section "Code organization".
+*See also:* #arch("purpose-of-the-document")[architecture], section #arch("code-organization")[Code organization].
 
 === Context
 
-The platform comprises a web interface, an API, a judge engine, an infrastructure configuration and design documentation. In CTester, the application and its deployment live in two repositories, and database privileges had to be moved back into the application repository after three desynchronization failures.
+The platform comprises a web interface, an API, a judge engine, an infrastructure configuration and design documentation. In #ext("ctester")[CTester], the application and its deployment live in two repositories, and database privileges had to be moved back into the application repository after three desynchronization failures.
 
 === Options considered
 
@@ -16,7 +18,7 @@ The platform comprises a web interface, an API, a judge engine, an infrastructur
 
 A monorepo is chosen for the application, the judge, the infrastructure and the documentation.
 
-*Pedagogical content* stays in a separate repository: it contains private assessment data, it is edited by the teaching team and it is published without redeployment (see "Content lifecycle").
+*Pedagogical content* stays in a separate repository: it contains private assessment data, it is edited by the teaching team and it is published without redeployment (see #arch("content-lifecycle")[Content lifecycle]).
 
 === Consequences
 

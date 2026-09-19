@@ -1,13 +1,13 @@
-#import "../template.typ": validation
+#import "../template.typ": adr, arch, course, ext, validation
 
-== ADR-0014 — Stable core and extension points
+== ADR-0014 — Stable core and extension points <adr-0014>
 
-*Status:* proposed. ADR-0012 and ADR-0013 apply it. \
-*See also:* architecture, section "Stable core and extension points".
+*Status:* proposed. #adr("0012") and #adr("0013") apply it. \
+*See also:* #arch("purpose-of-the-document")[architecture], section #arch("stable-core-and-extension-points")[Stable core and extension points].
 
 === Context
 
-The platform starts with LOG200, then LOG121, and must eventually serve every LOG/GTI course and the DEG computing courses (see the course inventory in the architecture document). These courses differ in language (C89 to Kotlin, Pep/8 assembly, Oracle SQL), in question format (code, multiple choice, short answer) and in activity mode (practice, assignment, exam). The project is maintained by one person: if each course requires changes in the core, the platform accumulates special cases until no one can change it safely. Conversely, an abstraction built for a need that never comes is also debt.
+The platform starts with #course("LOG200"), then #course("LOG121"), and must eventually serve every LOG/GTI course and the DEG computing courses (see the #arch("appendix-course-inventory")[course inventory] in the architecture document). These courses differ in language (C89 to Kotlin, #ext("pep8")[Pep/8] assembly, #ext("oracle")[Oracle] SQL), in question format (code, multiple choice, short answer) and in activity mode (practice, assignment, exam). The project is maintained by one person: if each course requires changes in the core, the platform accumulates special cases until no one can change it safely. Conversely, an abstraction built for a need that never comes is also debt.
 
 === Options considered
 
@@ -29,21 +29,21 @@ Three rules:
   [*Extension point*], [*Contract*], [*Initial implementations*],
   [Question type], [Item schema (public statement, private data), grader, display component], [Code exercise, multiple choice, short answer],
   [Activity mode], [Policy: time window, feedback shown, queue priority, SEB required, accommodations], [Practice, assignment, exam],
-  [Language pack], [Image, compile and run commands, options, limits, capabilities (ADR-0013)], [The P1 languages],
+  [Language pack], [Image, compile and run commands, options, limits, capabilities (#adr("0013"))], [The P1 languages],
   [Test runner], [Exercise and artifact in, JSON report out (case, verdict code, message)], [Standard I/O, unit tests, SQL],
-  [Judging service], [Provides a disposable environment to a runner, e.g. a database schema], [Ephemeral PostgreSQL, shared Oracle],
-  [Enrollment source], [Produces (offering, user, role) triples (ADR-0012)], [LTI 1.3 Names and Roles, CSV import],
-  [Isolation backend], [Starts a container with limits], [gVisor, Firecracker (ADR-0002)],
-  [Statement renderer], [Already defined (ADR-0005)], [Markdown, Typst],
+  [Judging service], [Provides a disposable environment to a runner, e.g. a database schema], [Ephemeral #ext("postgresql")[PostgreSQL], shared Oracle],
+  [Enrollment source], [Produces (offering, user, role) triples (#adr("0012"))], [#ext("lti")[LTI 1.3] #ext("nrps")[Names and Roles], CSV import],
+  [Isolation backend], [Starts a container with limits], [#ext("gvisor")[gVisor], #ext("firecracker")[Firecracker] (#adr("0002"))],
+  [Statement renderer], [Already defined (#adr("0005"))], [Markdown, #ext("typst")[Typst]],
 )
 
 An exam or an assignment is a list of items of any type combined with a mode. A new exam format is a new mode or a new question type, never both at once. A course is an offering and a content repository: there is no per-course code.
 
-*Public contracts are versioned*: verdict and error codes (already a contract under ADR-0011), the runner report schema, the `exercise.json` schema and the language pack schema. Each schema carries a version; the core accepts versions N and N-1; a breaking change requires a new ADR.
+*Public contracts are versioned*: verdict and error codes (already a contract under #adr("0011")), the runner report schema, the `exercise.json` schema and the language pack schema. Each schema carries a version; the core accepts versions N and N-1; a breaking change requires a new ADR.
 
 *Guards against technical debt*:
 
-- Component boundaries are checked in CI by an architecture test (for example `import-linter` on the Python side): the API does not import the judge, and the core does not import any implementation of an extension point.
+- Component boundaries are checked in CI by an architecture test (for example #ext("import-linter")[`import-linter`] on the Python side): the API does not import the judge, and the core does not import any implementation of an extension point.
 - Every deliberate shortcut is marked in the code and collected by a report; an unmarked shortcut is a bug.
 - Every contract has its ADR; an accepted ADR is superseded, never edited.
 - Dependencies are pinned and language images are built in CI, never installed at run time.
