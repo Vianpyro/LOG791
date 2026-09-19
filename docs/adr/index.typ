@@ -24,6 +24,8 @@
   [#adr("0012", body: "0012")], [Courses, offerings and per-course roles], [Proposed],
   [#adr("0013", body: "0013")], [Language packs and test runners], [Proposed],
   [#adr("0014", body: "0014")], [Stable core and extension points], [Proposed],
+  [#adr("0015", body: "0015")], [Question types and mixed assessments], [Proposed],
+  [#adr("0016", body: "0016")], [Mermaid diagrams in statements], [Proposed],
 )
 
 #include "0001-postgresql-queue.typ"
@@ -40,3 +42,5 @@
 #include "0012-multi-course-roles.typ"
 #include "0013-language-packs.typ"
 #include "0014-extension-points.typ"
+#include "0015-question-types.typ"
+#include "0016-mermaid-statements.typ"

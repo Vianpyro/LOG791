@@ -7,7 +7,7 @@
 
 === Context
 
-The platform starts with #course("LOG200"), then #course("LOG121"), and must eventually serve every LOG/GTI course and the DEG computing courses (see the #arch("appendix-course-inventory")[course inventory] in the architecture document). These courses differ in language (C89 to Kotlin, #ext("pep8")[Pep/8] assembly, #ext("oracle")[Oracle] SQL), in question format (code, multiple choice, short answer) and in activity mode (practice, assignment, exam). The project is maintained by one person: if each course requires changes in the core, the platform accumulates special cases until no one can change it safely. Conversely, an abstraction built for a need that never comes is also debt.
+The platform starts with #course("LOG200"), then #course("LOG121"), and must eventually serve every LOG/GTI course and the DEG computing courses (see the #arch("appendix-course-inventory")[course inventory] in the architecture document). These courses differ in language (C89 to Kotlin, #ext("pep8")[Pep/8] assembly, #ext("oracle")[Oracle] SQL), in question format (code, multiple choice, short answer, Parsons problems, essays…, see #adr("0015")) and in activity mode (practice, assignment, exam). The project is maintained by one person: if each course requires changes in the core, the platform accumulates special cases until no one can change it safely. Conversely, an abstraction built for a need that never comes is also debt.
 
 === Options considered
 
@@ -27,14 +27,14 @@ Three rules:
   columns: (3.2cm, 1fr, 1fr),
   stroke: 0.5pt,
   [*Extension point*], [*Contract*], [*Initial implementations*],
-  [Question type], [Item schema (public statement, private data), grader, display component], [Code exercise, multiple choice, short answer],
+  [Question type], [Item schema (public statement, private data), grader family, display component (#adr("0015"))], [The Q1 types: code, choice, key match, arrangement, essay],
   [Activity mode], [Policy: time window, feedback shown, queue priority, SEB required, accommodations], [Practice, assignment, exam],
   [Language pack], [Image, compile and run commands, options, limits, capabilities (#adr("0013"))], [The P1 languages],
   [Test runner], [Exercise and artifact in, JSON report out (case, verdict code, message)], [Standard I/O, unit tests, SQL],
   [Judging service], [Provides a disposable environment to a runner, e.g. a database schema], [Ephemeral #ext("postgresql")[PostgreSQL], shared Oracle],
   [Enrollment source], [Produces (offering, user, role) triples (#adr("0012"))], [#ext("lti")[LTI 1.3] #ext("nrps")[Names and Roles], CSV import],
   [Isolation backend], [Starts a container with limits], [#ext("gvisor")[gVisor], #ext("firecracker")[Firecracker] (#adr("0002"))],
-  [Statement renderer], [Already defined (#adr("0005"))], [Markdown, #ext("typst")[Typst]],
+  [Statement renderer], [Already defined (#adr("0005"), #adr("0016"))], [Markdown, #ext("typst")[Typst], with Mermaid in both],
 )
 
 An exam or an assignment is a list of items of any type combined with a mode. A new exam format is a new mode or a new question type, never both at once. A course is an offering and a content repository: there is no per-course code.

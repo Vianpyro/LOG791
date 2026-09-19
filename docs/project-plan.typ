@@ -44,7 +44,7 @@ Individual project supervised by the supervising professor. Work proceeds in sho
 
 = Scope <plan-scope>
 
-*Required.* Isolated execution of untrusted code; several languages; submission and structured verdict; confidentiality of tests; exam mode with reserved capacity; institutional authentication; roles per course offering (#adr("0012")); user interface in English and French (#adr("0011")). The model is designed for every LOG/GTI and DEG computing course; the MVP delivers LOG200, then LOG121.
+*Required.* Isolated execution of untrusted code; several languages; submission and structured verdict; confidentiality of tests; exam mode with reserved capacity; exams mixing every question type, from multiple choice to judged code, with Q1 types first (#adr("0015")); statements in Markdown or Typst with Mermaid diagrams (#adr("0016")); institutional authentication; roles per course offering (#adr("0012")); user interface in English and French (#adr("0011")). The model is designed for every LOG/GTI and DEG computing course; the MVP delivers LOG200, then LOG121.
 
 *Constraints.* Hosting on ÉTS infrastructure; several VMs replicable by #ext("ansible")[Ansible] and fault-tolerant (#adr("0010")); 50 students for the MVP, then the scale of a department; personal data subject to Quebec's #ext("law25")[Law 25]; workload of an individual project course.
 
@@ -87,4 +87,5 @@ Technologies: Python/#ext("fastapi")[FastAPI], #ext("postgresql")[PostgreSQL] (q
   [R6], [Moodle access blocked.], [Optional Moodle integration: the exam starts directly in the platform.],
   [R7], [A VM fails during an exam.], [Stateless, redundant judges, recovery of abandoned jobs, PostgreSQL replica, VMs rebuilt by Ansible (#adr("0010")).],
   [R8], [A course requires a language or test format not planned.], [Language packs and test runners are extension points with a conformance suite: added without touching the core (#adr("0013"), #adr("0014")).],
+  [R9], [The question-type catalog (some thirty types) is too large for one person.], [Types grouped into about nine grader families; delivered by tiers, Q1 with LOG200 (#adr("0015")).],
 )

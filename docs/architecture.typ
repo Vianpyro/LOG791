@@ -40,6 +40,7 @@ The platform must in particular allow:
 
 - creating and publishing exercises;
 - organizing exercises into activities, assignments and exams;
+- every Moodle question type and the programming-specific ones, mixed freely in one exam, with pools and variants (#adr("0015"));
 - writing code in a web environment;
 - saving drafts;
 - submitting programs;
@@ -150,14 +151,14 @@ The courses to serve differ in language, question format and activity mode. The 
   columns: (3.4cm, 1fr),
   stroke: 0.5pt,
   [*Extension point*], [*Initial implementations*],
-  [Question type], [Code exercise, multiple choice, short answer],
+  [Question type], [Q1 types of each grader family (#adr("0015"))],
   [Activity mode], [Practice, assignment, exam],
   [Language pack], [P1 languages (#adr("0013"))],
   [Test runner], [Standard I/O, unit tests, SQL],
   [Judging service], [Ephemeral #ext("postgresql")[PostgreSQL], shared #ext("oracle")[Oracle]],
   [Enrollment source], [#ext("lti")[LTI 1.3], CSV import (#adr("0012"))],
   [Isolation backend], [#ext("gvisor")[gVisor], #ext("firecracker")[Firecracker]],
-  [Statement renderer], [Markdown, #ext("typst")[Typst]],
+  [Statement renderer], [Markdown, #ext("typst")[Typst], with #ext("mermaid")[Mermaid] in both (#adr("0016"))],
 )
 
 An exam or an assignment is a list of items of any type combined with a mode. A course is an offering and a content repository, with no code of its own. Component boundaries (the API does not import the judge, the core imports no implementation) are checked by an architecture test in CI.
@@ -847,6 +848,41 @@ Public and private tests must remain separate.
 
 This separation notably avoids exposing the test cases used to assess submissions.
 
+== Question types <arch-question-types>
+
+A code exercise is one kind of item among others. The platform must offer every #ext("moodle-questions")[Moodle question type] and those a programming course adds: Parsons problems, predicting a program's output, fixing a bug, clicking the faulty line.
+
+#decision(id: "ADR-0015")[
+  A question type is a declarative item schema bound to one of a few grader families. About nine graders cover some thirty types; a new type usually adds a schema and a display component, not a grader.
+]
+
+#table(
+  columns: (2.8cm, 1fr),
+  stroke: 0.5pt,
+  [*Family*], [*Examples*],
+  [Choice], [Single choice, multiple choice, true/false, dropdown, grid],
+  [Key match], [Short answer, numerical with tolerance and units, regular expression, calculated],
+  [Arrangement], [Matching, ordering, categorization, drag and drop into text, Parsons problem],
+  [Composite], [Embedded answers (cloze)],
+  [Judged code], [Full program, function or class, fill-in code, fix the bug, SQL, student-written tests],
+  [Derived key], [Predict the output, choose the complexity (key computed from the reference)],
+  [Area selection], [Hotspot on an image, markers on an image, faulty line of code],
+  [Math expression], [Symbolic answer checked for equivalence],
+  [Manual], [Essay, file upload, UML diagram, code review (rubric)],
+)
+
+The full catalog and the Q1–Q3 tiers are given in #adr("0015"). Non-code graders are pure functions over data: they run in the judge, which remains the only reader of assessment data, but without a sandbox. Regular expressions run on a linear-time engine (#ext("re2")[RE2]).
+
+== Mixed assessments <arch-mixed-assessments>
+
+An exam is an activity mode and an ordered list of slots. A slot holds a fixed item or draws $n$ items from a pool of the course bank; items of every family can be mixed in the same exam.
+
+#decision[
+  Draws, shuffles and calculated variants are derived from a seed (offering, exam, student) computed by the server. A reload or a Safe Exam Browser restart shows the same exam, and nothing about the variant is decided by the browser.
+]
+
+Each item is autosaved as a draft. The exam's score is the sum of item scores; a code item keeps its full verdict, and manual items wait in the grading queue of the offering's TAs (#adr("0012")).
+
 == Extensibility <arch-extensibility>
 
 Adding an exercise should ideally be mainly a configuration and content operation rather than a change to the platform's source code.
@@ -885,6 +921,9 @@ exercises/<id>/
 ├── statement.md       or statement.typ, never both
 ├── public/            templates handed to the student
 └── assessment/        tests, cases, judge configuration (private)
+
+bank/<id>.json         a non-code item: public part and private key
+exams/<id>.json        mode, sections, slots (fixed item or pool draw), points
 ```
 
 #decision[
@@ -905,7 +944,7 @@ Validation checks in particular the metadata schema, the uniqueness of identifie
 
 The public release is not a copy of the content repository. It is rebuilt field by field from an explicit list of what may be shown.
 
-A second check then re-reads the produced projection and refuses to publish if a key reserved for assessment data (`answer`, `expect`, `cases`, `stdin`, internal paths…) appears in it.
+A second check then re-reads the produced projection and refuses to publish if a key reserved for assessment data (`answer`, `expect`, `cases`, `stdin`, `correct`, `key`, `tolerance`, `pairs`, `order`, `regions`, internal paths…) appears in it.
 
 #decision[
   The projection is built by positive enumeration (what is published) and checked by negative enumeration (what must never be). The first protects against today's oversight, the second against the field added tomorrow.
@@ -971,7 +1010,7 @@ An incorrect test produces a wrong verdict that the student cannot contest.
 
 = Statement rendering <arch-statement-rendering>
 
-A programming statement contains text, code, formulas and sometimes tables, figures or diagrams. Two formats are supported, with opposite rendering models.
+A programming statement contains text, code, formulas and sometimes tables, figures or diagrams. Two formats are supported, with opposite rendering models. They apply to every text field of every item (stem, choices, feedback, hints), not only to exercise statements, and both accept #ext("mermaid")[Mermaid] diagrams.
 
 #table(
   columns: (2.8cm, 1fr, 1fr),
@@ -981,6 +1020,7 @@ A programming statement contains text, code, formulas and sometimes tables, figu
   [Rendering], [In the browser, at display time], [At publication time, in a container],
   [Delivered], [Source text], [HTML, with light and dark SVG as fallback],
   [Accessibility], [Full], [Reduced for SVG],
+  [Mermaid], [Fenced `mermaid` block, SVG at publication time], [`mermaid(...)` from the template],
 )
 
 == Markdown <arch-markdown>
@@ -1071,6 +1111,16 @@ Typst vectorizes its glyphs in the SVG: the text there is not selectable, not se
 #validation[
   The maturity of Typst's HTML export will have to be reassessed with each release. If it becomes sufficient, the SVG fallback can be dropped and the accessibility limitation will disappear.
 ]
+
+== Mermaid <arch-mermaid>
+
+Diagrams (flowcharts, sequence, class and state diagrams) are written in Mermaid in both formats. In Typst, the course template exposes `mermaid(...)`, as in this documentation. In Markdown, a fenced block tagged `mermaid` is extracted during publishing and wrapped in a one-line Typst document.
+
+#decision(id: "ADR-0016")[
+  Mermaid is rendered at publication time by the #ext("merman")[merman] Typst package, in the existing Typst container, to light and dark SVG. No diagram library is sent to the browser: nothing to serve under Safe Exam Browser and no exception to the CSP.
+]
+
+The Mermaid source is kept as the SVG's text alternative. A diagram type merman does not support, or a diagram that fails to render, stops publishing and names the exercise and the block.
 
 = Internationalization <arch-internationalization>
 
@@ -1493,6 +1543,14 @@ The following choices remain conditional or will have to be confirmed experiment
   [Internationalization],
   [Translation files; English and French complete, others fall back to English (#adr("0011"))],
   [CI check on `fr`/`en` keys, fallback, language under SEB],
+
+  [Question types],
+  [Grader families, tiers Q1–Q3, mixed exams (#adr("0015"))],
+  [Mixed exam under SEB, same draw after restart, no key in the projection],
+
+  [Diagrams],
+  [Mermaid through merman at publication time (#adr("0016"))],
+  [Supported diagram types, equivalence between Markdown and Typst],
 )
 
 The architecture will be considered stable only after validation of the hypotheses that have a significant impact on the system's security, performance or operability.
@@ -1521,6 +1579,8 @@ Several important questions are deliberately left open.
 16. Is performance graded by a complexity verdict (one reference per exercise) or by a full ranking (one reference per language)? To be settled with the instructor.
 17. Is code that does not pass all tests measured? If the last submission fails while an earlier one passed, which one is measured?
 18. Which languages does each course support, and which of them can run in the browser? A first inventory is given in the #arch("appendix-course-inventory")[appendix] and the tiers in #adr("0013"); it remains to be confirmed with each course coordinator.
+19. Should existing Moodle question banks be imported (Moodle XML, GIFT), and for which families?
+20. How do TAs grade manual items (essay, UML diagram, file upload) during a heavy exam period: per item across students, or per student?
 
 = Validation methodology <arch-validation-methodology>
 
