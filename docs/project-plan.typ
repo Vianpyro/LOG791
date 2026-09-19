@@ -6,7 +6,7 @@
 
 CTester is an automated assessment platform for C programs, developed for the TCH009 course and used in production: students write, compile and submit code there, which is judged by tests run in a gVisor sandbox. It was designed for a single course, a single language and a single machine.
 
-The LOG200 course wants a comparable platform, with constraints that CTester does not cover: several languages, supervised assessments where an outage is critical, integration with Moodle and Safe Exam Browser, and hosting on ÉTS infrastructure. The MVP targets about 50 students; eventually, the platform must serve all instructors of the LOG/TI department and their groups, as well as part of the DEG.
+The LOG200 course wants a comparable platform, with constraints that CTester does not cover: several languages, supervised assessments where an outage is critical, integration with Moodle and Safe Exam Browser, and hosting on ÉTS infrastructure. The MVP targets LOG200 (about 50 students), then LOG121; eventually, the platform must serve every LOG/GTI course and the computing courses of the DEG, for students and instructors alike.
 
 *Problem.* How can we design a platform able to run untrusted code in several languages, withstand the load of a supervised exam and remain reusable from one course to another, on infrastructure with limited resources?
 
@@ -16,6 +16,7 @@ The LOG200 course wants a comparable platform, with constraints that CTester doe
 
 + Design and justify an architecture that separates the pedagogical application from the judge engine.
 + Implement a multi-language judge engine whose isolation is independent of the language.
++ Keep the core closed to special cases: LOG121 is added after LOG200 without modifying the core, only extension point implementations and content (ADR-0014).
 + Demonstrate that the platform withstands a simulated exam load of 400 students, with latency thresholds defined in advance.
 + Make the infrastructure rebuildable from the repository.
 
@@ -43,11 +44,11 @@ Individual project supervised by the supervising professor. Work proceeds in sho
 
 = Scope
 
-*Required.* Isolated execution of untrusted code; several languages; submission and structured verdict; confidentiality of tests; exam mode with reserved capacity; institutional authentication; user interface in English and French (ADR-0011).
+*Required.* Isolated execution of untrusted code; several languages; submission and structured verdict; confidentiality of tests; exam mode with reserved capacity; institutional authentication; roles per course offering (ADR-0012); user interface in English and French (ADR-0011). The model is designed for every LOG/GTI and DEG computing course; the MVP delivers LOG200, then LOG121.
 
 *Constraints.* Hosting on ÉTS infrastructure; several VMs replicable by Ansible and fault-tolerant (ADR-0010); 50 students for the MVP, then the scale of a department; personal data subject to Quebec's Law 25; workload of an individual project course.
 
-*Exclusions.* Social features, gamification, collaborative editing, plagiarism detection, content editing interface, translations into languages other than English and French (left to contributors). Moodle / Safe Exam Browser integration is optional, depending on the access obtained.
+*Exclusions.* Social features, gamification, collaborative editing, plagiarism detection, content editing interface, mobile emulation, Windows commands and Windows Server roles, multi-service projects, translations into languages other than English and French (left to contributors). Moodle / Safe Exam Browser integration is optional, depending on the access obtained.
 
 = Technical choices
 
@@ -85,4 +86,5 @@ Technologies: Python/FastAPI, PostgreSQL (queue and streaming replication), gVis
   [R5], [The platform does not work under SEB (a prerequisite for the project).], [SEB is free and installs without ÉTS: prototype tested under SEB from the first weeks, with a test `.seb` file (ADR-0009); confirm early the SEB version and the exam workstation image; direct launch through a `sebs://` link, without Moodle.],
   [R6], [Moodle access blocked.], [Optional Moodle integration: the exam starts directly in the platform.],
   [R7], [A VM fails during an exam.], [Stateless, redundant judges, recovery of abandoned jobs, PostgreSQL replica, VMs rebuilt by Ansible (ADR-0010).],
+  [R8], [A course requires a language or test format not planned.], [Language packs and test runners are extension points with a conformance suite: added without touching the core (ADR-0013, ADR-0014).],
 )

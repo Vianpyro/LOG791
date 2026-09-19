@@ -4,7 +4,7 @@
 
 = Purpose of the document
 
-This document presents the architecture envisioned for a programming learning and assessment platform, initially intended for the LOG200 course at the École de technologie supérieure. The MVP targets about 50 students; eventually, the platform must serve all instructors of the LOG/TI department and their groups, as well as part of the DEG.
+This document presents the architecture envisioned for a programming learning and assessment platform, initially intended for the LOG200 course at the École de technologie supérieure. The MVP targets about 50 students. LOG121 comes second; eventually, the platform must serve every LOG/GTI course and the computing courses of the DEG, for students and instructors alike (see the course inventory at the end of this document).
 
 The platform is a conceptual evolution of CTester, a system originally developed for the automated assessment of C programs in the context of the TCH009 course.
 
@@ -71,10 +71,10 @@ The following properties are considered particularly important:
   [Reproducibility],
   [Be able to rebuild the infrastructure and deployment environments in an automated way.],
 
-  [Extensibility], [Add a language or an exercise type without needlessly modifying the rest of the system.],
+  [Extensibility], [Add a course, a language, a question type or an activity mode without modifying the core (ADR-0014).],
 
   [Maintainability],
-  [Keep responsibilities clearly separated and components testable independently.],
+  [Keep responsibilities clearly separated, boundaries checked in CI and components testable independently (ADR-0014).],
 )
 
 = Architectural principles
@@ -137,6 +137,34 @@ The judge engine is responsible in particular for:
 * producing a verdict.
 
 This separation also allows both parts of the system to be sized independently.
+
+== Stable core and extension points
+
+The courses to serve differ in language, question format and activity mode. The project is maintained by one person, so variation between courses must never accumulate as special cases in the core.
+
+#decision(id: "ADR-0014")[
+  The core knows no language, course or exercise by name. Everything that varies goes through an extension point made of declarative data, a versioned contract and a conformance suite run in CI. An extension point only exists if at least two real implementations are already known.
+]
+
+#table(
+  columns: (3.4cm, 1fr),
+  stroke: 0.5pt,
+  [*Extension point*], [*Initial implementations*],
+  [Question type], [Code exercise, multiple choice, short answer],
+  [Activity mode], [Practice, assignment, exam],
+  [Language pack], [P1 languages (ADR-0013)],
+  [Test runner], [Standard I/O, unit tests, SQL],
+  [Judging service], [Ephemeral PostgreSQL, shared Oracle],
+  [Enrollment source], [LTI 1.3, CSV import (ADR-0012)],
+  [Isolation backend], [gVisor, Firecracker],
+  [Statement renderer], [Markdown, Typst],
+)
+
+An exam or an assignment is a list of items of any type combined with a mode. A course is an offering and a content repository, with no code of its own. Component boundaries (the API does not import the judge, the core imports no implementation) are checked by an architecture test in CI.
+
+#validation[
+  Adding LOG121 after LOG200 must only touch extension point implementations and content. Any core change it requires is recorded as an architecture defect.
+]
 
 = Overall architecture
 
@@ -345,6 +373,25 @@ A language must mainly define how to:
 - possibly manage its dependencies.
 
 The isolation mechanism should not depend on the language.
+
+#decision(id: "ADR-0013")[
+  Each language is a declarative _language pack_: pinned image built in CI, compile and run commands, version and options (for C, the standard is an exercise option), default limits with a time multiplier, and capabilities (browser, instruction counting). Test formats are separate _runners_ (standard I/O, unit tests, SQL) that all produce the same JSON report.
+]
+
+== Language catalog
+
+LOG200 aims for as many languages as possible, prioritized by industry use and its expected trend, with the LeetCode and CodinGame catalogs as the horizon.
+
+#table(
+  columns: (1.4cm, 1fr, 3.2cm),
+  stroke: 0.5pt,
+  [*Tier*], [*Languages*], [*When*],
+  [P1], [Python 3, Java, C, C++, JavaScript, TypeScript, C\#, Go, Rust, Kotlin], [With LOG200],
+  [P2], [PHP, Ruby, Swift, Dart, Scala, Bash, SQL (PostgreSQL)], [After load validation],
+  [P3], [Haskell, OCaml, Elixir, Erlang, Racket, Clojure, Lua, Perl, F\#, Groovy, VB.NET, Pascal, D, Objective-C, Pep/8], [On request or contribution],
+)
+
+Standard I/O is the default test format for LOG200: one set of tests is valid for every language. A function-signature harness requires a driver per language and is only added per exercise.
 
 == Rust
 
@@ -744,6 +791,21 @@ The goal is to prevent a non-critical activity from consuming all the workers wh
   completely separate infrastructure.
 ]
 
+= Courses and roles
+
+The platform serves several courses, each taught every term by several people in several groups.
+
+#decision(id: "ADR-0012")[
+  Data belongs to an _offering_ (a course in a term, e.g. LOG200 A2026), split into groups. Roles are held per offering, never globally: `student`, `ta` (results, no private tests), `instructor` (publishes, previews, runs exams for their groups), `coordinator` (every group of the course). Only `admin` is global, for platform operations.
+]
+
+- *Enrollments* come from Moodle through LTI 1.3 (the LTI context identifies the offering, Names and Roles provides the roster, Assignment and Grade Services returns grades), or from a CSV import when Moodle is not available. Microsoft Entra ID provides identity only.
+- *Shared capacity*: exams are scheduled in advance and reserve judges for their time slot; outside exams, each offering has a queue quota.
+- *Accommodations*: extra time and a shifted time slot per student and per exam, computed by the server.
+- *Instructor tools* (minimum): results per group, CSV export, re-judging an exercise after a test is fixed, individual extensions, preview.
+- *Personal data*: an instructor only sees their offerings; retention is purged per completed offering (Law 25).
+- *Accessibility*: the interface targets WCAG 2.1 AA, including a keyboard-navigable editor.
+
 = Pedagogical model
 
 The architecture must not limit an exercise to a "statement + solution" pair.
@@ -861,7 +923,7 @@ Each publication produces a release directory whose identifier is the hash of it
 The active release is designated by a pointer, a file rather than a symbolic link. A container mount resolves the link at startup, so a change of link would only be visible after a restart.
 
 #decision[
-  Rolling back content consists of rewriting the pointer to a previous release. It is instantaneous and redeploys no component.
+  Rolling back content consists of rewriting the pointer to a previous release. It is instantaneous and redeploys no component. Each course has its own content repository and its own pointer: rolling back one course leaves the others unchanged (ADR-0012).
 ]
 
 Pruning keeps the latest releases according to a publication date written in their manifest, not according to the file system's modification time. In CTester, the latter had a different granularity on Windows and on Linux, which caused a release that was supposed to be kept to be deleted.
@@ -888,7 +950,7 @@ The API only passes an exercise identifier to the judge. The judge itself resolv
 
 An instructor must be able to view and submit an exercise before it opens, under real conditions, without opening it to students.
 
-The projection therefore writes a restricted copy of unopened exercises, served only to instructor accounts and never cached by an intermediary. The role is recomputed server-side on every request, and again by the judge, from the authenticated identity.
+The projection therefore writes a restricted copy of unopened exercises, served only to the instructors of that course and never cached by an intermediary. The role in the offering (ADR-0012) is recomputed server-side on every request, and again by the judge, from the authenticated identity.
 
 #decision[
   Preview is a property of the authenticated identity, not a global flag. The access gate's default behavior is closed.
@@ -1340,7 +1402,7 @@ A stronger physical or virtual separation between the application and the judge 
 Student code normally has no reason to access the Internet or the institution's internal network.
 
 #decision[
-  Network access for student programs must be denied by default and explicitly allowed only when a particular exercise requires it.
+  Network access for student programs must be denied by default. An exercise may only declare loopback networking (a namespace with no external interface), for socket exercises such as LOG100 or GTI611 (ADR-0013).
 ]
 
 Network and firewall configuration must be considered part of the declarative infrastructure and not a manual configuration of the machine.
@@ -1453,11 +1515,11 @@ Several important questions are deliberately left open.
 11. How can recovery be guaranteed after the failure of a worker, a VM or the PostgreSQL primary during an exam? An approach is proposed in ADR-0010.
 12. What observability is needed to diagnose an ongoing exam?
 13. How can Moodle and Safe Exam Browser be integrated cleanly? SEB verification is proposed in ADR-0009; the handoff from Moodle to the platform through LTI remains to be specified.
-14. Which part of the architecture should be common to the different courses?
+14. Which part of the architecture should be common to the different courses? A first answer is given by ADR-0012 and ADR-0014; LOG121 will test it.
 15. How is assessment data distributed to the judges when they are spread over several machines: shared mount, copy at publication time or versioned artifact?
 16. Is performance graded by a complexity verdict (one reference per exercise) or by a full ranking (one reference per language)? To be settled with the instructor.
 17. Is code that does not pass all tests measured? If the last submission fails while an earlier one passed, which one is measured?
-18. Which languages does each course support, and which of them can run in the browser?
+18. Which languages does each course support, and which of them can run in the browser? A first inventory is given in the appendix and the tiers in ADR-0013; it remains to be confirmed with each course coordinator.
 
 = Validation methodology
 
@@ -1501,3 +1563,39 @@ The following sections should gradually be completed with:
 - decisions made following the experiments;
 - identified limitations;
 - conclusions.
+
+= Appendix: course inventory
+
+Courses the platform is designed for, in priority order: LOG200, then LOG121, then the others on request. DEG codes come from the DEG course planning published by ÉTS; languages are to be confirmed with each coordinator.
+
+#table(
+  columns: (1.6cm, 1fr, 3.6cm, 3.4cm),
+  stroke: 0.5pt,
+  [*Course*], [*Title*], [*Languages / tools*], [*Test format*],
+  table.cell(colspan: 4)[*Software and IT engineering (LOG/GTI)*],
+  [LOG200], [Structures de données et algorithmes], [Full catalog (ADR-0013)], [Standard I/O, performance],
+  [LOG121], [Conception orientée objet], [Java], [Unit tests, design questions],
+  [LOG100], [Programmation et réseautique en génie logiciel], [C, Python, sockets], [Standard I/O, loopback network],
+  [LOG210], [Analyse et conception de logiciels], [Java, TypeScript], [Unit tests],
+  [LOG240], [Tests et maintenance], [Java, TypeScript], [Unit tests, coverage],
+  [LOG635], [Systèmes intelligents et algorithmes], [Python (NumPy)], [Unit tests],
+  [LOG660], [Bases de données de haute performance], [SQL], [SQL],
+  [GTI350], [Conception et évaluation des interfaces utilisateurs], [JavaScript], [Unit tests],
+  [GTI611], [Réseaux de communication IP], [C, Python], [Loopback network],
+  table.cell(colspan: 4)[*General studies department (DEG)*],
+  [INF111], [Programmation orientée objet], [Java], [Unit tests],
+  [INF130], [Ordinateurs et programmation], [VBA (VB.NET judged)], [Standard I/O],
+  [INF136], [Introduction à la programmation en Python], [Python], [Standard I/O, browser],
+  [INF147], [Programmation procédurale], [C89], [Standard I/O, unit tests],
+  [INF155], [Introduction à la programmation], [C99], [Standard I/O],
+  [INF270], [Programmation Web pour le design UX], [HTML, CSS, JavaScript], [Unit tests],
+  [TCH009], [Informatique], [C], [Standard I/O],
+  [TCH016], [Systèmes d'exploitation et services Internet], [Bash, PowerShell], [Standard I/O],
+  [TCH017], [Architecture des ordinateurs], [Pep/8 assembly], [Standard I/O],
+  [TCH055], [Bases de données], [Oracle SQL], [SQL (shared Oracle)],
+  [TCH056], [Programmation Web], [JavaScript, TypeScript], [Unit tests],
+  [TCH057], [Applications mobiles], [Java, Kotlin], [Unit tests, no emulator],
+  [TCH099], [Projet intégrateur en informatique], [JavaScript, PHP, Java, Kotlin], [Practice exercises],
+)
+
+Out of scope: courses without judged code (GTI510, LOG410, LOG430, LOG795), mobile emulation, Windows commands and Windows Server roles, and multi-service projects.

@@ -19,6 +19,9 @@
   [0009], [Server-side verification of Safe Exam Browser], [Proposed],
   [0010], [Multiple replicable, fault-tolerant VMs], [Proposed],
   [0011], [User interface internationalization], [Proposed],
+  [0012], [Courses, offerings and per-course roles], [Proposed],
+  [0013], [Language packs and test runners], [Proposed],
+  [0014], [Stable core and extension points], [Proposed],
 )
 
 #include "0001-postgresql-queue.typ"
@@ -32,3 +35,6 @@
 #include "0009-seb-verification.typ"
 #include "0010-multi-vm-topology.typ"
 #include "0011-ui-internationalization.typ"
+#include "0012-multi-course-roles.typ"
+#include "0013-language-packs.typ"
+#include "0014-extension-points.typ"
