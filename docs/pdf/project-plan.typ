@@ -1,11 +1,11 @@
-// Point d'entrée : typst compile --root . docs/pdf/plan-de-projet.typ  (depuis LOG791/)
+// Entry point: typst compile --root . docs/pdf/project-plan.typ  (from LOG791/)
 #import "../template.typ": document
 
 #show: document.with(
-  titre: "Plan de projet",
-  sous-titre: [Plateforme d'apprentissage et d'évaluation de la programmation],
-  superviseurs: ([Patrick Cardinal],),
-  slug: "plan-de-projet",
+  title: "Project Plan",
+  subtitle: [Programming Learning and Assessment Platform],
+  supervisors: ([Patrick Cardinal],),
+  slug: "project-plan",
 )
 
-#include "../plan-de-projet.typ"
+#include "../project-plan.typ"

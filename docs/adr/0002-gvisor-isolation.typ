@@ -1,45 +1,45 @@
 #import "../template.typ": validation
 
-== ADR-0002 — gVisor comme mécanisme d'isolation initial
+== ADR-0002 — gVisor as the initial isolation mechanism
 
-*Statut :* accepté pour la première implémentation ; comparaison avec Firecracker prévue. \
-*Voir aussi :* architecture, section « Isolation des soumissions ».
+*Status:* accepted for the first implementation; comparison with Firecracker planned. \
+*See also:* architecture, section "Submission isolation".
 
-=== Contexte
+=== Context
 
-Le code étudiant est non fiable. Un conteneur classique partage le noyau de l'hôte et n'est pas une frontière de sécurité suffisante à lui seul. La plateforme tourne elle-même dans une VM fournie par l'établissement, où la virtualisation imbriquée (KVM) n'est pas garantie.
+Student code is untrusted. A classic container shares the host kernel and is not a sufficient security boundary on its own. The platform itself runs in a VM provided by the institution, where nested virtualization (KVM) is not guaranteed.
 
-=== Options considérées
+=== Options considered
 
 #table(
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
-  [*Option*], [*Avantages*], [*Inconvénients*],
+  [*Option*], [*Pros*], [*Cons*],
   [gVisor (Systrap)],
-  [Noyau applicatif en espace utilisateur ; fonctionne sans KVM ; s'intègre à Docker/Podman comme runtime OCI ; éprouvé dans CTester.],
-  [Surcoût sur les appels système ; certaines limites cgroup ne comptent pas les processus internes.],
+  [User-space application kernel; works without KVM; plugs into Docker/Podman as an OCI runtime; proven in CTester.],
+  [Overhead on system calls; some cgroup limits do not count internal processes.],
 
   [Firecracker],
-  [Frontière forte (microVM sous KVM).],
-  [Exige KVM, donc la virtualisation imbriquée ; cycle de vie des microVM à gérer.],
+  [Strong boundary (microVM under KVM).],
+  [Requires KVM, hence nested virtualization; microVM lifecycle to manage.],
 
   [WebAssembly],
-  [Sandbox forte par construction.],
-  [Chaîne d'outils et bibliothèques par langage ; ne couvre pas un cours multi-langage général.],
+  [Strong sandbox by construction.],
+  [Toolchain and libraries per language; does not cover a general multi-language course.],
 
-  [Conteneur seul (runc)], [Le plus simple et le plus rapide.], [Frontière insuffisante contre du code hostile.],
+  [Container only (runc)], [Simplest and fastest.], [Insufficient boundary against hostile code.],
 )
 
-=== Décision
+=== Decision
 
-gVisor en mode Systrap, piloté par un runtime de conteneur, est retenu pour la première implémentation.
+gVisor in Systrap mode, driven by a container runtime, is chosen for the first implementation.
 
-=== Conséquences
+=== Consequences
 
-- Le choix de Docker ou Podman devient secondaire : c'est le runtime OCI qui porte l'isolation.
-- Les limites doivent être vérifiées par leur *résultat* (l'hôte ne bouge pas) plutôt que par leur mécanisme, puisque certains contrôles cgroup ne voient pas l'intérieur du sandbox.
-- L'abstraction de sandbox du juge doit rester indépendante de gVisor pour permettre la comparaison.
+- The choice between Docker and Podman becomes secondary: the OCI runtime carries the isolation.
+- Limits must be verified by their *outcome* (the host is unaffected) rather than by their mechanism, since some cgroup controls cannot see inside the sandbox.
+- The judge's sandbox abstraction must remain independent of gVisor to allow the comparison.
 
 #validation(id: "V-0002")[
-  Comparer gVisor et Firecracker sur une charge identique : démarrage, latence, débit, CPU et mémoire, et comportement face aux soumissions hostiles. Vérifier la disponibilité de KVM sur la VM de l'établissement.
+  Compare gVisor and Firecracker under an identical load: startup, latency, throughput, CPU and memory, and behavior against hostile submissions. Check whether KVM is available on the institution's VM.
 ]

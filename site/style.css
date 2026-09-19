@@ -1,26 +1,26 @@
-/* Feuille unique du site : index.html et le HTML produit par Typst.
-   Typst n'émet aucun style ; les classes .encadre/.titre viennent de template.typ. */
+/* Single stylesheet for the site: index.html and the HTML produced by Typst.
+   Typst emits no styling; the .callout/.title classes come from template.typ. */
 
 :root {
-  --fond: #ffffff;
-  --texte: #1b1f24;
-  --doux: #5b6470;
-  --bleu: #003087;
-  --rouge: #da291c;
-  --trait: #d5dae0;
+  --bg: #ffffff;
+  --text: #1b1f24;
+  --muted: #5b6470;
+  --blue: #003087;
+  --red: #da291c;
+  --line: #d5dae0;
   --surface: #f4f6f8;
   --todo: #fff4e5;
-  --todo-trait: #e8a33d;
+  --todo-line: #e8a33d;
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fond: #14171b;
-    --texte: #e3e6ea;
-    --doux: #9aa3ad;
-    --bleu: #8fb0ff;
-    --trait: #333a42;
+    --bg: #14171b;
+    --text: #e3e6ea;
+    --muted: #9aa3ad;
+    --blue: #8fb0ff;
+    --line: #333a42;
     --surface: #1d2127;
     --todo: #33280f;
   }
@@ -35,8 +35,8 @@ body {
   max-width: 50rem;
   padding-block: 2rem 4rem;
   padding-inline: 1rem;
-  background: var(--fond);
-  color: var(--texte);
+  background: var(--bg);
+  color: var(--text);
   font: 1rem/1.65 "Latin Modern Roman", "New Computer Modern", Georgia, serif;
 }
 
@@ -44,31 +44,31 @@ h1,
 h2,
 h3,
 h4 {
-  color: var(--bleu);
+  color: var(--blue);
   line-height: 1.25;
   margin-top: 2em;
 }
 
-.titre h1,
-.titre h2 {
+.title h1,
+.title h2 {
   margin-top: 0;
   font-size: 2rem;
 }
 
-.titre {
-  border-bottom: 2px solid var(--rouge);
+.title {
+  border-bottom: 2px solid var(--red);
   padding-bottom: 1rem;
   margin-bottom: 2rem;
 }
 
-.sous-titre {
-  color: var(--doux);
+.subtitle {
+  color: var(--muted);
   font-size: 1.15rem;
   margin-top: 0.25rem;
 }
 
 a {
-  color: var(--bleu);
+  color: var(--blue);
 }
 
 nav {
@@ -110,7 +110,7 @@ table {
 
 th,
 td {
-  border: 1px solid var(--trait);
+  border: 1px solid var(--line);
   padding: 0.4em 0.6em;
   text-align: left;
   vertical-align: top;
@@ -120,26 +120,26 @@ tr:nth-child(even) td {
   background: var(--surface);
 }
 
-.encadre {
+.callout {
   background: var(--surface);
-  border-left: 3px solid var(--trait);
+  border-left: 3px solid var(--line);
   padding: 0.6em 1em;
   margin-block: 1rem;
   border-radius: 3px;
 }
 
-.encadre.decision {
-  border-left-color: var(--bleu);
+.callout.decision {
+  border-left-color: var(--blue);
 }
 
-.encadre.todo {
+.callout.todo {
   background: var(--todo);
-  border-left-color: var(--todo-trait);
+  border-left-color: var(--todo-line);
 }
 
-/* Les diagrammes sont des SVG peints en noir sur fond transparent : on leur
-   donne un fond clair, sinon ils disparaissent en thème sombre. */
-/* !important : html.frame pose width/height en style en ligne, qui bat le CSS. */
+/* Diagrams are SVGs painted black on a transparent background: give them a
+   light background, otherwise they vanish in dark mode. */
+/* !important: html.frame sets width/height as inline style, which beats the CSS. */
 svg {
   width: 100% !important;
   max-width: 43em;
@@ -149,33 +149,33 @@ svg {
 }
 
 blockquote {
-  border-left: 3px solid var(--trait);
+  border-left: 3px solid var(--line);
   margin-inline: 0;
   padding-left: 1em;
-  color: var(--doux);
+  color: var(--muted);
 }
 
-.cartes {
+.cards {
   list-style: none;
   padding: 0;
   display: grid;
   gap: 0.75rem;
 }
 
-.cartes li {
-  border: 1px solid var(--trait);
+.cards li {
+  border: 1px solid var(--line);
   padding: 0.9rem 1rem;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.2rem 1rem;
 }
 
-.cartes li span {
-  color: var(--doux);
+.cards li span {
+  color: var(--muted);
   grid-column: 1;
 }
 
-.cartes .pdf {
+.cards .pdf {
   grid-row: 1 / span 2;
   grid-column: 2;
   align-self: center;
@@ -183,6 +183,6 @@ blockquote {
 
 footer {
   margin-top: 3rem;
-  color: var(--doux);
+  color: var(--muted);
   font-size: 0.9rem;
 }

@@ -1,88 +1,88 @@
-// Plan de projet — LOG791 (projet spécial, A2026), réalisé seul sous la supervision du professeur attitré.
-// Contenu seul ; point d'entrée : pdf/plan-de-projet.typ
+// Project plan — LOG791 (special project, Fall 2026), carried out alone under the supervising professor.
+// Content only; entry point: pdf/project-plan.typ
 #import "template.typ": todo
 
-= Contexte et problématique
+= Context and problem statement
 
-CTester est une plateforme d'évaluation automatisée de programmes en C développée pour le cours TCH009 et utilisée en production : les étudiants y écrivent, compilent et soumettent du code jugé par des tests exécutés dans un bac à sable gVisor. Elle a été conçue pour un seul cours, un seul langage et une seule machine.
+CTester is an automated assessment platform for C programs, developed for the TCH009 course and used in production: students write, compile and submit code there, which is judged by tests run in a gVisor sandbox. It was designed for a single course, a single language and a single machine.
 
-Le cours LOG200 souhaite disposer d'une plateforme comparable, avec des contraintes que CTester ne couvre pas : plusieurs langages, des évaluations supervisées où une panne est critique, une intégration avec Moodle et Safe Exam Browser, et un hébergement sur l'infrastructure de l'ÉTS. Le MVP vise environ 50 élèves ; à terme, la plateforme doit servir tous les enseignants du département LOG/TI et leurs groupes, ainsi qu'une partie du DEG.
+The LOG200 course wants a comparable platform, with constraints that CTester does not cover: several languages, supervised assessments where an outage is critical, integration with Moodle and Safe Exam Browser, and hosting on ÉTS infrastructure. The MVP targets about 50 students; eventually, the platform must serve all instructors of the LOG/TI department and their groups, as well as part of the DEG.
 
-*Problème.* Comment concevoir une plateforme capable d'exécuter du code non fiable dans plusieurs langages, de supporter la charge d'un examen supervisé et de demeurer réutilisable d'un cours à l'autre, sur une infrastructure aux ressources limitées ?
+*Problem.* How can we design a platform able to run untrusted code in several languages, withstand the load of a supervised exam and remain reusable from one course to another, on infrastructure with limited resources?
 
-#todo[Faire valider la formulation du problème par le professeur attitré.]
+#todo[Have the problem statement validated by the supervising professor.]
 
-= Objectifs
+= Objectives
 
-+ Concevoir et justifier une architecture séparant l'application pédagogique du moteur de jugement.
-+ Implémenter un moteur de jugement multi-langage dont l'isolation est indépendante du langage.
-+ Démontrer que la plateforme tient une charge d'examen simulée de 400 étudiants, avec des seuils de latence définis à l'avance.
-+ Rendre l'infrastructure reconstructible à partir du dépôt.
++ Design and justify an architecture that separates the pedagogical application from the judge engine.
++ Implement a multi-language judge engine whose isolation is independent of the language.
++ Demonstrate that the platform withstands a simulated exam load of 400 students, with latency thresholds defined in advance.
++ Make the infrastructure rebuildable from the repository.
 
-#todo[Associer à chaque objectif un critère de réussite mesurable (latence P95, taux d'échec toléré).]
+#todo[Attach a measurable success criterion to each objective (P95 latency, tolerated failure rate).]
 
-= Encadrement et méthode
+= Supervision and method
 
-Projet individuel supervisé par le professeur attitré. Le travail avance par itérations courtes : chaque itération implémente ce qu'il faut pour valider une hypothèse d'architecture, puis consigne la décision dans une ADR. Un suivi régulier avec le professeur sert de point de contrôle.
+Individual project supervised by the supervising professor. Work proceeds in short iterations: each iteration implements what is needed to validate an architectural hypothesis, then records the decision in an ADR. Regular follow-up with the professor serves as a checkpoint.
 
-#todo[Fixer la fréquence des rencontres de suivi.]
+#todo[Set the frequency of follow-up meetings.]
 
-= Livrables
+= Deliverables
 
 #table(
   columns: (4.5cm, 1fr),
   stroke: 0.5pt,
-  [*Livrable*], [*Contenu*],
-  [Plan de projet], [Le présent document.],
-  [Architecture et ADR], [Conception de haut niveau et justification des choix, incluant le modèle de menace.],
-  [Prototype], [Application, moteur de jugement et isolation déployables.],
-  [Rapport final], [Démarche, résultats des mesures et recommandations pour LOG200.],
+  [*Deliverable*], [*Content*],
+  [Project plan], [This document.],
+  [Architecture and ADRs], [High-level design and rationale for the choices, including the threat model.],
+  [Prototype], [Deployable application, judge engine and isolation.],
+  [Final report], [Approach, measurement results and recommendations for LOG200.],
 )
 
-#todo[Confirmer les livrables et échéances exigés avec le professeur attitré.]
+#todo[Confirm the required deliverables and deadlines with the supervising professor.]
 
-= Portée
+= Scope
 
-*Requis.* Exécution isolée de code non fiable ; plusieurs langages ; soumission et verdict structuré ; confidentialité des tests ; mode examen avec capacité réservée ; authentification institutionnelle.
+*Required.* Isolated execution of untrusted code; several languages; submission and structured verdict; confidentiality of tests; exam mode with reserved capacity; institutional authentication; user interface in English and French (ADR-0011).
 
-*Contraintes.* Hébergement sur l'infrastructure de l'ÉTS ; plusieurs VM répliquables par Ansible et tolérantes aux pannes (ADR-0010) ; 50 élèves pour le MVP, puis l'échelle d'un département ; données personnelles soumises à la Loi 25 ; charge de travail d'un cours de projet individuel.
+*Constraints.* Hosting on ÉTS infrastructure; several VMs replicable by Ansible and fault-tolerant (ADR-0010); 50 students for the MVP, then the scale of a department; personal data subject to Quebec's Law 25; workload of an individual project course.
 
-*Exclusions.* Fonctionnalités sociales, gamification, édition collaborative, détection de plagiat, interface d'édition du contenu. L'intégration Moodle / Safe Exam Browser est optionnelle, selon les accès obtenus.
+*Exclusions.* Social features, gamification, collaborative editing, plagiarism detection, content editing interface, translations into languages other than English and French (left to contributors). Moodle / Safe Exam Browser integration is optional, depending on the access obtained.
 
-= Choix techniques
+= Technical choices
 
-L'analyse détaillée est consignée dans le document d'architecture et les ADR.
+The detailed analysis is recorded in the architecture document and the ADRs.
 
 #table(
   columns: (3cm, 1fr, 3.2cm),
   stroke: 0.5pt,
-  [*Question*], [*Solutions considérées*], [*Retenue*],
-  [Isolation], [conteneur seul, gVisor, Firecracker, WebAssembly], [gVisor (ADR-0002)],
-  [File], [PostgreSQL, Redis, RabbitMQ, spool fichiers], [PostgreSQL (ADR-0001)],
-  [Système], [NixOS, distribution + Ansible, conteneurs seuls], [Ubuntu + Ansible (ADR-0006)],
-  [Contenu], [base de données, copie servie, releases immuables], [Releases (ADR-0005)],
-  [Faire ou réutiliser], [étendre CTester, Judge0, DMOJ, CodeRunner], [À justifier],
+  [*Question*], [*Solutions considered*], [*Chosen*],
+  [Isolation], [container only, gVisor, Firecracker, WebAssembly], [gVisor (ADR-0002)],
+  [Queue], [PostgreSQL, Redis, RabbitMQ, file spool], [PostgreSQL (ADR-0001)],
+  [System], [NixOS, distribution + Ansible, containers only], [Ubuntu + Ansible (ADR-0006)],
+  [Content], [database, served copy, immutable releases], [Releases (ADR-0005)],
+  [Build or reuse], [extend CTester, Judge0, DMOJ, CodeRunner], [To justify],
 )
 
-Technologies : Python/FastAPI, PostgreSQL (file et réplication en continu), gVisor, Docker ou Podman, QEMU en mode utilisateur (mesure de performance), Pyodide/WebAssembly (tests visibles dans le navigateur), Ubuntu LTS et Ansible, nginx et certbot, Microsoft Entra ID, Safe Exam Browser, Moodle (LTI), Typst, GitHub Actions.
+Technologies: Python/FastAPI, PostgreSQL (queue and streaming replication), gVisor, Docker or Podman, QEMU user mode (performance measurement), Pyodide/WebAssembly (visible tests in the browser), Ubuntu LTS and Ansible, nginx and certbot, Microsoft Entra ID, Safe Exam Browser, Moodle (LTI), Typst, GitHub Actions.
 
-#todo[Justifier pourquoi ne pas réutiliser un juge existant (Judge0, DMOJ, CodeRunner).]
+#todo[Justify why an existing judge (Judge0, DMOJ, CodeRunner) is not reused.]
 
-= Échéancier
+= Schedule
 
-#todo[Jalons datés : plan de projet, architecture, prototype fonctionnel, mesures de charge, rapport final.]
+#todo[Dated milestones: project plan, architecture, working prototype, load measurements, final report.]
 
-= Risques
+= Risks
 
 #table(
   columns: (0.9cm, 1fr, 1fr),
   stroke: 0.5pt,
-  [*ID*], [*Risque*], [*Mitigation*],
-  [R1], [La VM de l'ÉTS n'est pas disponible à temps.], [Environnement reproductible hors ÉTS ; gVisor ne demande pas KVM.],
-  [R2], [Évasion du bac à sable par du code hostile.], [Défense en profondeur, pas de réseau ni de secrets dans le juge, tests hostiles en CI.],
-  [R3], [Charge d'examen non tenue.], [Mesures tôt ; capacité réservée ; contre-pression.],
-  [R4], [Portée trop large pour une seule personne.], [Exclusions explicites ; prototype centré sur le jugement.],
-  [R5], [La plateforme ne fonctionne pas sous SEB (condition nécessaire au projet).], [SEB est libre et s'installe sans l'ÉTS : prototype testé sous SEB dès les premières semaines, avec un `.seb` de test (ADR-0009) ; confirmer tôt la version de SEB et l'image des postes d'examen ; démarrage direct par lien `sebs://`, sans Moodle.],
-  [R6], [Accès Moodle bloqué.], [Intégration Moodle optionnelle : l'examen démarre directement dans la plateforme.],
-  [R7], [Panne d'une VM pendant un examen.], [Juges sans état et redondants, reprise des travaux abandonnés, réplica PostgreSQL, VM reconstruites par Ansible (ADR-0010).],
+  [*ID*], [*Risk*], [*Mitigation*],
+  [R1], [The ÉTS VM is not available in time.], [Reproducible environment outside ÉTS; gVisor does not require KVM.],
+  [R2], [Sandbox escape by hostile code.], [Defense in depth, no network or secrets in the judge, hostile tests in CI.],
+  [R3], [Exam load not sustained.], [Early measurements; reserved capacity; backpressure.],
+  [R4], [Scope too broad for one person.], [Explicit exclusions; prototype focused on judging.],
+  [R5], [The platform does not work under SEB (a prerequisite for the project).], [SEB is free and installs without ÉTS: prototype tested under SEB from the first weeks, with a test `.seb` file (ADR-0009); confirm early the SEB version and the exam workstation image; direct launch through a `sebs://` link, without Moodle.],
+  [R6], [Moodle access blocked.], [Optional Moodle integration: the exam starts directly in the platform.],
+  [R7], [A VM fails during an exam.], [Stateless, redundant judges, recovery of abandoned jobs, PostgreSQL replica, VMs rebuilt by Ansible (ADR-0010).],
 )

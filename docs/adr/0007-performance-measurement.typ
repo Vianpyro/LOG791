@@ -1,82 +1,82 @@
 #import "../template.typ": validation
 
-== ADR-0007 — Mesure déterministe et équitable de la performance
+== ADR-0007 — Deterministic and fair performance measurement
 
-*Statut :* proposé ; prototype à réaliser, modèle de notation à trancher avec l'enseignant. \
-*Voir aussi :* architecture, sections « Gestion des ressources » et « Charge et performance » ; ADR-0001, ADR-0002.
+*Status:* proposed; prototype to build, grading model to settle with the instructor. \
+*See also:* architecture, sections "Resource management" and "Load and performance"; ADR-0001, ADR-0002.
 
-=== Contexte
+=== Context
 
-Un exercice peut évaluer la performance d'une solution, et non seulement sa correction. On cherche à évaluer l'algorithme, pas le langage ni la machine. Deux obstacles s'y opposent :
+An exercise may assess a solution's performance, not only its correctness. The goal is to assess the algorithm, not the language or the machine. Two obstacles stand in the way:
 
-- *Le bruit.* Le temps réel et le temps CPU varient avec la charge de la VM, le temps volé par l'hyperviseur, le cache et la fréquence du processeur. Sur une VM partagée, l'écart atteint 5 à 30 %, ce qui ne permet pas de départager des solutions.
-- *Le langage.* Un même algorithme est 10 à 100 fois plus lent en Python qu'en Rust, et ce facteur varie selon les opérations. Un multiplicateur fixe par langage reste donc approximatif.
+- *Noise.* Wall-clock time and CPU time vary with the VM's load, time stolen by the hypervisor, the cache and the processor frequency. On a shared VM, the spread reaches 5 to 30%, which is not enough to tell solutions apart.
+- *Language.* The same algorithm is 10 to 100 times slower in Python than in Rust, and this factor varies with the operations. A fixed per-language multiplier therefore remains approximate.
 
-La plateforme tourne sous gVisor (ADR-0002), dans une VM où KVM n'est pas garanti. `perf_event_open` n'y est pas disponible dans le sandbox.
+The platform runs under gVisor (ADR-0002), in a VM where KVM is not guaranteed. `perf_event_open` is not available inside the sandbox.
 
-=== Options considérées
+=== Options considered
 
 #table(
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
-  [*Option*], [*Avantages*], [*Inconvénients*],
-  [Temps réel ou temps CPU], [Aucun surcoût ; simple.], [Bruit de 5 à 30 % ; dépend du langage.],
-  [Compteurs matériels (`perf`)],
-  [Précis, sans ralentissement.],
-  [Rarement exposés dans une VM ; indisponibles sous gVisor.],
+  [*Option*], [*Pros*], [*Cons*],
+  [Wall-clock or CPU time], [No overhead; simple.], [5 to 30% noise; language-dependent.],
+  [Hardware counters (`perf`)],
+  [Accurate, no slowdown.],
+  [Rarely exposed in a VM; unavailable under gVisor.],
 
   [Valgrind (`callgrind`)],
-  [Compte d'instructions déterministe.],
-  [Ralentissement de 20 à 100$times$ ; fragile avec le JIT de la JVM.],
+  [Deterministic instruction count.],
+  [20 to 100$times$ slowdown; fragile with the JVM's JIT.],
 
-  [QEMU en mode utilisateur avec un plugin de comptage d'instructions],
-  [Compte déterministe ; ni KVM ni compteurs matériels requis ; ralentissement de 5 à 10$times$.],
-  [Compatibilité avec gVisor Systrap à confirmer.],
+  [QEMU user mode with an instruction-counting plugin],
+  [Deterministic count; requires neither KVM nor hardware counters; 5 to 10$times$ slowdown.],
+  [Compatibility with gVisor Systrap to be confirmed.],
 )
 
-=== Décision
+=== Decision
 
-*Mesure.* La performance est mesurée en *instructions exécutées*, sous QEMU en mode utilisateur (`qemu-x86_64 -plugin libinsn.so`), et non en temps. Pour que chaque runtime se comporte de façon déterministe :
+*Measurement.* Performance is measured in *executed instructions*, under QEMU user mode (`qemu-x86_64 -plugin libinsn.so`), not in time. For each runtime to behave deterministically:
 
-- les processus sont limités à un seul thread ;
-- les entrées et la graine d'aléa sont fixes ;
-- Python utilise `PYTHONHASHSEED=0` ;
-- la JVM utilise `-Xbatch` et un tas de taille fixe.
+- processes are limited to a single thread;
+- inputs and the random seed are fixed;
+- Python uses `PYTHONHASHSEED=0`;
+- the JVM uses `-Xbatch` and a fixed-size heap.
 
-Le comptage n'est actif que pendant l'appel de la fonction de l'élève, grâce à un marqueur émis par le harnais. La lecture des entrées, dont le coût dépend fortement du langage, est donc exclue.
+Counting is only active during the call to the student's function, thanks to a marker emitted by the harness. Reading the inputs, whose cost depends heavily on the language, is therefore excluded.
 
-*Neutralisation du langage.* L'élève n'est comparé qu'à une solution de référence *du même langage*. Le critère principal est la *complexité* : on mesure plusieurs tailles d'entrée, puis on calcule la pente log-log des écarts d'instructions entre tailles, ce qui retire le coût de démarrage. Cette pente ne dépend pas du langage. Deux modèles de notation restent à trancher avec l'enseignant :
+*Neutralizing the language.* A student is only compared with a reference solution *in the same language*. The main criterion is *complexity*: several input sizes are measured, then the log-log slope of the instruction differences between sizes is computed, which removes the startup cost. This slope does not depend on the language. Two grading models remain to be settled with the instructor:
 
-- *Verdict de complexité* : on vérifie que la pente ne dépasse pas celle de la référence, à une tolérance près. Une seule référence par exercice suffit.
-- *Classement complet* : on classe d'abord par complexité, puis par le rapport au nombre d'instructions de la référence du même langage. Il faut une référence par langage et par exercice.
+- *Complexity verdict*: check that the slope does not exceed the reference's, within a tolerance. A single reference per exercise is enough.
+- *Full ranking*: rank first by complexity, then by the ratio to the instruction count of the same-language reference. This requires one reference per language and per exercise.
 
-La mémoire suit la même logique : on compare le pic de mémoire, moins la ligne de base du runtime, à celui de la référence.
+Memory follows the same logic: the peak memory, minus the runtime's baseline, is compared with the reference's.
 
-*Deux passes.* La mesure ralentit l'exécution. Elle n'est donc jamais faite pendant que l'élève attend une réponse :
+*Two passes.* Measurement slows execution down. It is therefore never done while the student is waiting for an answer:
 
-- *Passe de correction* : exécution native, avec des limites de temps généreuses. C'est la seule qui répond pendant l'examen.
-- *Passe de mesure* : elle se fait après l'examen et ne porte que sur la *dernière* soumission de chaque élève pour chaque exercice (une clé unique par couple élève–exercice). La file est vidée quand le serveur est peu chargé. La précision n'en dépend pas ; il s'agit de laisser le CPU au jugement en direct.
+- *Correctness pass*: native execution, with generous time limits. It is the only one that responds during the exam.
+- *Measurement pass*: it runs after the exam and only covers the *last* submission of each student for each exercise (one unique key per student–exercise pair). The queue is drained when the server is lightly loaded. Accuracy does not depend on it; the point is to leave the CPU to live judging.
 
-La file de mesure est une file de priorité inférieure dans PostgreSQL (ADR-0001). Aucun nouveau composant n'est ajouté.
+The measurement queue is a lower-priority queue in PostgreSQL (ADR-0001). No new component is added.
 
-=== Conséquences
+=== Consequences
 
-- La limite d'exécution de la passe de mesure est un *budget d'instructions*. Un timeout en temps réel large reste en place comme filet de sécurité.
-- Comme le résultat est déterministe, la passe de mesure peut surcharger une machine, ou tourner sur une autre machine, sans fausser les mesures.
-- *Données de mesure.* Elles sont distinctes des tests. De grandes entrées sont produites par un générateur de l'enseignant, avec une graine choisie au moment de la mesure, et les sorties sont revérifiées.
-- *Versions figées.* Les versions des runtimes sont figées pour une session. Les références sont remesurées avec les mêmes images à chaque release du contenu.
-- *Contestations.* Pour pouvoir refaire une mesure identique, on conserve le code source, l'image, la release du contenu, la graine et le nombre d'instructions.
-- *Délai.* Il faut prévoir le temps de calcul avant la remise des notes : élèves $times$ exercices $times$ tailles $times$ durée d'une mesure sous QEMU.
-- *Bibliothèques.* L'enseignant précise pour chaque exercice les bibliothèques permises, par exemple `sorted()` ou `heapq`.
-- *Questions à trancher avec l'enseignant :*
-  - le choix du modèle de notation ;
-  - la mesure, ou non, d'un code qui ne passe pas tous les tests ;
-  - la soumission à mesurer si la dernière échoue alors qu'une précédente passait ;
-  - la présentation du résultat à l'élève (par exemple « O(n log n), 1,8$times$ la référence »).
+- The execution limit of the measurement pass is an *instruction budget*. A generous wall-clock timeout remains in place as a safety net.
+- Since the result is deterministic, the measurement pass can overload a machine, or run on another machine, without skewing the measurements.
+- *Measurement data.* It is distinct from the tests. Large inputs are produced by an instructor-provided generator, with a seed chosen at measurement time, and the outputs are re-checked.
+- *Pinned versions.* Runtime versions are pinned for a term. References are re-measured with the same images at each content release.
+- *Appeals.* To be able to repeat an identical measurement, the source code, the image, the content release, the seed and the instruction count are kept.
+- *Turnaround.* Computation time must be planned before grades are released: students $times$ exercises $times$ sizes $times$ duration of one measurement under QEMU.
+- *Libraries.* For each exercise, the instructor specifies the allowed libraries, for example `sorted()` or `heapq`.
+- *Questions to settle with the instructor:*
+  - the choice of grading model;
+  - whether code that does not pass all tests is measured;
+  - which submission to measure if the last one fails while an earlier one passed;
+  - how the result is presented to the student (for example "O(n log n), 1.8$times$ the reference").
 
 #validation(id: "V-0007")[
-  Mesurer un tri en O(n²) et un tri en O(n log n) en Python, Java et Rust, sous QEMU et à l'intérieur de gVisor. Répéter chaque mesure 30 fois, avec et sans `stress-ng` sur la VM. Critères :
-  - un coefficient de variation inférieur à 0,1 % ;
-  - une pente qui sépare les deux tris dans les trois langages ;
-  - des rapports à la référence du même ordre d'un langage à l'autre.
+  Measure an O(n²) sort and an O(n log n) sort in Python, Java and Rust, under QEMU and inside gVisor. Repeat each measurement 30 times, with and without `stress-ng` on the VM. Criteria:
+  - a coefficient of variation below 0.1%;
+  - a slope that separates the two sorts in all three languages;
+  - ratios to the reference of the same order from one language to another.
 ]

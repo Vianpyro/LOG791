@@ -1,43 +1,43 @@
 #import "../template.typ": validation
 
-== ADR-0009 — Vérification de Safe Exam Browser par le serveur
+== ADR-0009 — Server-side verification of Safe Exam Browser
 
-*Statut :* proposé ; à valider sous SEB. \
-*Voir aussi :* architecture, section « Safe Exam Browser » ; ADR-0008.
+*Status:* proposed; to be validated under SEB. \
+*See also:* architecture, section "Safe Exam Browser"; ADR-0008.
 
-=== Contexte
+=== Context
 
-En examen, la plateforme doit refuser un navigateur autre que Safe Exam Browser (SEB), ou un SEB lancé avec une autre configuration. L'examen peut démarrer dans Moodle, puis passer à la plateforme par LTI : la vérification faite par Moodle ne couvre alors pas les requêtes adressées à la plateforme.
+During an exam, the platform must reject any browser other than Safe Exam Browser (SEB), or a SEB launched with a different configuration. The exam may start in Moodle and then move to the platform through LTI: the check performed by Moodle then does not cover requests sent to the platform.
 
-=== Options considérées
+=== Options considered
 
 #table(
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
-  [*Option*], [*Avantages*], [*Inconvénients*],
-  [User-Agent], [Trivial.], [Falsifiable ; ne prouve rien.],
-  [Se fier à Moodle (`quizaccess_seb`)],
-  [Rien à écrire.],
-  [Ne protège pas les requêtes adressées directement à la plateforme.],
+  [*Option*], [*Pros*], [*Cons*],
+  [User-Agent], [Trivial.], [Spoofable; proves nothing.],
+  [Rely on Moodle (`quizaccess_seb`)],
+  [Nothing to write.],
+  [Does not protect requests sent directly to the platform.],
 
-  [Vérifier la Config Key sur chaque requête d'examen],
-  [Lie l'accès à un fichier `.seb` précis.],
-  [Il faut reconstruire l'URL d'origine derrière nginx.],
+  [Verify the Config Key on every exam request],
+  [Ties access to a specific `.seb` file.],
+  [The original URL must be rebuilt behind nginx.],
 )
 
-=== Décision
+=== Decision
 
-Sur les routes d'examen, l'API vérifie l'en-tête `X-SafeExamBrowser-ConfigKeyHash`, égal au SHA-256 de l'URL complète concaténée à la Config Key. Derrière nginx, l'URL est reconstruite à partir de `X-Forwarded-Proto` et `X-Forwarded-Host`. Pour les appels `fetch` et le flux SSE, le client transmet aussi la valeur de l'API JavaScript `SafeExamBrowser.security.configKey`. Le User-Agent sert seulement d'indice.
+On exam routes, the API checks the `X-SafeExamBrowser-ConfigKeyHash` header, equal to the SHA-256 of the full URL concatenated with the Config Key. Behind nginx, the URL is rebuilt from `X-Forwarded-Proto` and `X-Forwarded-Host`. For `fetch` calls and the SSE stream, the client also sends the value of the `SafeExamBrowser.security.configKey` JavaScript API. The User-Agent is only used as a hint.
 
-La Config Key attendue est enregistrée avec l'examen dans PostgreSQL et fournie par l'enseignant. Le fichier `.seb` reste chez l'enseignant, qui le distribue par Moodle ou le chiffre par mot de passe. Le dépôt, qui peut être public, ne contient aucun `.seb` ni aucune Config Key : quiconque connaît la clé peut forger l'en-tête.
+The expected Config Key is stored with the exam in PostgreSQL and provided by the instructor. The `.seb` file stays with the instructor, who distributes it through Moodle or encrypts it with a password. The repository, which may be public, contains no `.seb` file and no Config Key: anyone who knows the key can forge the header.
 
-=== Conséquences
+=== Consequences
 
-- À chaque modification du `.seb`, l'enseignant met à jour la Config Key de l'examen.
-- La Config Key est traitée comme un secret.
-- Le filtre d'URL de SEB permet la plateforme et `login.microsoftonline.com`, et aucun CDN.
-- Une requête d'examen sans empreinte valide est refusée.
+- Whenever the `.seb` file changes, the instructor updates the exam's Config Key.
+- The Config Key is treated as a secret.
+- SEB's URL filter allows the platform and `login.microsoftonline.com`, and no CDN.
+- An exam request without a valid hash is rejected.
 
 #validation(id: "V-0009")[
-  Sous SEB Windows avec le `.seb` de l'examen : l'accès fonctionne. Hors SEB ou avec une autre configuration, il est refusé. Vérifier aussi que la connexion Entra, l'exécution Pyodide et le flux SSE fonctionnent.
+  Under SEB for Windows with the exam's `.seb` file: access works. Outside SEB or with a different configuration, it is refused. Also verify that Entra sign-in, Pyodide execution and the SSE stream work.
 ]

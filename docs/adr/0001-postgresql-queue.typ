@@ -1,41 +1,41 @@
 #import "../template.typ": validation
 
-== ADR-0001 — File de soumissions dans PostgreSQL
+== ADR-0001 — Submission queue in PostgreSQL
 
-*Statut :* accepté, sous réserve de validation par tests de charge. \
-*Voir aussi :* architecture, section « File de soumissions ».
+*Status:* accepted, pending validation by load testing. \
+*See also:* architecture, section "Submission queue".
 
-=== Contexte
+=== Context
 
-L'application et le moteur de jugement doivent être découplés par une file capable d'absorber les pointes d'un examen (environ 400 étudiants), avec priorités, reprises contrôlées et détection des travaux abandonnés. La plateforme est déployée sur une VM unique aux ressources limitées, où chaque service ajouté prend de la mémoire et du CPU au jugement.
+The application and the judge engine must be decoupled by a queue able to absorb the peaks of an exam (about 400 students), with priorities, controlled retries and detection of abandoned jobs. The platform is deployed on a single VM with limited resources, where every added service takes memory and CPU away from judging.
 
-=== Options considérées
+=== Options considered
 
 #table(
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
-  [*Option*], [*Avantages*], [*Inconvénients*],
+  [*Option*], [*Pros*], [*Cons*],
   [PostgreSQL (`SKIP LOCKED`, `LISTEN/NOTIFY`)],
-  [Aucun service ajouté ; file et état des soumissions dans la même transaction ; priorités et reprises exprimées en SQL.],
-  [Débit plafonné par la base ; pas conçu comme broker.],
+  [No added service; queue and submission state in the same transaction; priorities and retries expressed in SQL.],
+  [Throughput capped by the database; not designed as a broker.],
 
-  [Redis], [Rapide, simple.], [Service de plus ; persistance et transactions séparées de l'état.],
-  [RabbitMQ], [Sémantique de file complète.], [Service lourd à opérer pour une seule VM.],
-  [Répertoire de spool (CTester)],
-  [Aucune dépendance ; éprouvé en production.],
-  [Un seul hôte ; ordonnancement et équité à réécrire à la main.],
+  [Redis], [Fast, simple.], [One more service; persistence and transactions separate from the state.],
+  [RabbitMQ], [Complete queue semantics.], [Heavy service to operate for a single VM.],
+  [Spool directory (CTester)],
+  [No dependency; proven in production.],
+  [Single host; scheduling and fairness to be rewritten by hand.],
 )
 
-=== Décision
+=== Decision
 
-La file est implémentée dans PostgreSQL. Les juges tirent les travaux avec `SELECT … FOR UPDATE SKIP LOCKED` et sont réveillés par `LISTEN/NOTIFY`.
+The queue is implemented in PostgreSQL. Judges pull jobs with `SELECT … FOR UPDATE SKIP LOCKED` and are woken up by `LISTEN/NOTIFY`.
 
-=== Conséquences
+=== Consequences
 
-- La file joue le rôle de répartiteur : la capacité s'ajuste par le nombre de juges, sans load balancer.
-- Un travail et son verdict sont écrits de façon atomique avec l'état pédagogique.
-- Les juges ont besoin d'un accès à la base. Leurs droits doivent être restreints aux tables de la file (voir le modèle de menace).
+- The queue acts as the dispatcher: capacity is adjusted through the number of judges, without a load balancer.
+- A job and its verdict are written atomically with the pedagogical state.
+- Judges need access to the database. Their privileges must be restricted to the queue tables (see the threat model).
 
 #validation(id: "V-0001")[
-  Mesurer le débit et la latence de la file sous une charge d'examen simulée. Un broker dédié n'est envisagé que si une limite est mesurée.
+  Measure queue throughput and latency under a simulated exam load. A dedicated broker is only considered if a limit is measured.
 ]

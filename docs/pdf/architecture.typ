@@ -1,9 +1,9 @@
-// Point d'entrée : typst compile --root . docs/pdf/architecture.typ  (depuis LOG791/)
+// Entry point: typst compile --root . docs/pdf/architecture.typ  (from LOG791/)
 #import "../template.typ": document
 
 #show: document.with(
-  titre: "Architecture de la plateforme",
-  sous-titre: [Plateforme d'apprentissage et d'évaluation de la programmation],
+  title: "Platform Architecture",
+  subtitle: [Programming Learning and Assessment Platform],
   slug: "architecture",
 )
 

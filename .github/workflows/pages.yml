@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Même version qu'en local : l'export HTML change d'une version à l'autre.
+  # Same version as locally: the HTML export changes from one version to the next.
   TYPST_VERSION: "0.15.1"
 
 jobs:
@@ -24,20 +24,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Installer Typst
+      - name: Install Typst
         run: |
           curl -fsSL "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
             | tar -xJ --strip-components=1 -C /usr/local/bin typst-x86_64-unknown-linux-musl/typst
           typst --version
 
-      # Les paquets @preview (merman) sont téléchargés au premier build.
+      # @preview packages (merman) are downloaded on the first build.
       - uses: actions/cache@v6
         with:
           path: ~/.cache/typst
           key: typst-packages-${{ env.TYPST_VERSION }}-${{ hashFiles('**/*.typ') }}
           restore-keys: typst-packages-${{ env.TYPST_VERSION }}-
 
-      - name: Construire
+      - name: Build
         run: sh site/build.sh
 
       - uses: actions/upload-pages-artifact@v5

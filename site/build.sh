@@ -1,10 +1,10 @@
 #!/bin/sh
-# Construit le site : un PDF et un HTML par document, dans _site/.
-# Le même script tourne en CI et en local (depuis LOG791/) :   sh site/build.sh
+# Builds the site: one PDF and one HTML per document, into _site/.
+# The same script runs in CI and locally (from LOG791/):   sh site/build.sh
 #
-# Ajouter un document = une ligne ici + une carte dans site/index.html.
-# Le slug doit être celui passé à `document.with(slug: ...)`, qui s'en sert
-# pour le lien « Version PDF ».
+# Adding a document = one line here + one card in site/index.html.
+# The slug must match the one passed to `document.with(slug: ...)`, which uses
+# it for the "PDF version" link.
 set -eu
 
 out=_site
@@ -17,9 +17,9 @@ while read -r slug src; do
   echo "== $slug ($src)"
   typst compile --root . "$src" "$out/$slug.pdf"
   typst compile --root . --features html --format html "$src" "$out/$slug.html"
-done <<EOF
-plan-de-projet docs/pdf/plan-de-projet.typ
+done <<LIST
+project-plan   docs/pdf/project-plan.typ
 architecture   docs/pdf/architecture.typ
 adr            docs/pdf/adr.typ
-rapport        rapport/main.typ
-EOF
+report         report/main.typ
+LIST

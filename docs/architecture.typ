@@ -1,167 +1,167 @@
-// Contenu seul : la page et le titre sont posés par le point d'entrée
-// (pdf/architecture.typ) ou par le rapport. Ne pas ajouter de #set page ici.
+// Content only: the page and title are set by the entry point
+// (pdf/architecture.typ) or by the report. Do not add #set page here.
 #import "template.typ": decision, hypothesis, mermaid, validation
 
-= Objet du document
+= Purpose of the document
 
-Ce document présente l'architecture envisagée pour une plateforme d'apprentissage et d'évaluation de la programmation destinée initialement au cours LOG200 de l'École de technologie supérieure. Le MVP vise environ 50 élèves ; à terme, la plateforme doit servir tous les enseignants du département LOG/TI et leurs groupes, ainsi qu'une partie du DEG.
+This document presents the architecture envisioned for a programming learning and assessment platform, initially intended for the LOG200 course at the École de technologie supérieure. The MVP targets about 50 students; eventually, the platform must serve all instructors of the LOG/TI department and their groups, as well as part of the DEG.
 
-La plateforme constitue une évolution conceptuelle de CTester, un système initialement développé pour l'évaluation automatisée de programmes en C dans le contexte du cours TCH009.
+The platform is a conceptual evolution of CTester, a system originally developed for the automated assessment of C programs in the context of the TCH009 course.
 
-L'objectif n'est pas de simplement réimplémenter CTester dans une nouvelle technologie. Le projet cherche plutôt à identifier les propriétés architecturales qui permettent à une telle plateforme d'être réutilisable dans plusieurs cours, de prendre en charge plusieurs langages de programmation et de fonctionner dans des contextes d'évaluation supervisée.
+The goal is not simply to reimplement CTester in a new technology. Rather, the project seeks to identify the architectural properties that allow such a platform to be reused across several courses, to support several programming languages and to operate in supervised assessment settings.
 
-Ce document est volontairement évolutif. Les décisions présentées ici ne sont pas toutes définitives. Lorsqu'une décision doit encore être validée par des mesures ou des expérimentations, elle est explicitement identifiée comme telle.
+This document is deliberately evolving. Not all the decisions presented here are final. When a decision still has to be validated by measurements or experiments, it is explicitly identified as such.
 
-= Problématique
+= Problem statement
 
-La plateforme doit permettre à des étudiants d'écrire, compiler et exécuter du code directement dans un environnement contrôlé.
+The platform must allow students to write, compile and run code directly in a controlled environment.
 
-Cette fonctionnalité introduit une contrainte fondamentale : le code étudiant doit être considéré comme du code *non fiable*.
+This feature introduces a fundamental constraint: student code must be treated as *untrusted* code.
 
-Un programme soumis peut être incorrect par accident, mais également présenter un comportement extrêmement coûteux ou tenter volontairement d'exploiter l'environnement d'exécution.
+A submitted program may be incorrect by accident, but it may also behave in an extremely costly way or deliberately try to exploit the execution environment.
 
-La plateforme doit simultanément être capable de supporter des activités pédagogiques ordinaires et des évaluations supervisées pouvant impliquer plusieurs centaines d'étudiants.
+The platform must at the same time be able to support ordinary learning activities and supervised assessments that may involve several hundred students.
 
 #decision[
-  La problématique architecturale est donc traitée comme un problème combinant   pédagogie, sécurité, performance et opérabilité plutôt que comme un simple   problème d'interface web.
+  The architectural problem is therefore treated as one combining pedagogy, security, performance and operability rather than as a mere web interface problem.
 ]
 
-La question directrice du projet est la suivante :
+The guiding question of the project is the following:
 
 #quote[
-  Comment concevoir une plateforme d'apprentissage et d'évaluation de la   programmation capable d'exécuter du code non fiable dans plusieurs langages, de supporter des charges importantes lors d'évaluations supervisées et de demeurer suffisamment flexible pour être réutilisée dans différents contextes pédagogiques ?
+  How can we design a programming learning and assessment platform able to run untrusted code in several languages, to support heavy loads during supervised assessments and to remain flexible enough to be reused in different teaching contexts?
 ]
 
-= Objectifs
+= Objectives
 
-== Objectifs fonctionnels
+== Functional objectives
 
-La plateforme doit permettre notamment :
+The platform must in particular allow:
 
-- la création et la publication d'exercices ;
-- l'organisation d'exercices en activités, devoirs et examens ;
-- l'écriture de code dans un environnement web ;
-- la sauvegarde de brouillons ;
-- la soumission de programmes ;
-- la compilation et l'exécution automatisées ;
-- l'évaluation par tests ;
-- la présentation d'un verdict structuré ;
-- le suivi de la progression ;
-- la gestion de plusieurs langages de programmation ;
-- l'intégration avec Moodle ;
-- l'utilisation dans un contexte d'examen supervisé.
+- creating and publishing exercises;
+- organizing exercises into activities, assignments and exams;
+- writing code in a web environment;
+- saving drafts;
+- submitting programs;
+- automated compilation and execution;
+- test-based assessment;
+- presenting a structured verdict;
+- tracking progress;
+- supporting several programming languages;
+- integrating with Moodle;
+- use in a supervised exam context.
 
-== Objectifs non fonctionnels
+== Non-functional objectives
 
-Les propriétés suivantes sont considérées comme particulièrement importantes :
+The following properties are considered particularly important:
 
 #table(
   columns: (2.8cm, 1fr),
   stroke: 0.5pt,
-  [*Propriété*], [*Objectif*],
+  [*Property*], [*Objective*],
 
-  [Sécurité],
-  [Limiter les possibilités d'un programme étudiant d'accéder au système d'hébergement, aux autres soumissions ou aux données sensibles.],
+  [Security],
+  [Limit a student program's ability to access the hosting system, other submissions or sensitive data.],
 
-  [Performance], [Maintenir une latence acceptable même lors de fortes concentrations de   soumissions.],
+  [Performance], [Keep latency acceptable even during heavy bursts of submissions.],
 
-  [Scalabilité],
-  [Permettre d'augmenter la capacité de jugement indépendamment de la capacité de l'application principale.],
+  [Scalability],
+  [Allow judging capacity to grow independently of the main application's capacity.],
 
-  [Reproductibilité],
-  [Pouvoir reconstruire l'infrastructure et les environnements de déploiement de manière automatisée.],
+  [Reproducibility],
+  [Be able to rebuild the infrastructure and deployment environments in an automated way.],
 
-  [Extensibilité], [Ajouter un langage ou un type d'exercice sans modifier inutilement le reste du système.],
+  [Extensibility], [Add a language or an exercise type without needlessly modifying the rest of the system.],
 
-  [Maintenabilité],
-  [Conserver des responsabilités clairement séparées et des composants pouvant être testés indépendamment.],
+  [Maintainability],
+  [Keep responsibilities clearly separated and components testable independently.],
 )
 
-= Principes architecturaux
+= Architectural principles
 
-== Séparation des responsabilités
+== Separation of concerns
 
-La plateforme est conçue autour de plusieurs responsabilités distinctes.
+The platform is designed around several distinct responsibilities.
 
 #mermaid(
   "
   flowchart LR
-      A[Interface étudiante] --> B[API / Application]
-      B --> C[File de soumissions]
-      C --> D[Moteur de jugement]
-      D --> E[Sandbox d'exécution]
+      A[Student interface] --> B[API / Application]
+      B --> C[Submission queue]
+      C --> D[Judge engine]
+      D --> E[Execution sandbox]
       E --> F[Compilation / Tests]
   ",
   document-context: true,
   width: 100%,
 )
 
-Cette séparation permet notamment de faire évoluer le moteur de jugement sans modifier l'application pédagogique.
+This separation notably allows the judge engine to evolve without modifying the pedagogical application.
 
-== Principe de non-confiance
+== Zero-trust principle
 
-Le code étudiant ne doit jamais être exécuté directement par le processus applicatif.
+Student code must never be run directly by the application process.
 
 #decision[
-  L'API ne compile et n'exécute jamais directement le code étudiant.
+  The API never compiles or runs student code directly.
 ]
 
-Une soumission est transformée en travail asynchrone et traitée par un composant spécifiquement responsable de l'exécution de code non fiable.
+A submission is turned into an asynchronous job and handled by a component specifically responsible for running untrusted code.
 
-Cette séparation réduit la surface d'attaque de l'application principale et permet d'appliquer des politiques de ressources différentes à l'exécution du code.
+This separation reduces the main application's attack surface and allows different resource policies to be applied to code execution.
 
-== Séparation entre application et jugement
+== Separation between application and judging
 
-L'application principale est responsable notamment de :
+The main application is responsible in particular for:
 
-* l'authentification ;
-* la gestion des utilisateurs ;
-* les cours ;
-* les exercices ;
-* les devoirs ;
-* les examens ;
-* les résultats ;
-* la progression ;
-* l'administration ;
-* l'intégration avec Moodle.
+* authentication;
+* user management;
+* courses;
+* exercises;
+* assignments;
+* exams;
+* results;
+* progress;
+* administration;
+* Moodle integration.
 
-Le moteur de jugement est responsable notamment de :
+The judge engine is responsible in particular for:
 
-* recevoir les travaux à exécuter ;
-* planifier leur exécution ;
-* sélectionner le runtime approprié ;
-* appliquer les limites de ressources ;
-* créer l'environnement isolé ;
-* compiler et exécuter le programme ;
-* exécuter les tests ;
-* produire un verdict.
+* receiving the jobs to run;
+* scheduling their execution;
+* selecting the appropriate runtime;
+* enforcing resource limits;
+* creating the isolated environment;
+* compiling and running the program;
+* running the tests;
+* producing a verdict.
 
-Cette séparation permet également de dimensionner indépendamment les deux parties du système.
+This separation also allows both parts of the system to be sized independently.
 
-= Architecture générale
+= Overall architecture
 
-== Vue logique
+== Logical view
 
-L'architecture générale envisagée est la suivante :
+The envisioned overall architecture is as follows:
 
 #mermaid(
   "
   flowchart TB
-    A[Étudiant] --> B[Navigateur / SEB]
+    A[Student] --> B[Browser / SEB]
 
-    subgraph AUTH[Authentification]
+    subgraph AUTH[Authentication]
         IDP[Microsoft Entra ID]
     end
 
-    RP[Reverse proxy nginx<br/>TLS · statique · rate limit]
+    RP[nginx reverse proxy<br/>TLS · static · rate limit]
 
     subgraph APP[Application]
         API[Web / API]
         DB[(PostgreSQL)]
     end
 
-    subgraph EVAL[Évaluation]
-        Q[Queue PostgreSQL<br/>Backpressure · Priorités · Fairness]
+    subgraph EVAL[Assessment]
+        Q[PostgreSQL queue<br/>Backpressure · Priorities · Fairness]
         S[Judge Scheduler]
         J1[Judge]
         J2[Judge]
@@ -171,26 +171,26 @@ L'architecture générale envisagée est la suivante :
 
     subgraph SANDBOX[Isolation]
         SB[Sandbox Runtime]
-        P[Programme étudiant]
-        T[Tests privés]
+        P[Student program]
+        T[Private tests]
     end
 
-    subgraph CONTENT[Contenu]
-        CR[Dépôt de contenu]
-        PUB[Publication<br/>validation · projection · rendu Typst]
-        REL[(Releases publiques)]
+    subgraph CONTENT[Content]
+        CR[Content repository]
+        PUB[Publishing<br/>validation · projection · Typst rendering]
+        REL[(Public releases)]
     end
 
     CR --> PUB --> REL
-    REL -->|lecture seule| API
-    CR -->|données d'évaluation| S
+    REL -->|read-only| API
+    CR -->|assessment data| S
 
     B -->|OIDC| IDP
     B -->|HTTPS + token| RP
     RP --> API
 
     API --> DB
-    API -->|Soumission| Q
+    API -->|Submission| Q
 
     Q --> S
     S --> J1
@@ -204,7 +204,7 @@ L'architecture générale envisagée est la suivante :
     JN --> SB
 
     SB -->|gVisor / Firecracker| P
-    SB -->|Accès contrôlé| T
+    SB -->|Controlled access| T
 
     S -->|Verdict| DB
   ",
@@ -212,102 +212,102 @@ L'architecture générale envisagée est la suivante :
   width: 100%,
 )
 
-Cette représentation décrit les responsabilités plutôt qu'une topologie de déploiement définitive.
+This diagram describes responsibilities rather than a final deployment topology.
 
-Le contenu pédagogique suit un chemin distinct des soumissions : il est publié à partir de son propre dépôt, sans passer par l'API ni par la file.
+Pedagogical content follows a path separate from submissions: it is published from its own repository, without going through the API or the queue.
 
 #decision[
-  L'API ne voit que la projection publique du contenu. Seul le moteur de jugement lit les données d'évaluation. Le cycle de vie du contenu est détaillé dans la section dédiée.
+  The API only sees the public projection of the content. Only the judge engine reads the assessment data. The content lifecycle is detailed in its own section.
 ]
 
-== Application et API
+== Application and API
 
-L'application web constitue la partie responsable de l'état pédagogique.
+The web application is the part responsible for the pedagogical state.
 
-Elle ne doit pas dépendre de la présence d'un processus de compilation local. Une soumission est plutôt représentée comme un travail pouvant être placé dans une file.
+It must not depend on the presence of a local compilation process. A submission is instead represented as a job that can be placed in a queue.
 
-Cela permet de découpler :
+This makes it possible to decouple:
 
-- le nombre de requêtes HTTP ;
-- le nombre de soumissions en attente ;
-- le nombre de juges disponibles ;
-- le nombre d'exécutions simultanées.
+- the number of HTTP requests;
+- the number of pending submissions;
+- the number of available judges;
+- the number of concurrent executions.
 
-== Couche d'entrée
+== Entry layer
 
-La plateforme est déployée sur plusieurs VM aux ressources limitées, répliquables par Ansible, afin qu'une panne pendant un examen n'interrompe pas le service (ADR-0010). Chaque composant d'infrastructure supplémentaire consomme de la mémoire et du CPU qui ne sont plus disponibles pour le jugement.
+The platform is deployed on several VMs with limited resources, replicable by Ansible, so that a failure during an exam does not interrupt the service (ADR-0010). Every additional infrastructure component consumes memory and CPU that are no longer available for judging.
 
 #decision[
-  Un composant d'infrastructure n'est ajouté que lorsqu'un besoin mesuré le justifie.
+  An infrastructure component is only added when a measured need justifies it.
 ]
 
 === Reverse proxy
 
-Un reverse proxy nginx constitue le seul point d'entrée HTTP de la plateforme. Il est responsable de :
+An nginx reverse proxy is the platform's only HTTP entry point. It is responsible for:
 
-- la terminaison TLS (certificats ACME obtenus et renouvelés par certbot) ;
-- la distribution des fichiers statiques de l'interface web ;
-- la compression des réponses ;
-- la limitation du débit des requêtes (`limit_req`), notamment sur les soumissions ;
-- le relais des connexions longues (SSE ou WebSocket) utilisées pour notifier les verdicts.
+- TLS termination (ACME certificates obtained and renewed by certbot);
+- serving the web interface's static files;
+- response compression;
+- request rate limiting (`limit_req`), notably on submissions;
+- relaying the long-lived connections (SSE or WebSocket) used to notify verdicts.
 
 #decision[
-  nginx est retenu pour sa faible empreinte mémoire, sa limitation de débit native et sa disponibilité dans les dépôts Ubuntu.
+  nginx is chosen for its small memory footprint, its native rate limiting and its availability in the Ubuntu repositories.
 ]
 
 #hypothesis[
-  Si l'établissement termine déjà le TLS en amont de la VM, nginx demeure utile pour les fichiers statiques et la limitation de débit.
+  If the institution already terminates TLS upstream of the VM, nginx remains useful for static files and rate limiting.
 ]
 
-=== Répartition de charge
+=== Load balancing
 
-Aucun load balancer dédié n'est prévu tant que l'API tient sur une VM.
+No dedicated load balancer is planned as long as the API fits on one VM.
 
-- Côté HTTP, l'API est exécutée par plusieurs processus (workers uvicorn) partageant la même socket ; le noyau répartit les connexions entre eux.
-- Côté jugement, les juges _tirent_ les travaux de la file plutôt que de les recevoir. La file joue donc elle-même le rôle de répartiteur, et la capacité s'ajuste en modifiant le nombre de juges.
+- On the HTTP side, the API is run by several processes (uvicorn workers) sharing the same socket; the kernel distributes connections among them.
+- On the judging side, judges _pull_ jobs from the queue rather than having them pushed. The queue therefore acts as the dispatcher itself, and capacity is adjusted by changing the number of judges.
 
 #decision[
-  Si l'API est répartie sur plusieurs VM `web`, un bloc `upstream` nginx répartit la charge et écarte une instance défaillante ; ce choix sera tranché d'après les tests de charge (ADR-0010).
+  If the API is spread over several `web` VMs, an nginx `upstream` block balances the load and removes a failed instance; this choice will be settled based on load tests (ADR-0010).
 ]
 
-== File de soumissions
+== Submission queue
 
-La file constitue une abstraction importante entre l'application et le moteur de jugement.
+The queue is an important abstraction between the application and the judge engine.
 
-Elle permet d'absorber des pointes de charge sans que l'application doive elle-même exécuter les programmes.
+It makes it possible to absorb load peaks without the application having to run the programs itself.
 
-Elle doit éventuellement prendre en charge :
+It will eventually need to support:
 
-- la priorité des examens ;
-- la limitation du nombre de travaux simultanés ;
-- la répartition équitable des ressources ;
-- le backpressure ;
-- les retries contrôlés ;
-- la détection des travaux abandonnés ;
-- la mesure du temps d'attente.
+- exam priority;
+- limiting the number of concurrent jobs;
+- fair distribution of resources;
+- backpressure;
+- controlled retries;
+- detection of abandoned jobs;
+- measurement of waiting time.
 
 #hypothesis[
-  La politique exacte de file d'attente et d'ordonnancement devra être déterminée
-  expérimentalement en fonction des charges observées.
+  The exact queuing and scheduling policy will have to be determined
+  experimentally based on the observed loads.
 ]
 
 #decision[
-  La file est initialement implémentée dans PostgreSQL (`SELECT … FOR UPDATE SKIP LOCKED` et `LISTEN/NOTIFY`) plutôt qu'avec un service dédié comme Redis ou RabbitMQ.
+  The queue is initially implemented in PostgreSQL (`SELECT … FOR UPDATE SKIP LOCKED` and `LISTEN/NOTIFY`) rather than with a dedicated service such as Redis or RabbitMQ.
 ]
 
-Ce choix n'ajoute aucun service à la VM et place l'état de la file dans la même transaction que l'état des soumissions. Les retries, la détection des travaux abandonnés et la priorité des examens s'expriment alors directement en SQL.
+This choice adds no service to the VM and places the queue state in the same transaction as the submission state. Retries, detection of abandoned jobs and exam priority can then be expressed directly in SQL.
 
 #validation[
-  Les tests de charge devront confirmer que PostgreSQL suffit comme file pour une charge d'examen. Un broker dédié ne sera envisagé que si une limite est mesurée.
+  Load tests will have to confirm that PostgreSQL is sufficient as a queue for an exam load. A dedicated broker will only be considered if a limit is measured.
 ]
 
-= Moteur de jugement
+= Judge engine
 
-== Abstraction multi-langage
+== Multi-language abstraction
 
-L'un des objectifs majeurs est de ne pas concevoir le moteur autour du C.
+One of the major objectives is not to design the engine around C.
 
-Le modèle conceptuel envisagé est :
+The envisioned conceptual model is:
 
 #mermaid(
   "
@@ -336,54 +336,54 @@ Le modèle conceptuel envisagé est :
   width: 100%,
 )
 
-Un langage doit principalement définir comment :
+A language must mainly define how to:
 
-- préparer les fichiers ;
-- compiler le programme ;
-- lancer le programme ;
-- interpréter son résultat ;
-- éventuellement gérer ses dépendances.
+- prepare the files;
+- compile the program;
+- launch the program;
+- interpret its result;
+- possibly manage its dependencies.
 
-Le mécanisme d'isolation ne devrait pas dépendre du langage.
+The isolation mechanism should not depend on the language.
 
 == Rust
 
-Le moteur de jugement constitue un candidat naturel pour une implémentation en Rust.
+The judge engine is a natural candidate for an implementation in Rust.
 
-Il est susceptible de gérer :
+It is likely to handle:
 
-- de nombreux travaux concurrents ;
-- des processus externes ;
-- des délais d'exécution ;
-- des limites de ressources ;
-- des files de travaux ;
-- la communication avec les sandboxes ;
-- la collecte de métriques.
+- many concurrent jobs;
+- external processes;
+- execution timeouts;
+- resource limits;
+- job queues;
+- communication with the sandboxes;
+- metrics collection.
 
 #decision[
-  L'application pédagogique peut initialement rester en Python/FastAPI tandis que le moteur de jugement est considéré comme un composant indépendant, potentiellement implémenté en Rust.
+  The pedagogical application can initially stay in Python/FastAPI while the judge engine is treated as an independent component, potentially implemented in Rust.
 ]
 
-Cette décision n'est toutefois pas fondée uniquement sur l'affirmation que Rust serait « plus rapide ».
+This decision is not, however, based solely on the claim that Rust would be "faster".
 
 #validation[
-  Le choix du langage du moteur devra être validé par profilage et benchmarks. Une réécriture complète de CTester en Rust n'est pas considérée comme un objectif en soi.
+  The choice of the engine's language will have to be validated by profiling and benchmarks. A complete rewrite of CTester in Rust is not considered a goal in itself.
 ]
 
-= Isolation des soumissions
+= Submission isolation
 
-== Problème
+== Problem
 
-Un conteneur classique n'est pas considéré comme une frontière de sécurité suffisante à lui seul pour l'exécution de code étudiant hostile.
+A classic container is not considered a sufficient security boundary on its own for running hostile student code.
 
-L'architecture doit donc distinguer :
+The architecture must therefore distinguish:
 
-1. le mécanisme de gestion du processus ;
-2. le runtime de conteneur éventuel ;
-3. le mécanisme d'isolation principal ;
-4. les limites de ressources.
+1. the process management mechanism;
+2. the container runtime, if any;
+3. the main isolation mechanism;
+4. resource limits.
 
-Conceptuellement :
+Conceptually:
 
 #mermaid(
   "
@@ -402,7 +402,7 @@ Conceptuellement :
     subgraph ISOLATION[Isolation boundary]
         G[gVisor]
         F[Firecracker]
-        O[Autres solutions]
+        O[Other solutions]
     end
 
     S --> CONSTRAINTS
@@ -414,52 +414,52 @@ Conceptuellement :
 
 == gVisor
 
-gVisor est actuellement le candidat privilégié pour la première implémentation.
+gVisor is currently the preferred candidate for the first implementation.
 
-Il fournit une couche d'isolation supplémentaire entre le programme exécuté et le noyau Linux hôte.
+It provides an additional isolation layer between the executed program and the host Linux kernel.
 
-Le mode Systrap est particulièrement intéressant lorsque la plateforme est elle-même exécutée dans une machine virtuelle.
+Systrap mode is particularly attractive when the platform itself runs inside a virtual machine.
 
 #decision[
-  gVisor Systrap constitue la solution d'isolation initialement envisagée.
+  gVisor Systrap is the initially envisioned isolation solution.
 ]
 
 #hypothesis[
-  gVisor devrait offrir un compromis suffisamment intéressant entre sécurité, performances et complexité opérationnelle pour le contexte de LOG200.
+  gVisor should offer a sufficiently good trade-off between security, performance and operational complexity for the LOG200 context.
 ]
 
 == Firecracker
 
-Firecracker constitue une alternative particulièrement intéressante lorsque la priorité est donnée à une frontière d'isolation forte.
+Firecracker is a particularly attractive alternative when priority is given to a strong isolation boundary.
 
-Son modèle repose sur des microVM exécutant leur propre noyau Linux sous KVM.
+Its model relies on microVMs running their own Linux kernel under KVM.
 
-En contrepartie, le cycle de vie des microVM et l'intégration avec le moteur de jugement sont plus complexes qu'une architecture reposant sur des conteneurs.
+On the other hand, the microVM lifecycle and the integration with the judge engine are more complex than an architecture based on containers.
 
 #validation[
-  gVisor et Firecracker devront idéalement être comparés expérimentalement sur les charges réelles du projet avant de considérer le choix définitif.
+  gVisor and Firecracker should ideally be compared experimentally on the project's real workloads before the final choice is made.
 ]
 
 == WebAssembly
 
-WebAssembly constitue une autre possibilité grâce à un modèle d'exécution fortement sandboxé.
+WebAssembly is another possibility thanks to its strongly sandboxed execution model.
 
-Cependant, son utilisation pour une plateforme multi-langage générale pose une question différente : le programme étudiant doit pouvoir être exécuté dans un environnement WebAssembly compatible avec son langage et ses bibliothèques.
+However, using it for a general multi-language platform raises a different question: the student program must be runnable in a WebAssembly environment compatible with its language and libraries.
 
 #decision[
-  WebAssembly est considéré comme une piste complémentaire plutôt que comme
-  l'environnement universel initial de la plateforme.
+  WebAssembly is considered a complementary avenue rather than the platform's
+  initial universal environment.
 ]
 
-Cette piste est retenue côté client : dans les langages où c'est facile, les tests visibles s'exécutent dans le navigateur avant tout envoi au serveur (ADR-0008). Le juge reste la seule référence.
+This avenue is adopted on the client side: in languages where it is easy, visible tests run in the browser before anything is sent to the server (ADR-0008). The judge remains the only reference.
 
-== Runtime de conteneur
+== Container runtime
 
-Docker ou Podman peuvent servir à gérer le cycle de vie des environnements d'exécution.
+Docker or Podman can be used to manage the lifecycle of execution environments.
 
-Ils ne sont toutefois pas considérés comme la frontière de sécurité principale.
+They are not, however, considered the main security boundary.
 
-Le modèle recherché est donc plutôt :
+The target model is therefore rather:
 
 #mermaid(
   "
@@ -473,78 +473,78 @@ Le modèle recherché est donc plutôt :
 )
 
 #hypothesis[
-  Le choix précis entre Docker et Podman devrait avoir un impact inférieur au
-  choix du mécanisme d'isolation lui-même.
+  The exact choice between Docker and Podman should have less impact than the
+  choice of the isolation mechanism itself.
 ]
 
-= Gestion des ressources
+= Resource management
 
-Chaque exécution doit disposer d'un ensemble explicite de limites.
+Each execution must have an explicit set of limits.
 
-On considère notamment :
+These include in particular:
 
 #table(
   columns: (4cm, 1fr),
   stroke: 0.5pt,
-  [*Ressource*], [*Limite envisagée*],
+  [*Resource*], [*Envisioned limit*],
 
-  [Temps], [Timeout maximal par étape et par soumission.],
+  [Time], [Maximum timeout per step and per submission.],
 
-  [CPU], [Nombre de cœurs ou quantité de CPU utilisable.],
+  [CPU], [Number of cores or amount of usable CPU.],
 
-  [Mémoire], [Limite de mémoire par exécution.],
+  [Memory], [Memory limit per execution.],
 
-  [Processus], [Nombre maximal de processus ou threads.],
+  [Processes], [Maximum number of processes or threads.],
 
-  [Stockage], [Espace temporaire maximal.],
+  [Storage], [Maximum temporary space.],
 
-  [Réseau], [Accès réseau explicitement refusé ou limité.],
+  [Network], [Network access explicitly denied or limited.],
 )
 
-Ces limites doivent être appliquées indépendamment de la correction du programme.
+These limits must be enforced regardless of the program's correctness.
 
-Un programme qui boucle infiniment doit produire un timeout plutôt que consommer indéfiniment une ressource du système.
+A program stuck in an infinite loop must produce a timeout rather than consume a system resource indefinitely.
 
-== Mesure de la performance
+== Performance measurement
 
-Le temps d'exécution sert de garde-fou, pas de mesure. Il varie avec la charge de la VM et avec le langage, et ne permet donc pas de comparer équitablement des algorithmes.
+Execution time is a safeguard, not a measurement. It varies with the VM's load and with the language, and therefore cannot be used to compare algorithms fairly.
 
 #decision(id: "ADR-0007")[
-  La performance est mesurée en instructions exécutées, de façon déterministe, et comparée à une solution de référence du même langage, la complexité étant le critère principal. La limite de la passe de mesure est un budget d'instructions. La mesure est faite après l'examen, sur la dernière soumission de chaque élève pour chaque exercice.
+  Performance is measured in executed instructions, deterministically, and compared with a reference solution in the same language, complexity being the main criterion. The limit of the measurement pass is an instruction budget. Measurement is done after the exam, on each student's last submission for each exercise.
 ]
 
-= Charge et performance
+= Load and performance
 
-== Charge cible
+== Target load
 
-Un examen peut impliquer environ 400 étudiants.
+An exam may involve about 400 students.
 
-Il serait toutefois incorrect de modéliser la charge comme simplement 400 requêtes HTTP simultanées.
+It would, however, be incorrect to model the load as simply 400 concurrent HTTP requests.
 
-Chaque étudiant peut produire plusieurs soumissions :
+Each student may produce several submissions:
 
 #mermaid(
   "
   flowchart LR
-    A[~400 étudiants] --> B[Burst de soumissions]
+    A[~400 students] --> B[Burst of submissions]
 
-    B --> C[File de jugement]
+    B --> C[Judging queue]
 
-    C --> D[Correction]
-    D --> E[Nouvelle soumission]
+    C --> D[Fix]
+    D --> E[New submission]
     E --> C
   ",
   document-context: true,
   width: 100%,
 )
 
-La charge réelle dépend donc fortement du comportement temporel des étudiants.
+The actual load therefore depends heavily on the students' behavior over time.
 
-== Dimensionnement
+== Sizing
 
-Le système doit permettre d'augmenter le nombre de workers de jugement indépendamment de l'application principale.
+The system must allow the number of judge workers to be increased independently of the main application.
 
-Par exemple :
+For example:
 
 #mermaid(
   "
@@ -565,105 +565,105 @@ Par exemple :
   width: 100%,
 )
 
-Cette architecture permet d'ajuster la capacité sans modifier la logique pédagogique.
+This architecture allows capacity to be adjusted without modifying the pedagogical logic.
 
 == Cache
 
-Aucun serveur de cache dédié (Redis, Memcached) n'est prévu initialement. Le cache est plutôt placé là où il réduit un coût réel :
+No dedicated cache server (Redis, Memcached) is planned initially. Caching is instead placed where it reduces a real cost:
 
 #table(
   columns: (3.2cm, 1fr),
   stroke: 0.5pt,
-  [*Emplacement*], [*Contenu*],
+  [*Location*], [*Content*],
 
-  [Navigateur / nginx],
-  [Fichiers statiques versionnés par empreinte et servis avec des en-têtes `Cache-Control` de longue durée.],
+  [Browser / nginx],
+  [Static files versioned by hash and served with long-lived `Cache-Control` headers.],
 
-  [API], [Données d'exercice publiées, peu modifiées, conservées en mémoire du processus.],
+  [API], [Published exercise data, rarely modified, kept in process memory.],
 
-  [Juge],
-  [Images et chaînes de compilation préchargées, sandboxes préparées à l'avance et, éventuellement, artefacts compilés des tests privés.],
+  [Judge],
+  [Preloaded images and toolchains, sandboxes prepared in advance and, possibly, compiled artifacts of the private tests.],
 )
 
-L'authentification repose sur des jetons OIDC émis par Microsoft Entra ID, ce qui évite de maintenir un stockage de sessions côté serveur.
+Authentication relies on OIDC tokens issued by Microsoft Entra ID, which avoids maintaining server-side session storage.
 
 #hypothesis[
-  Le coût dominant d'une soumission se situe dans le démarrage de la sandbox et la compilation plutôt que dans l'accès aux données. Le cache côté juge devrait donc avoir un impact plus important que tout cache applicatif.
+  The dominant cost of a submission lies in sandbox startup and compilation rather than in data access. Judge-side caching should therefore have a greater impact than any application cache.
 ]
 
 #decision[
-  Un cache partagé ne sera introduit que si plusieurs instances de l'API doivent partager un même état.
+  A shared cache will only be introduced if several API instances need to share the same state.
 ]
 
-== Métriques
+== Metrics
 
-Les benchmarks devront notamment mesurer :
+Benchmarks will have to measure in particular:
 
-- le débit de soumissions ;
-- le temps passé dans la file ;
-- la latence totale ;
-- P50 ;
-- P95 ;
-- P99 ;
-- le temps de compilation ;
-- le temps d'exécution ;
-- l'utilisation CPU ;
-- l'utilisation mémoire ;
-- le nombre maximal de jobs simultanés ;
-- le taux de timeout ;
-- le taux d'échec de l'infrastructure ;
-- la part des exécutions de test traitées dans le navigateur (ADR-0008) ;
-- la durée de vidage de la file de mesure après un examen (ADR-0007).
+- submission throughput;
+- time spent in the queue;
+- total latency;
+- P50;
+- P95;
+- P99;
+- compilation time;
+- execution time;
+- CPU usage;
+- memory usage;
+- maximum number of concurrent jobs;
+- timeout rate;
+- infrastructure failure rate;
+- the share of test runs handled in the browser (ADR-0008);
+- the time to drain the measurement queue after an exam (ADR-0007).
 
 #decision[
-  Les performances seront évaluées avec des charges reproductibles plutôt qu'avec une estimation théorique uniquement.
+  Performance will be assessed with reproducible workloads rather than with a theoretical estimate alone.
 ]
 
-== Comparaison des mécanismes d'isolation
+== Comparison of isolation mechanisms
 
-Une expérimentation pourra notamment comparer :
+An experiment may in particular compare:
 
 #mermaid(
   "
   flowchart LR
-    L[Charge identique] --> G[gVisor]
+    L[Identical load] --> G[gVisor]
     L --> F[Firecracker]
 
-    G --> GM[Mesures]
-    F --> FM[Mesures]
+    G --> GM[Measurements]
+    F --> FM[Measurements]
 
-    subgraph METRICS[Métriques]
-        M1[Temps de démarrage]
-        M2[Latence]
-        M3[Débit]
-        M4[CPU / mémoire]
+    subgraph METRICS[Metrics]
+        M1[Startup time]
+        M2[Latency]
+        M3[Throughput]
+        M4[CPU / memory]
     end
 
     GM --> METRICS
     FM --> METRICS
 
-    METRICS --> C[Comparaison]
+    METRICS --> C[Comparison]
   ",
   document-context: true,
   width: 100%,
 )
 
-Les critères incluront au minimum :
+The criteria will include at least:
 
-- temps de démarrage ;
-- latence de soumission ;
-- débit ;
-- mémoire consommée ;
-- CPU consommé ;
-- comportement sous forte charge ;
-- comportement lors d'exécutions malveillantes ou pathologiques ;
-- complexité opérationnelle.
+- startup time;
+- submission latency;
+- throughput;
+- memory consumed;
+- CPU consumed;
+- behavior under heavy load;
+- behavior with malicious or pathological executions;
+- operational complexity.
 
-= Mode d'examen
+= Exam mode
 
-La plateforme doit distinguer le contexte d'apprentissage du contexte d'évaluation.
+The platform must distinguish the learning context from the assessment context.
 
-Trois modes conceptuels sont actuellement envisagés :
+Three conceptual modes are currently envisioned:
 
 #mermaid(
   "
@@ -673,17 +673,17 @@ Trois modes conceptuels sont actuellement envisagés :
     E[Exam]
 
     P --> P1[Exploration]
-    P --> P2[Feedback complet]
-    P --> P3[Fonctionnalités sociales]
+    P --> P2[Full feedback]
+    P --> P3[Social features]
 
-    A --> A1[Échéance]
-    A --> A2[Progression]
-    A --> A3[Soumissions]
+    A --> A1[Deadline]
+    A --> A2[Progress]
+    A --> A3[Submissions]
 
-    E --> E1[Durée]
-    E --> E2[Contrôle]
-    E --> E3[Ressources réservées]
-    E --> E4[Feedback limité]
+    E --> E1[Duration]
+    E --> E2[Control]
+    E --> E3[Reserved resources]
+    E --> E4[Limited feedback]
   ",
   document-context: true,
   width: 100%,
@@ -691,65 +691,66 @@ Trois modes conceptuels sont actuellement envisagés :
 
 == Safe Exam Browser
 
-Safe Exam Browser est considéré comme un mécanisme complémentaire plutôt que comme une fonctionnalité que la plateforme devrait réimplémenter.
+Safe Exam Browser is considered a complementary mechanism rather than a feature the platform should reimplement.
 
-SEB contrôle principalement l'environnement de l'ordinateur étudiant, tandis que la plateforme contrôle l'état pédagogique de l'examen.
+SEB mainly controls the environment of the student's computer, while the platform controls the pedagogical state of the exam.
 
 #mermaid(
   "
   flowchart LR
-      subgraph PLATFORM[Plateforme]
-        P[État pédagogique de l'examen]
-        P --> P1[Examen]
-        P --> P2[Exercices]
-        P --> P3[Temps]
-        P --> P4[Soumissions]
-        P --> P5[Résultats]
+      subgraph PLATFORM[Platform]
+        P[Pedagogical state of the exam]
+        P --> P1[Exam]
+        P --> P2[Exercises]
+        P --> P3[Time]
+        P --> P4[Submissions]
+        P --> P5[Results]
     end
 
     subgraph SEB[Safe Exam Browser]
-        S[Environnement étudiant]
-        S --> S1[Verrouillage]
-        S --> S2[Applications autorisées]
+        S[Student environment]
+        S --> S1[Lockdown]
+        S --> S2[Allowed applications]
         S --> S3[Navigation]
         S --> S4[Configuration]
     end
 
-    S -->|Accès contrôlé| P
+    S -->|Controlled access| P
   ",
   document-context: true,
   width: 100%,
 )
 
-=== Contraintes imposées par SEB
+=== Constraints imposed by SEB
 
-- *Vérification.* Le serveur vérifie la configuration de SEB sur les routes d'examen, même si l'examen démarre dans Moodle (ADR-0009).
-- *Authentification.* Le filtre d'URL permet `login.microsoftonline.com`. L'authentification multifacteur par téléphone est incompatible avec l'interdiction des téléphones : la session est ouverte avant l'examen, ou une politique d'accès conditionnel s'applique aux salles.
-- *Ressources.* Aucun CDN : les runtimes du navigateur (Pyodide, esbuild-wasm, etc.) sont servis par la plateforme.
-- *Navigation.* Aucune nouvelle fenêtre ni aucun téléchargement : les énoncés sont rendus en HTML ou en SVG, pas en PDF. La remise automatique redirige vers la « Quit URL » de SEB.
-- *Reprise.* Si SEB est relancé, l'élève retrouve ses brouillons autosauvegardés, le temps est calculé par le serveur et le flux SSE reprend grâce à `Last-Event-ID`.
-- *Éditeur.* Les raccourcis clavier et le presse-papiers, que SEB peut restreindre, sont testés.
-- *Moteurs.* SEB Windows repose sur Chromium ; SEB macOS et iOS reposent sur WebKit, où les service workers sont limités. Solution de repli : le cache HTTP.
+- *Verification.* The server verifies the SEB configuration on exam routes, even if the exam starts in Moodle (ADR-0009).
+- *Authentication.* The URL filter allows `login.microsoftonline.com`. Phone-based multi-factor authentication is incompatible with the ban on phones: the session is opened before the exam, or a conditional access policy applies to the rooms.
+- *Resources.* No CDN: browser runtimes (Pyodide, esbuild-wasm, etc.) are served by the platform.
+- *Navigation.* No new windows and no downloads: statements are rendered as HTML or SVG, not PDF. Automatic submission redirects to SEB's "Quit URL".
+- *Recovery.* If SEB is restarted, the student gets their autosaved drafts back, time is computed by the server and the SSE stream resumes using `Last-Event-ID`.
+- *Editor.* Keyboard shortcuts and the clipboard, which SEB may restrict, are tested.
+- *Engines.* SEB for Windows relies on Chromium; SEB for macOS and iOS rely on WebKit, where service workers are limited. Fallback: the HTTP cache.
+- *Language.* SEB does not pass on a language choice: the interface language is set in the platform itself (ADR-0011).
 
-== Ressources réservées
+== Reserved resources
 
-Un examen doit pouvoir disposer d'une capacité de jugement réservée.
+An exam must be able to rely on reserved judging capacity.
 
-L'objectif est d'éviter qu'une activité non critique puisse consommer l'ensemble des workers au moment où les étudiants passent un examen.
+The goal is to prevent a non-critical activity from consuming all the workers while students are taking an exam.
 
 #hypothesis[
-  Un système de priorités ou de pools de capacité distincts pourrait être
-  suffisant pour garantir cette propriété sans nécessiter une infrastructure
-  complètement séparée.
+  A priority system or separate capacity pools could be
+  sufficient to guarantee this property without requiring a
+  completely separate infrastructure.
 ]
 
-= Modèle pédagogique
+= Pedagogical model
 
-L'architecture ne doit pas limiter un exercice à une paire « énoncé + solution ».
+The architecture must not limit an exercise to a "statement + solution" pair.
 
-Un exercice est plutôt considéré comme une ressource déclarative contenant des informations pédagogiques et d'évaluation.
+An exercise is instead considered a declarative resource containing pedagogical and assessment information.
 
-Conceptuellement :
+Conceptually:
 
 ```text
 Exercise
@@ -766,7 +767,7 @@ Exercise
 └── release rules
 ```
 
-Les tests publics et privés doivent rester séparés.
+Public and private tests must remain separate.
 
 #mermaid(
   "
@@ -781,181 +782,181 @@ Les tests publics et privés doivent rester séparés.
   width: 100%,
 )
 
-Cette séparation évite notamment d'exposer les cas de tests utilisés pour évaluer les soumissions.
+This separation notably avoids exposing the test cases used to assess submissions.
 
-== Extensibilité
+== Extensibility
 
-Ajouter un exercice devrait idéalement être principalement une opération de configuration et de contenu plutôt qu'une modification du code source de la plateforme.
+Adding an exercise should ideally be mainly a configuration and content operation rather than a change to the platform's source code.
 
-L'architecture doit donc favoriser un modèle déclaratif.
+The architecture must therefore favor a declarative model.
 
-Le moteur d'évaluation interprète les données de l'exercice et sélectionne le runtime correspondant au langage demandé.
+The assessment engine interprets the exercise data and selects the runtime matching the requested language.
 
-= Cycle de vie du contenu
+= Content lifecycle
 
-Dans CTester, la plupart des incidents liés au contenu ne venaient pas du juge, mais du chemin entre le dépôt des enseignants et ce que l'étudiant reçoit : un corrigé exposé par accident, un exercice qui disparaît du menu la veille du cours, un catalogue vide servi en silence. Ce chemin est donc traité comme un composant architectural à part entière.
+In CTester, most content-related incidents did not come from the judge, but from the path between the instructors' repository and what the student receives: an answer key exposed by accident, an exercise disappearing from the menu the day before class, an empty catalog served silently. This path is therefore treated as an architectural component in its own right.
 
-== Vue d'ensemble
+== Overview
 
 #mermaid(
   "
   flowchart LR
-    D[Dépôt privé<br/>du contenu] --> V[Validation]
-    V --> P[Projection publique]
-    P --> R[Release immuable<br/>révision = hachage]
-    R --> PTR[Pointeur<br/>current]
+    D[Private content<br/>repository] --> V[Validation]
+    V --> P[Public projection]
+    P --> R[Immutable release<br/>revision = hash]
+    R --> PTR[current<br/>pointer]
 
-    PTR --> API[API<br/>données publiques]
-    D --> J[Juge<br/>tests privés]
-    PTR -.->|revalide l'ouverture| J
+    PTR --> API[API<br/>public data]
+    D --> J[Judge<br/>private tests]
+    PTR -.->|re-checks opening| J
   ",
   document-context: true,
   width: 100%,
 )
 
-Le contenu est édité dans un dépôt distinct du code de la plateforme. Chaque exercice y regroupe ses métadonnées, son énoncé, ses fichiers publics (gabarits) et ses données d'évaluation privées :
+Content is edited in a repository separate from the platform's code. Each exercise groups its metadata, its statement, its public files (templates) and its private assessment data:
 
 ```text
 exercises/<id>/
-├── exercise.json      métadonnées, compétences, règles d'ouverture
-├── statement.md       ou statement.typ, jamais les deux
-├── public/            gabarits remis à l'étudiant
-└── assessment/        tests, cas, configuration du juge (privé)
+├── exercise.json      metadata, skills, opening rules
+├── statement.md       or statement.typ, never both
+├── public/            templates handed to the student
+└── assessment/        tests, cases, judge configuration (private)
 ```
 
 #decision[
-  La publication est déclenchée par une modification du dépôt de contenu et ne nécessite aucun redéploiement ni redémarrage de l'application ou du juge.
+  Publishing is triggered by a change to the content repository and requires no redeployment or restart of the application or the judge.
 ]
 
 == Validation
 
-Un contenu invalide ne doit jamais remplacer la publication active.
+Invalid content must never replace the active publication.
 
-La validation vérifie notamment le schéma des métadonnées, l'unicité des identifiants, la cohérence des collections et l'absence d'ambiguïté, par exemple deux formats d'énoncé pour un même exercice. Elle échoue *avant* la première écriture.
-
-#decision[
-  Une erreur de validation arrête la publication en nommant l'exercice et le champ fautifs. La release précédente reste servie.
-]
-
-== Projection publique
-
-La release publique n'est pas une copie du dépôt de contenu. Elle est reconstruite champ par champ à partir d'une liste explicite de ce qui peut être montré.
-
-Une seconde vérification relit ensuite la projection produite et refuse de publier si une clé réservée aux données d'évaluation (`answer`, `expect`, `cases`, `stdin`, chemins internes…) y apparaît.
+Validation checks in particular the metadata schema, the uniqueness of identifiers, the consistency of collections and the absence of ambiguity, for example two statement formats for the same exercise. It fails *before* the first write.
 
 #decision[
-  La projection est construite par énumération positive (ce qui est publié) et contrôlée par énumération négative (ce qui ne doit jamais l'être). La première protège contre l'oubli d'aujourd'hui, la seconde contre le champ ajouté demain.
+  A validation error stops publishing, naming the faulty exercise and field. The previous release keeps being served.
 ]
 
-Le catalogue publié contient *tous* les exercices, y compris ceux qui ne sont pas encore ouverts, avec leur date d'ouverture. Le détail d'un exercice (énoncé, gabarits, questions) n'est écrit que pour les exercices ouverts.
+== Public projection
+
+The public release is not a copy of the content repository. It is rebuilt field by field from an explicit list of what may be shown.
+
+A second check then re-reads the produced projection and refuses to publish if a key reserved for assessment data (`answer`, `expect`, `cases`, `stdin`, internal paths…) appears in it.
+
+#decision[
+  The projection is built by positive enumeration (what is published) and checked by negative enumeration (what must never be). The first protects against today's oversight, the second against the field added tomorrow.
+]
+
+The published catalog contains *all* exercises, including those not yet open, with their opening date. An exercise's details (statement, templates, questions) are only written for open exercises.
 
 #hypothesis[
-  Montrer un exercice verrouillé avec sa date est préférable à le masquer : dans CTester, un exercice absent du menu était perçu par les étudiants comme une panne.
+  Showing a locked exercise with its date is better than hiding it: in CTester, an exercise missing from the menu was perceived by students as an outage.
 ]
 
-== Releases et rollback
+== Releases and rollback
 
-Chaque publication produit un répertoire de release dont l'identifiant est le hachage de son contenu. Republier un contenu inchangé ne crée rien, et une modification crée une nouvelle release qui coexiste avec les précédentes.
+Each publication produces a release directory whose identifier is the hash of its content. Republishing unchanged content creates nothing, and a change creates a new release that coexists with the previous ones.
 
-La release active est désignée par un pointeur, un fichier plutôt qu'un lien symbolique. Un montage de conteneur résout le lien au démarrage, donc un changement de lien ne serait visible qu'au redémarrage.
+The active release is designated by a pointer, a file rather than a symbolic link. A container mount resolves the link at startup, so a change of link would only be visible after a restart.
 
 #decision[
-  Le rollback du contenu consiste à réécrire le pointeur vers une release précédente. Il est instantané et ne redéploie aucun composant.
+  Rolling back content consists of rewriting the pointer to a previous release. It is instantaneous and redeploys no component.
 ]
 
-L'élagage conserve les dernières releases selon une date de publication écrite dans leur manifeste, et non selon la date de modification du système de fichiers. Dans CTester, cette dernière avait une granularité différente sous Windows et sous Linux, ce qui faisait supprimer une release qu'on avait promis de garder.
+Pruning keeps the latest releases according to a publication date written in their manifest, not according to the file system's modification time. In CTester, the latter had a different granularity on Windows and on Linux, which caused a release that was supposed to be kept to be deleted.
 
-== Ouverture dans le temps
+== Opening over time
 
-Chaque exercice porte un état (`draft`, `scheduled`, `open`, `archived`) et, au besoin, une date d'ouverture.
+Each exercise carries a state (`draft`, `scheduled`, `open`, `archived`) and, if needed, an opening date.
 
 #decision[
-  Une seule fonction décide si un exercice est accessible à un instant donné. Un exercice `scheduled` dont la date est passée est ouvert, sans commit ni tâche planifiée le matin du cours.
+  A single function decides whether an exercise is accessible at a given instant. A `scheduled` exercise whose date has passed is open, without any commit or scheduled task on the morning of the class.
 ]
 
-Toutes les lectures d'un exercice (détail, soumission, brouillon, discussion) passent par une porte unique qui résout l'identifiant dans la release active et refuse ce qui n'est pas ouvert. Un lien partagé en avance ne contourne donc rien.
+All reads of an exercise (details, submission, draft, discussion) go through a single gate that resolves the identifier in the active release and refuses anything that is not open. A link shared ahead of time therefore bypasses nothing.
 
-== Double contrôle par le juge
+== Double check by the judge
 
-L'API ne transmet au juge qu'un identifiant d'exercice. Le juge résout lui-même cet identifiant contre la release active avant de lire les données d'évaluation.
+The API only passes an exercise identifier to the judge. The judge itself resolves this identifier against the active release before reading the assessment data.
 
 #decision[
-  Le juge ne fait pas confiance à l'API sur l'ouverture d'un exercice. Une API compromise peut mentir sur l'auteur d'une soumission, mais ne peut pas obtenir l'exécution des tests d'un exercice fermé.
+  The judge does not trust the API about whether an exercise is open. A compromised API can lie about who authored a submission, but cannot get the tests of a closed exercise executed.
 ]
 
-== Aperçu enseignant
+== Instructor preview
 
-Un enseignant doit pouvoir consulter et soumettre un exercice avant son ouverture, dans les conditions réelles, sans l'ouvrir aux étudiants.
+An instructor must be able to view and submit an exercise before it opens, under real conditions, without opening it to students.
 
-La projection écrit donc une copie restreinte des exercices non ouverts, servie uniquement aux comptes enseignants et jamais mise en cache par un intermédiaire. Le rôle est recalculé côté serveur à chaque requête, et à nouveau par le juge, à partir de l'identité authentifiée.
+The projection therefore writes a restricted copy of unopened exercises, served only to instructor accounts and never cached by an intermediary. The role is recomputed server-side on every request, and again by the judge, from the authenticated identity.
 
 #decision[
-  L'aperçu est une propriété de l'identité authentifiée, pas un drapeau global. Le comportement par défaut de la porte d'accès est fermé.
+  Preview is a property of the authenticated identity, not a global flag. The access gate's default behavior is closed.
 ]
 
-== Preuve du contenu
+== Content proof
 
-Un test incorrect produit un verdict faux que l'étudiant ne peut pas contester.
+An incorrect test produces a wrong verdict that the student cannot contest.
 
 #decision[
-  Chaque exercice est accompagné d'une solution de référence conservée hors du dépôt publié. Un contrôle compile cette solution et la fait passer dans le véritable juge avant l'ouverture. Un exercice sans solution est signalé comme « non prouvé ».
+  Each exercise comes with a reference solution kept outside the published repository. A check compiles this solution and runs it through the real judge before opening. An exercise without a solution is flagged as "unproven".
 ]
 
 #validation[
-  Ce contrôle doit être intégré à la CI du dépôt de contenu, et les exercices non prouvés doivent être visibles avant leur date d'ouverture.
+  This check must be integrated into the content repository's CI, and unproven exercises must be visible before their opening date.
 ]
 
-= Rendu des énoncés
+= Statement rendering
 
-Un énoncé de programmation contient du texte, du code, des formules et parfois des tableaux, des figures ou des diagrammes. Deux formats sont pris en charge, avec des modèles de rendu opposés.
+A programming statement contains text, code, formulas and sometimes tables, figures or diagrams. Two formats are supported, with opposite rendering models.
 
 #table(
   columns: (2.8cm, 1fr, 1fr),
   stroke: 0.5pt,
   [], [*Markdown*], [*Typst*],
-  [Usage], [Défaut, la grande majorité des énoncés], [Tableaux, diagrammes, figures, mise en page multi-page],
-  [Rendu], [Dans le navigateur, à l'affichage], [À la publication, dans un conteneur],
-  [Livré], [Texte source], [HTML, avec SVG clair et sombre en repli],
-  [Accessibilité], [Complète], [Réduite pour le SVG],
+  [Use], [Default, the vast majority of statements], [Tables, diagrams, figures, multi-page layout],
+  [Rendering], [In the browser, at display time], [At publication time, in a container],
+  [Delivered], [Source text], [HTML, with light and dark SVG as fallback],
+  [Accessibility], [Full], [Reduced for SVG],
 )
 
 == Markdown
 
-Le Markdown est rendu côté client par une grammaire volontairement restreinte : paragraphes, titres, listes, code en ligne, blocs de code colorés et emphase. Une bibliothèque générale n'est pas utilisée.
+Markdown is rendered client-side by a deliberately restricted grammar: paragraphs, headings, lists, inline code, highlighted code blocks and emphasis. A general-purpose library is not used.
 
-Cette décision découle de deux constats faits dans CTester :
+This decision stems from two observations made in CTester:
 
-- une bibliothèque Markdown complète et son assainisseur pesaient plusieurs fois le reste de la page, sur le chemin des étudiants non connectés ;
-- les règles de CommonMark sont mal adaptées au C : l'astérisque est aussi l'opérateur de déréférencement et de multiplication, et `*quotient et *reste` devient de l'italique en perdant ses deux astérisques.
-
-#decision[
-  L'emphase n'est reconnue que lorsque le délimiteur est collé à un mot du côté intérieur et séparé du texte du côté extérieur. Le soulignement `_` n'est pas une syntaxe d'emphase, car il apparaît dans la plupart des identifiants.
-]
-
-Les formules sont délimitées explicitement par `$…$` et converties en MathML natif. Le navigateur les dessine sans bibliothèque ni police externe, ce qui ne demande aucune exception à la politique de sécurité du contenu (CSP).
+- a full Markdown library and its sanitizer weighed several times the rest of the page, on the path of students who are not logged in;
+- CommonMark's rules are poorly suited to C: the asterisk is also the dereference and multiplication operator, and `*quotient and *remainder` becomes italics, losing both asterisks.
 
 #decision[
-  Une formule n'est jamais devinée. En C, `z/4` est une division entière et non une fraction, et une barre de fraction enseignerait le contraire. Une formule qui ne s'analyse pas est affichée comme du code en ligne, jamais comme une erreur.
+  Emphasis is only recognized when the delimiter touches a word on the inner side and is separated from the text on the outer side. The underscore `_` is not an emphasis syntax, since it appears in most identifiers.
 ]
 
-Le contenu Markdown provient du dépôt privé relu par l'équipe enseignante. Toute sortie HTML est néanmoins construite à partir de fragments échappés.
+Formulas are explicitly delimited by `$…$` and converted to native MathML. The browser draws them without any library or external font, which requires no exception to the content security policy (CSP).
+
+#decision[
+  A formula is never guessed. In C, `z/4` is an integer division and not a fraction, and a fraction bar would teach the opposite. A formula that does not parse is displayed as inline code, never as an error.
+]
+
+Markdown content comes from the private repository reviewed by the teaching team. Any HTML output is nevertheless built from escaped fragments.
 
 #hypothesis[
-  Les contenus rédigés par les étudiants (forum, discussions) demandent une chaîne différente : échappement avant l'analyse et assainissement par liste blanche à chaque affichage. Les deux chaînes ne doivent pas être fusionnées.
+  Content written by students (forum, discussions) requires a different pipeline: escaping before parsing and allow-list sanitization on every display. The two pipelines must not be merged.
 ]
 
 == Typst
 
-Typst est réservé à ce que la grammaire Markdown ne permet pas d'écrire.
+Typst is reserved for what the Markdown grammar cannot express.
 
 #mermaid(
   "
   flowchart LR
-    S[statement.typ] --> C[Copie sans<br/>données privées]
-    C --> T[Conteneur typst<br/>--root · sans réseau]
-    L[Gabarit partagé<br/>paquets vendorés] --> T
+    S[statement.typ] --> C[Copy without<br/>private data]
+    C --> T[typst container<br/>--root · no network]
+    L[Shared template<br/>vendored packages] --> T
     T --> H[HTML]
-    T --> SV[SVG clair / sombre]
+    T --> SV[Light / dark SVG]
     H --> R[Release]
     SV --> R
   ",
@@ -964,55 +965,65 @@ Typst est réservé à ce que la grammaire Markdown ne permet pas d'écrire.
 )
 
 #decision[
-  Rien n'est compilé à la requête. Typst est exécuté pendant la publication, et l'étudiant reçoit des fichiers statiques. Le service exposé à Internet n'a ni compilateur Typst, ni accès au contenu privé, ni accès au runtime de conteneurs.
+  Nothing is compiled per request. Typst runs during publishing, and the student receives static files. The Internet-facing service has no Typst compiler, no access to private content and no access to the container runtime.
 ]
 
-La compilation traite le document comme non fiable, même s'il est rédigé par l'équipe enseignante :
+Compilation treats the document as untrusted, even if it is written by the teaching team:
 
-- elle est faite depuis une *copie* de l'exercice qui ne contient pas les données d'évaluation ;
-- la racine du projet Typst est limitée à cette copie, ce qui refuse les chemins relatifs sortants et ré-enracine les chemins absolus ;
-- le conteneur n'a pas d'accès réseau, et les paquets utilisés (gabarit du cours, Mermaid) sont vendorés ;
-- un délai maximal borne un document lourd qui bloquerait la publication.
+- it is done from a *copy* of the exercise that does not contain the assessment data;
+- the Typst project root is limited to this copy, which rejects outgoing relative paths and re-roots absolute paths;
+- the container has no network access, and the packages used (course template, Mermaid) are vendored;
+- a maximum timeout bounds a heavy document that would block publishing.
 
-Le gabarit du cours est distribué comme paquet Typst local. L'enseignant n'écrit aucun préambule : la plateforme applique le gabarit puis inclut l'énoncé.
+The course template is distributed as a local Typst package. The instructor writes no preamble: the platform applies the template, then includes the statement.
 
-=== Thèmes et formats
+=== Themes and formats
 
-Un SVG est peint une fois pour toutes et ne peut pas suivre le thème de la page. Chaque énoncé est donc rendu deux fois, en clair et en sombre.
+An SVG is painted once and for all and cannot follow the page's theme. Each statement is therefore rendered twice, in light and in dark.
 
-L'export HTML de Typst est privilégié lorsqu'il est complet. La publication détecte les éléments ignorés par l'export HTML et ne publie alors que les SVG.
+Typst's HTML export is preferred when it is complete. Publishing detects elements ignored by the HTML export and then publishes only the SVGs.
 
 #decision[
-  Le HTML est affiché en priorité et le SVG sert de repli, sans choix exposé à l'étudiant. Un échec du HTML ne bloque pas la publication, un échec du SVG la bloque.
+  HTML is displayed first and SVG serves as a fallback, with no choice exposed to the student. An HTML failure does not block publishing; an SVG failure does.
 ]
 
-=== Cache de rendu
+=== Rendering cache
 
-La clé de cache couvre tout ce dont le rendu dépend : version de Typst, gabarit, paquets vendorés et arbre de l'exercice *sauf* ses données d'évaluation. Corriger un cas de test ne recompile donc aucun énoncé.
+The cache key covers everything rendering depends on: Typst version, template, vendored packages and the exercise tree *except* its assessment data. Fixing a test case therefore recompiles no statement.
 
-Les fichiers rendus entrent dans le hachage de la release. Une modification du gabarit produit alors une nouvelle release, qui peut être annulée par le pointeur comme toute autre publication.
+Rendered files are part of the release hash. A template change therefore produces a new release, which can be rolled back through the pointer like any other publication.
 
 #decision[
-  Le cache de rendu est adressé par contenu et conservé hors du répertoire des releases, qui est élagué à chaque publication.
+  The rendering cache is content-addressed and kept outside the releases directory, which is pruned at each publication.
 ]
 
-=== Limite d'accessibilité
+=== Accessibility limitation
 
-Typst vectorise ses glyphes dans le SVG : le texte n'y est ni sélectionnable, ni trouvable par recherche, ni lisible par un lecteur d'écran. Le HTML n'a pas cette limite, mais il n'est pas toujours disponible.
+Typst vectorizes its glyphs in the SVG: the text there is not selectable, not searchable and not readable by a screen reader. HTML does not have this limitation, but it is not always available.
 
 #decision[
-  Markdown reste le format par défaut. Typst n'est utilisé que pour un contenu qui ne peut pas être exprimé autrement.
+  Markdown remains the default format. Typst is only used for content that cannot be expressed otherwise.
 ]
 
 #validation[
-  La maturité de l'export HTML de Typst devra être réévaluée à chaque version. Si elle devient suffisante, le repli SVG pourra être abandonné et la limite d'accessibilité disparaîtra.
+  The maturity of Typst's HTML export will have to be reassessed with each release. If it becomes sufficient, the SVG fallback can be dropped and the accessibility limitation will disappear.
 ]
+
+= Internationalization
+
+The platform's interface is multilingual, while the project itself (code, documentation) is written in English only.
+
+#decision(id: "ADR-0011")[
+  Every interface string goes through a message key, with one translation file per language. English is the source language; English and French are maintained by the project and kept complete by CI. Other languages are contributed externally and may be partial: a missing key falls back to English. The API and the judge return codes, never sentences, and the interface translates them.
+]
+
+Pedagogical content is not translated by the platform: a statement is displayed in the language its author wrote it in.
 
 = Infrastructure
 
-L'infrastructure doit être reproductible, versionnée et suffisamment indépendante des opérations manuelles pour permettre de reconstruire un environnement de déploiement de manière fiable.
+The infrastructure must be reproducible, versioned and sufficiently independent of manual operations to allow a deployment environment to be rebuilt reliably.
 
-L'architecture envisagée distingue plusieurs niveaux de responsabilité :
+The envisioned architecture distinguishes several levels of responsibility:
 
 #mermaid(
   "
@@ -1020,146 +1031,146 @@ L'architecture envisagée distingue plusieurs niveaux de responsabilité :
     I[Infrastructure]
 
     I --> T[Terraform]
-    I --> VM[VM ÉTS]
+    I --> VM[ÉTS VM]
 
-    T -.->|Provisionnement si disponible| VM
+    T -.->|Provisioning if available| VM
 
     VM --> U[Ubuntu LTS]
     A[Ansible] -->|Configuration| U
 
-    U --> SYS[Système]
-    U --> SEC[Sécurité]
+    U --> SYS[System]
+    U --> SEC[Security]
     U --> SVC[Services]
 
     SVC --> API[API]
     SVC --> J[Judge]
 
-    J --> ISO[gVisor / autres mécanismes d'isolation]
+    J --> ISO[gVisor / other isolation mechanisms]
   ",
   document-context: true,
   width: 100%,
 )
 
-== Provisionnement de l'infrastructure
+== Infrastructure provisioning
 
-Terraform est envisagé pour décrire et provisionner les ressources d'infrastructure lorsque l'environnement d'hébergement fournit une interface compatible.
+Terraform is envisioned to describe and provision infrastructure resources when the hosting environment provides a compatible interface.
 
-Il pourrait notamment être utilisé pour gérer :
+It could in particular be used to manage:
 
-- les machines virtuelles ;
-- les réseaux ;
-- les volumes ;
-- les règles d'accès ;
-- les ressources nécessaires au déploiement.
+- virtual machines;
+- networks;
+- volumes;
+- access rules;
+- the resources needed for deployment.
 
-Toutefois, l'infrastructure fournie par l'établissement peut ne pas offrir d'interface permettant à Terraform de créer ou de modifier directement ces ressources.
+However, the infrastructure provided by the institution may not offer an interface allowing Terraform to create or modify these resources directly.
 
 #decision[
-  Terraform sera utilisé lorsque l'environnement d'hébergement permet de provisionner l'infrastructure de manière automatisée. Dans le cas contraire, la VM fournie par l'établissement sera considérée comme une ressource externe au projet.
+  Terraform will be used when the hosting environment allows infrastructure to be provisioned in an automated way. Otherwise, the VM provided by the institution will be considered a resource external to the project.
 ]
 
-Cette distinction permet de ne pas introduire Terraform artificiellement dans un environnement où il n'apporterait pas de valeur opérationnelle.
+This distinction avoids introducing Terraform artificially into an environment where it would bring no operational value.
 
-== Système d'exploitation
+== Operating system
 
-Les VM fournies par l'établissement fonctionnent sous Ubuntu LTS. NixOS, initialement envisagé (ADR-0003), n'est pas retenu ; voir ADR-0006.
+The VMs provided by the institution run Ubuntu LTS. NixOS, initially envisioned (ADR-0003), is not retained; see ADR-0006.
 
-Ubuntu n'offre pas de configuration déclarative native. La configuration du système est donc décrite par des playbooks Ansible idempotents, versionnés avec le reste du projet, afin de pouvoir reconstruire ou ajouter une machine à partir du dépôt. Un inventaire par groupes (`web`, `judge`, `db`) décrit les VM ; en ajouter une revient à l'inscrire dans l'inventaire et à exécuter un playbook (ADR-0010).
+Ubuntu does not offer native declarative configuration. The system configuration is therefore described by idempotent Ansible playbooks, versioned with the rest of the project, so that a machine can be rebuilt or added from the repository. An inventory by groups (`web`, `judge`, `db`) describes the VMs; adding one amounts to registering it in the inventory and running a playbook (ADR-0010).
 
-Le modèle recherché est :
+The target model is:
 
 #mermaid(
   "
   flowchart LR
-    Git     --> Ansible[Playbooks Ansible]
-    Ansible --> VM[VM Ubuntu]
-    VM      --> A[État système reproductible]
+    Git     --> Ansible[Ansible playbooks]
+    Ansible --> VM[Ubuntu VM]
+    VM      --> A[Reproducible system state]
   ",
   document-context: true,
   width: 100%,
 )
 
-Les playbooks décrivent notamment :
+The playbooks describe in particular:
 
-- les paquets installés ;
-- les services système ;
-- la configuration réseau ;
-- le pare-feu ;
-- les utilisateurs et permissions nécessaires ;
-- les mécanismes de journalisation ;
-- les services de supervision ;
-- le runtime de conteneurs ;
-- les composants nécessaires à l'isolation des soumissions.
+- installed packages;
+- system services;
+- network configuration;
+- the firewall;
+- the required users and permissions;
+- logging mechanisms;
+- monitoring services;
+- the container runtime;
+- the components needed for submission isolation.
 
 #decision[
-  La VM principale utilise Ubuntu LTS, imposé par l'établissement. Son état permanent est décrit par les playbooks Ansible du dépôt.
+  The main VM uses Ubuntu LTS, imposed by the institution. Its permanent state is described by the repository's Ansible playbooks.
 ]
 
-Contrairement à NixOS, Ubuntu ne conserve pas de générations du système permettant de revenir à une configuration précédente. Ce risque est compensé par :
+Unlike NixOS, Ubuntu does not keep system generations allowing a return to a previous configuration. This risk is offset by:
 
-- un snapshot de la VM avant chaque mise à jour du système ou de la plateforme ;
-- l'épinglage des versions des paquets critiques (runtime de conteneurs, gVisor, nginx, PostgreSQL) ;
-- la limitation de `unattended-upgrades` aux correctifs de sécurité, suspendue à l'approche d'un examen.
+- a VM snapshot before each system or platform update;
+- pinning the versions of critical packages (container runtime, gVisor, nginx, PostgreSQL);
+- limiting `unattended-upgrades` to security fixes, suspended ahead of an exam.
 
 #hypothesis[
-  Les snapshots de VM et l'épinglage des versions peuvent réduire le risque opérationnel lors des mises à jour de la plateforme, notamment à l'approche d'une période d'évaluation.
+  VM snapshots and version pinning can reduce operational risk during platform updates, especially ahead of an assessment period.
 ]
 
-== Rôle d'Ansible
+== Role of Ansible
 
-Ansible est le mécanisme de configuration de l'hôte. Il couvre à la fois l'état permanent de la machine et les opérations ponctuelles, par exemple :
+Ansible is the host configuration mechanism. It covers both the machine's permanent state and one-off operations, for example:
 
-- la coordination d'une mise à jour ;
-- certaines opérations de déploiement ;
-- des tâches administratives.
+- coordinating an update;
+- some deployment operations;
+- administrative tasks.
 
-La frontière recherchée est donc :
+The intended boundary is therefore:
 
 #mermaid(
   "
   flowchart LR
-    T[Terraform] --> T1[Provisionnement de l'infrastructure]
-    A[Ansible]   --> A1[État de la machine et opérations]
-    C[CI/CD]     --> C1[Construction et déploiement de l'application]
+    T[Terraform] --> T1[Infrastructure provisioning]
+    A[Ansible]   --> A1[Machine state and operations]
+    C[CI/CD]     --> C1[Application build and deployment]
   ",
   document-context: true,
   width: 100%,
 )
 
 #decision[
-  La configuration persistante du système est déclarée dans les playbooks Ansible. Toute modification manuelle de la machine doit y être répercutée.
+  The system's persistent configuration is declared in the Ansible playbooks. Any manual change to the machine must be carried back into them.
 ]
 
-Une convergence impérative peut laisser l'état réel dériver de ce que décrit le dépôt. Les playbooks sont donc exécutés régulièrement en mode `--check --diff` pour détecter toute dérive.
+Imperative convergence can let the actual state drift from what the repository describes. The playbooks are therefore run regularly in `--check --diff` mode to detect any drift.
 
-== Environnement de déploiement
+== Deployment environment
 
-L'infrastructure cible devrait idéalement être séparée en plusieurs environnements lorsque les ressources disponibles le permettent :
+The target infrastructure should ideally be split into several environments when the available resources allow it:
 
 #mermaid(
   "
   flowchart LR
     I[Infrastructure]
 
-    I --> V[Validation]
+    I --> V[Staging]
     I --> P[Production]
 
     V --> V1[Tests / CI]
-    P --> P1[Enseignement / examens]
+    P --> P1[Teaching / exams]
   ",
   document-context: true,
   width: 100%,
 )
 
-L'environnement de validation permet notamment de tester une nouvelle version du système, du juge ou des mécanismes d'isolation avant son utilisation dans un contexte pédagogique réel.
+The staging environment makes it possible in particular to test a new version of the system, the judge or the isolation mechanisms before using it in a real teaching context.
 
 #hypothesis[
-  Un environnement de préproduction distinct peut être particulièrement utile avant les examens, puisque certaines modifications du système de jugement ou de l'isolation peuvent avoir des conséquences importantes sur la disponibilité de la plateforme.
+  A separate pre-production environment can be particularly useful before exams, since some changes to the judging system or to isolation can have significant consequences on the platform's availability.
 ]
 
 = CI/CD
 
-Le pipeline envisagé est :
+The envisioned pipeline is:
 
 #mermaid(
   "
@@ -1167,9 +1178,9 @@ Le pipeline envisagé est :
     G[Git push] --> T
 
     subgraph T[Tests]
-      T1[Tests unitaires]
-      T2[Tests d'intégration]
-      T3[Tests de sécurité]
+      T1[Unit tests]
+      T2[Integration tests]
+      T3[Security tests]
     end
 
     T --> B
@@ -1180,39 +1191,39 @@ Le pipeline envisagé est :
       B3[Judge]
     end
 
-    B --> IMG[Images / artefacts]
-    IMG --> REG[Registry / stockage d'artefacts]
-    REG --> D[Déploiement]
+    B --> IMG[Images / artifacts]
+    IMG --> REG[Registry / artifact storage]
+    REG --> D[Deployment]
 
-    D --> VAL[Environnement de validation]
+    D --> VAL[Staging environment]
     D --> PROD[Production]
   ",
   document-context: true,
   width: 100%,
 )
 
-La configuration Ansible doit elle-même être testée (`ansible-lint`, exécution en `--check`) et versionnée dans le même cycle de développement.
+The Ansible configuration must itself be tested (`ansible-lint`, runs in `--check` mode) and versioned in the same development cycle.
 
-Le pipeline doit notamment permettre de vérifier qu'une modification du système ou de l'application peut être construite avant d'être déployée.
+The pipeline must in particular make it possible to verify that a change to the system or the application can be built before being deployed.
 
 #decision[
-  Le déploiement doit être automatisé autant que possible et reproductible à partir du dépôt. Les modifications manuelles de la production doivent être évitées ou, lorsqu'elles sont nécessaires, documentées et répercutées dans la configuration déclarative.
+  Deployment must be automated as much as possible and reproducible from the repository. Manual changes to production must be avoided or, when necessary, documented and carried back into the declarative configuration.
 ]
 
-La CI/CD ne doit cependant pas déployer automatiquement n'importe quelle modification directement dans l'environnement utilisé pour les examens.
+CI/CD must not, however, automatically deploy any change directly to the environment used for exams.
 
-Une distinction doit être maintenue entre :
+A distinction must be maintained between:
 
-* validation automatique ;
-* déploiement en préproduction ;
-* validation humaine ;
-* déploiement en production.
+* automatic validation;
+* deployment to pre-production;
+* human validation;
+* deployment to production.
 
-= Organisation du code
+= Code organization
 
-Un monorepo est actuellement privilégié afin de conserver une vue cohérente des différents composants du projet.
+A monorepo is currently preferred in order to keep a consistent view of the project's various components.
 
-Une organisation possible est :
+A possible layout is:
 
 ```text
 log-platform/
@@ -1243,246 +1254,250 @@ log-platform/
 └── .github/
 ```
 
-Le répertoire `infrastructure/ansible/` contient la configuration des machines administrées par le projet ainsi que les opérations d'administration.
+The `infrastructure/ansible/` directory contains the configuration of the machines administered by the project as well as the administrative operations.
 
-Le répertoire `terraform/` contient uniquement les ressources effectivement gérées par Terraform.
+The `terraform/` directory contains only the resources actually managed by Terraform.
 
 #decision[
-  Le monorepo est privilégié afin de conserver une version cohérente de l'application, du moteur de jugement, du contenu pédagogique et de l'infrastructure.
+  The monorepo is preferred in order to keep a consistent version of the application, the judge engine, the pedagogical content and the infrastructure.
 ]
 
-Les frontières entre composants doivent néanmoins rester explicites.
+Boundaries between components must nevertheless remain explicit.
 
-Un monorepo ne signifie pas que tous les composants partagent le même code, le même langage ou le même cycle de déploiement.
+A monorepo does not mean that all components share the same code, the same language or the same deployment cycle.
 
-= Sécurité
+= Security
 
-== Principe de défense en profondeur
+== Defense in depth
 
-La sécurité de l'exécution ne repose pas sur le système d'exploitation ou sur un seul mécanisme d'isolation.
+Execution security does not rely on the operating system or on a single isolation mechanism.
 
-Une exécution doit idéalement traverser plusieurs niveaux de protection :
+An execution should ideally cross several layers of protection:
 
 #mermaid(
   "
   flowchart LR
-    C[Code étudiant]            --> V[Validation applicative]
+    C[Student code]             --> V[Application validation]
     V                           --> J[Judge]
-    J                           --> R[Limites de ressources]
-    R                           --> RT[Conteneur / runtime]
+    J                           --> R[Resource limits]
+    R                           --> RT[Container / runtime]
     RT                          --> ISO[gVisor / microVM]
-    ISO                         --> H[Hôte Ubuntu]
-    H                           --> VM[VM de l'établissement]
+    ISO                         --> H[Ubuntu host]
+    H                           --> VM[Institution VM]
   ",
   document-context: true,
   width: 100%,
 )
 
-Chaque couche doit réduire les conséquences potentielles d'une défaillance d'une autre couche.
+Each layer must reduce the potential consequences of a failure in another layer.
 
-Le rôle d'Ubuntu et d'Ansible dans cette architecture est principalement de fournir un environnement système reproductible et administrable. Il ne constitue pas à lui seul la frontière d'isolation des programmes étudiants.
+The role of Ubuntu and Ansible in this architecture is mainly to provide a reproducible and manageable system environment. They do not by themselves constitute the isolation boundary for student programs.
 
-== Séparation des secrets
+== Separation of secrets
 
-Le processus responsable de l'exécution du code étudiant ne devrait pas avoir accès aux secrets critiques de l'application.
+The process responsible for running student code should not have access to the application's critical secrets.
 
-En particulier, le moteur de jugement devrait fonctionner avec le minimum de privilèges nécessaire à son fonctionnement.
+In particular, the judge engine should run with the minimum privileges needed to operate.
 
-La compromission éventuelle d'un environnement d'exécution ne doit donc pas permettre d'obtenir directement les identifiants permettant d'accéder aux services critiques de la plateforme.
+A possible compromise of an execution environment must therefore not directly yield the credentials giving access to the platform's critical services.
 
-== Séparation des responsabilités sur la VM
+== Separation of responsibilities on the VM
 
-Lorsque les ressources disponibles le permettent, les composants présentant des niveaux de confiance différents devraient être séparés.
+When the available resources allow it, components with different trust levels should be separated.
 
-Un modèle possible est :
+A possible model is:
 
 #mermaid(
   "
   flowchart TB
-    subgraph VM[VM Ubuntu]
+    subgraph VM[Ubuntu VM]
         API[Application<br/>API / Web]
         J[Judge]
 
         subgraph ISO[Isolation]
             S[Sandbox]
-            C[Code étudiant]
+            C[Student code]
         end
 
         J --> S
         S --> C
     end
 
-    API -->|Soumission| J
+    API -->|Submission| J
   ",
   document-context: true,
   width: 100%,
 )
 
-Une séparation physique ou virtuelle plus forte entre l'application et le moteur de jugement pourra être envisagée si l'analyse de menace ou les contraintes de charge le justifient.
+A stronger physical or virtual separation between the application and the judge engine may be considered if the threat analysis or load constraints justify it.
 
 #validation[
-  La répartition des rôles (`web`, `judge`, `db`) entre les VM (ADR-0010) devra être déterminée en fonction des ressources disponibles, du modèle de menace et des résultats des tests de charge.
+  The distribution of roles (`web`, `judge`, `db`) across the VMs (ADR-0010) will have to be determined based on the available resources, the threat model and the results of the load tests.
 ]
 
-== Réseau
+== Network
 
-Le code étudiant n'a normalement aucune raison d'accéder à Internet ou au réseau interne de l'établissement.
+Student code normally has no reason to access the Internet or the institution's internal network.
 
 #decision[
-  L'accès réseau des programmes étudiants doit être refusé par défaut et explicitement autorisé uniquement lorsqu'un exercice particulier le nécessite.
+  Network access for student programs must be denied by default and explicitly allowed only when a particular exercise requires it.
 ]
 
-La configuration du réseau et du pare-feu doit être considérée comme une partie de l'infrastructure déclarative et non comme une configuration manuelle de la machine.
+Network and firewall configuration must be considered part of the declarative infrastructure and not a manual configuration of the machine.
 
-== Ressources
+== Resources
 
-Chaque exécution doit disposer de limites explicites concernant notamment :
+Each execution must have explicit limits concerning in particular:
 
-- le temps CPU ;
-- le temps total d'exécution ;
-- la mémoire ;
-- le nombre de processus et threads ;
-- l'espace disque temporaire ;
-- les connexions réseau ;
-- les fichiers accessibles.
+- CPU time;
+- total execution time;
+- memory;
+- the number of processes and threads;
+- temporary disk space;
+- network connections;
+- accessible files.
 
-Ces limites doivent être appliquées au niveau du mécanisme d'exécution isolée et non uniquement par le programme de l'étudiant.
+These limits must be enforced at the level of the isolated execution mechanism and not only by the student's program.
 
-= Reproductibilité
+= Reproducibility
 
-L'objectif global de l'infrastructure est de pouvoir répondre à la question :
+The overall goal of the infrastructure is to be able to answer the question:
 
-> « Peut-on reconstruire un environnement fonctionnel et suffisamment
-> identique à partir du dépôt du projet ? »
+> "Can a working and sufficiently identical environment be rebuilt
+> from the project's repository?"
 
-Le niveau de reproductibilité recherché est :
+The target level of reproducibility is:
 
 #mermaid(
   "
   flowchart LR
-    G[Dépôt Git] --> SRC[Code source de l'application]
+    G[Git repository] --> SRC[Application source code]
     G            --> INF[Infrastructure]
 
-    INF --> N[Configuration Ansible]
+    INF --> N[Ansible configuration]
     N   --> VM
-    VM  --> SVC[Services configurés]
+    VM  --> SVC[Configured services]
     SVC --> APP[Application]
   ",
   document-context: true,
   width: 100%,
 )
 
-La reproductibilité ne signifie pas nécessairement que chaque donnée de production doit être reconstruite à partir de zéro. Les données persistantes, les secrets et certaines ressources fournies par l'établissement constituent des dépendances externes qui doivent être explicitement identifiées.
+Reproducibility does not necessarily mean that every piece of production data must be rebuilt from scratch. Persistent data, secrets and some resources provided by the institution are external dependencies that must be explicitly identified.
 
 #decision[
-  L'infrastructure doit documenter ses dépendances externes afin qu'une configuration fonctionnelle ne dépende pas de connaissances implicites détenues uniquement par un administrateur.
+  The infrastructure must document its external dependencies so that a working configuration does not depend on implicit knowledge held only by an administrator.
 ]
 
-= Décisions à valider
+= Decisions to validate
 
-Les choix suivants restent conditionnels ou devront être confirmés expérimentalement :
+The following choices remain conditional or will have to be confirmed experimentally:
 
 #table(
   columns: (3.2cm, 5cm, 1fr),
   stroke: 0.5pt,
 
-  [*Sujet*], [*Position actuelle*], [*Validation*],
+  [*Topic*], [*Current position*], [*Validation*],
 
-  [OS principal], [Ubuntu LTS (imposé par l'établissement)], [Compatibilité de gVisor avec le noyau fourni],
+  [Main OS], [Ubuntu LTS (imposed by the institution)], [gVisor compatibility with the provided kernel],
 
-  [Provisionnement], [Terraform si une API compatible est disponible], [Capacités réelles de l'environnement ÉTS],
+  [Provisioning], [Terraform if a compatible API is available], [Actual capabilities of the ÉTS environment],
 
-  [Configuration], [Playbooks Ansible], [Détection de dérive, snapshots de VM et accès `sudo`],
+  [Configuration], [Ansible playbooks], [Drift detection, VM snapshots and `sudo` access],
 
-  [Runtime], [Docker ou Podman], [Compatibilité avec le mécanisme d'isolation],
+  [Runtime], [Docker or Podman], [Compatibility with the isolation mechanism],
 
-  [Isolation], [gVisor initialement envisagé], [Benchmark et tests de sécurité],
+  [Isolation], [gVisor initially envisioned], [Benchmark and security tests],
 
-  [Alternative d'isolation], [Firecracker], [Benchmark comparatif],
+  [Isolation alternative], [Firecracker], [Comparative benchmark],
 
-  [Topologie], [Plusieurs VM répliquables par Ansible (ADR-0010)], [Charge, sécurité et ressources disponibles],
+  [Topology], [Several VMs replicable by Ansible (ADR-0010)], [Load, security and available resources],
 
-  [Reverse proxy], [nginx ; `upstream` si plusieurs VM `web`], [Prise en charge du TLS par l'établissement],
+  [Reverse proxy], [nginx; `upstream` if several `web` VMs], [TLS handling by the institution],
 
-  [File], [PostgreSQL (`SKIP LOCKED`)], [Tests de charge d'examen],
+  [Queue], [PostgreSQL (`SKIP LOCKED`)], [Exam load tests],
 
-  [Cache], [Aucun service dédié ; cache côté juge], [Profilage du coût d'une soumission],
+  [Cache], [No dedicated service; judge-side cache], [Profiling of a submission's cost],
 
-  [Mesure de performance],
-  [Comptage d'instructions sous QEMU (ADR-0007)],
-  [Déterminisme sous charge et compatibilité avec gVisor],
+  [Performance measurement],
+  [Instruction counting under QEMU (ADR-0007)],
+  [Determinism under load and compatibility with gVisor],
 
-  [Tests visibles],
-  [Navigateur pour les langages faciles (ADR-0008)],
-  [Gain de charge, écarts avec le juge, Safe Exam Browser],
+  [Visible tests],
+  [Browser for easy languages (ADR-0008)],
+  [Load reduction, discrepancies with the judge, Safe Exam Browser],
+
+  [Internationalization],
+  [Translation files; English and French complete, others fall back to English (ADR-0011)],
+  [CI check on `fr`/`en` keys, fallback, language under SEB],
 )
 
-L'architecture sera considérée comme stabilisée uniquement après validation des hypothèses ayant un impact important sur la sécurité, la performance ou l'opérabilité du système.
+The architecture will be considered stable only after validation of the hypotheses that have a significant impact on the system's security, performance or operability.
 
-= Questions ouvertes
+= Open questions
 
-Plusieurs questions importantes restent volontairement ouvertes.
+Several important questions are deliberately left open.
 
-1. PostgreSQL suffit-il comme file de soumissions sous une charge d'examen ?
-2. Quelle politique d'ordonnancement minimise la latence perçue pendant un
-  examen ?
-3. Combien de workers sont nécessaires pour une charge de 400 étudiants ?
-4. Quelle quantité de ressources doit être attribuée à chaque soumission ?
-5. Quel est le coût réel de gVisor pour des compilations réalistes ?
-6. Dans quelles conditions Firecracker devient-il préférable à gVisor ?
-7. Quelle stratégie permet de limiter efficacement les attaques par
-  consommation de ressources ?
-8. Quelle granularité doit avoir l'abstraction des langages ?
-9. Comment gérer les dépendances spécifiques à chaque langage ?
-10. Quelle quantité d'état doit être persistée dans PostgreSQL, et combien de temps ? La durée de conservation des soumissions, des résultats et des journaux suit la _Loi sur l'accès_ et le calendrier de conservation de l'ÉTS (_Loi sur les archives_) ; elle reste à confirmer auprès de l'ÉTS. La purge s'appuie sur l'autovacuum et, si le volume le justifie, sur le partitionnement par date plutôt que sur `VACUUM FULL`.
-11. Comment garantir la reprise après panne d'un worker, d'une VM ou du primaire PostgreSQL pendant un examen ? Une approche est proposée dans l'ADR-0010.
-12. Quelle observabilité est nécessaire pour diagnostiquer un examen en cours ?
-13. Comment intégrer proprement Moodle et Safe Exam Browser ? La vérification de SEB est proposée dans l'ADR-0009 ; le passage de Moodle à la plateforme par LTI reste à préciser.
-14. Quelle partie de l'architecture doit être commune aux différents cours ?
-15. Comment les données d'évaluation sont-elles distribuées aux juges lorsqu'ils sont répartis sur plusieurs machines : montage partagé, copie à la publication ou artefact versionné ?
-16. La performance est-elle notée par un verdict de complexité (une référence par exercice) ou par un classement complet (une référence par langage) ? À trancher avec l'enseignant.
-17. Un code qui ne passe pas tous les tests est-il mesuré ? Si la dernière soumission échoue alors qu'une précédente passait, laquelle mesure-t-on ?
-18. Quels langages chaque cours supporte-t-il, et lesquels peuvent être exécutés dans le navigateur ?
+1. Is PostgreSQL sufficient as a submission queue under an exam load?
+2. Which scheduling policy minimizes perceived latency during an
+  exam?
+3. How many workers are needed for a load of 400 students?
+4. How many resources should be allocated to each submission?
+5. What is the real cost of gVisor for realistic compilations?
+6. Under what conditions does Firecracker become preferable to gVisor?
+7. Which strategy effectively limits resource-exhaustion
+  attacks?
+8. How fine-grained should the language abstraction be?
+9. How should language-specific dependencies be managed?
+10. How much state should be persisted in PostgreSQL, and for how long? The retention period for submissions, results and logs follows Quebec's _Access to Information Act_ and the ÉTS retention schedule (_Archives Act_); it remains to be confirmed with ÉTS. Purging relies on autovacuum and, if the volume justifies it, on partitioning by date rather than on `VACUUM FULL`.
+11. How can recovery be guaranteed after the failure of a worker, a VM or the PostgreSQL primary during an exam? An approach is proposed in ADR-0010.
+12. What observability is needed to diagnose an ongoing exam?
+13. How can Moodle and Safe Exam Browser be integrated cleanly? SEB verification is proposed in ADR-0009; the handoff from Moodle to the platform through LTI remains to be specified.
+14. Which part of the architecture should be common to the different courses?
+15. How is assessment data distributed to the judges when they are spread over several machines: shared mount, copy at publication time or versioned artifact?
+16. Is performance graded by a complexity verdict (one reference per exercise) or by a full ranking (one reference per language)? To be settled with the instructor.
+17. Is code that does not pass all tests measured? If the last submission fails while an earlier one passed, which one is measured?
+18. Which languages does each course support, and which of them can run in the browser?
 
-= Méthodologie de validation
+= Validation methodology
 
-Les décisions importantes doivent être accompagnées d'une justification technique et, lorsque cela est possible, d'une validation expérimentale.
+Important decisions must come with a technical justification and, when possible, an experimental validation.
 
-Le cycle de conception privilégié est :
+The preferred design cycle is:
 
 #mermaid(
   "
   flowchart LR
-    P[Problème]       --> H[Hypothèse]
-    H                 --> C[Conception]
-    C                 --> I[Implémentation]
-    I                 --> E[Expérience]
-    E                 --> M[Mesure]
-    M                 --> A[Analyse]
-    A                 --> D[Décision]
+    P[Problem]        --> H[Hypothesis]
+    H                 --> C[Design]
+    C                 --> I[Implementation]
+    I                 --> E[Experiment]
+    E                 --> M[Measurement]
+    M                 --> A[Analysis]
+    A                 --> D[Decision]
   ",
   document-context: true,
   width: 100%,
 )
 
-Cette approche permet d'éviter de choisir une technologie uniquement sur la base de ses caractéristiques théoriques.
+This approach avoids choosing a technology solely on the basis of its theoretical characteristics.
 
-Elle permet également de transformer certaines parties du projet en contributions mesurables dans le cadre du projet spécial.
+It also makes it possible to turn some parts of the project into measurable contributions within the special project.
 
-= Évolution prévue du document
+= Planned evolution of the document
 
-Ce document constitue une première photographie de l'architecture.
+This document is a first snapshot of the architecture.
 
-Les sections suivantes devraient progressivement être complétées par :
+The following sections should gradually be completed with:
 
-- les exigences fonctionnelles et non fonctionnelles ;
-- un modèle de menace formel ;
-- les ADR ;
-- les diagrammes de déploiement ;
-- les protocoles entre composants ;
-- la définition des interfaces du moteur de jugement ;
-- la méthodologie de benchmark ;
-- les résultats expérimentaux ;
-- les décisions prises à la suite des expériences ;
-- les limites identifiées ;
-- les conclusions.
+- functional and non-functional requirements;
+- a formal threat model;
+- the ADRs;
+- deployment diagrams;
+- protocols between components;
+- the definition of the judge engine's interfaces;
+- the benchmark methodology;
+- experimental results;
+- decisions made following the experiments;
+- identified limitations;
+- conclusions.

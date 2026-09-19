@@ -1,86 +1,86 @@
 #import "../template.typ": validation
 
-== ADR-0008 — Exécution des tests visibles dans le navigateur
+== ADR-0008 — Running visible tests in the browser
 
-*Statut :* proposé ; le gain est à chiffrer par test de charge. \
-*Voir aussi :* architecture, sections « WebAssembly », « Charge et performance » et « Mode d'examen » ; ADR-0001, ADR-0007.
+*Status:* proposed; the gain is to be quantified by load testing. \
+*See also:* architecture, sections "WebAssembly", "Load and performance" and "Exam mode"; ADR-0001, ADR-0007.
 
-=== Contexte
+=== Context
 
-En examen, le temps qu'un élève passe à attendre la file est perdu sur son temps d'examen. Le rendre n'est pas visé, car Moodle et Enaquiz ne le permettent vraisemblablement pas. Le projet cherche plutôt à réduire l'attente causée par la plateforme elle-même.
+During an exam, the time a student spends waiting on the queue is lost from their exam time. Giving it back is not a goal, since Moodle and Enaquiz most likely do not allow it. The project instead aims to reduce the waiting caused by the platform itself.
 
-Chaque exercice est remis automatiquement à la fin de l'examen. Pendant l'examen, le serveur ne reçoit donc que des *exécutions de test*, lancées quand l'élève clique sur « tester ». La remise finale n'attend aucune réponse immédiate : sa correction et sa mesure (ADR-0007) passent en différé.
+Each exercise is submitted automatically at the end of the exam. During the exam, the server therefore only receives *test runs*, started when the student clicks "test". The final submission does not wait for an immediate answer: its grading and its measurement (ADR-0007) are deferred.
 
-Chaque exercice comporte une dizaine de tests visibles et des tests cachés. Pour chaque test visible, l'élève voit la sortie attendue et la sortie obtenue. Pour les tests cachés, il voit seulement si au moins un échoue.
+Each exercise has about ten visible tests and some hidden tests. For each visible test, the student sees the expected output and the actual output. For hidden tests, they only see whether at least one fails.
 
-Le serveur est situé à l'ÉTS, sur le même réseau que les salles d'examen.
+The server is located at ÉTS, on the same network as the exam rooms.
 
-=== Options considérées
+=== Options considered
 
 #table(
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
-  [*Option*], [*Avantages*], [*Inconvénients*],
-  [Tout exécuter sur le serveur],
-  [Un seul chemin d'exécution, fidèle au juge.],
-  [Chaque clic occupe la file, même pour un test visible qui échoue.],
+  [*Option*], [*Pros*], [*Cons*],
+  [Run everything on the server],
+  [A single execution path, faithful to the judge.],
+  [Every click occupies the queue, even for a failing visible test.],
 
-  [Tests visibles dans le navigateur pour tous les langages],
-  [Charge serveur minimale.],
-  [Irréaliste pour Java, Rust ou Go.],
+  [Visible tests in the browser for all languages],
+  [Minimal server load.],
+  [Unrealistic for Java, Rust or Go.],
 
-  [Tests visibles dans le navigateur pour les langages où c'est facile],
-  [Chaque langage déchargé raccourcit la file de tous ; les tests visibles sont publics, donc rien ne fuit.],
-  [Deux chemins d'exécution ; risque d'écart avec le juge.],
+  [Visible tests in the browser for languages where it is easy],
+  [Every offloaded language shortens the queue for everyone; visible tests are public, so nothing leaks.],
+  [Two execution paths; risk of discrepancy with the judge.],
 )
 
-=== Décision
+=== Decision
 
-Les tests visibles s'exécutent dans le navigateur pour *chaque langage supporté pour lequel c'est facile*. Un langage est jugé facile s'il remplit trois critères :
+Visible tests run in the browser for *every supported language for which it is easy*. A language is deemed easy if it meets three criteria:
 
-- un runtime maintenu, préchargé en une seule fois et pesant au plus quelques dizaines de Mo ;
-- une version qui peut être alignée sur celle du juge ;
-- aucune licence restrictive.
+- a maintained runtime, preloaded in one go and weighing at most a few tens of MB;
+- a version that can be aligned with the judge's;
+- no restrictive license.
 
-Les autres langages restent exécutés sur le serveur.
+The other languages keep running on the server.
 
 #table(
   columns: (2.6cm, 1fr, 3.2cm),
   stroke: 0.5pt,
-  [*Langage*], [*Runtime navigateur*], [*Verdict*],
-  [Python], [Pyodide], [Retenu],
-  [JavaScript], [Natif (Web Worker)], [Retenu],
-  [TypeScript], [Natif, après transpilation par esbuild-wasm], [Retenu],
-  [Lua], [wasmoon], [Retenu],
-  [Ruby, PHP], [ruby.wasm, php-wasm], [À vérifier],
-  [C, C++], [clang compilé en WASM (30 à 100 Mo)], [À évaluer],
-  [C\#], [Roslyn et .NET en WASM], [De côté],
-  [Java], [CheerpJ (licence) ou javac et TeaVM], [De côté],
-  [Rust, Go], [Aucun compilateur pratique], [De côté],
+  [*Language*], [*Browser runtime*], [*Verdict*],
+  [Python], [Pyodide], [Retained],
+  [JavaScript], [Native (Web Worker)], [Retained],
+  [TypeScript], [Native, after transpilation by esbuild-wasm], [Retained],
+  [Lua], [wasmoon], [Retained],
+  [Ruby, PHP], [ruby.wasm, php-wasm], [To check],
+  [C, C++], [clang compiled to WASM (30 to 100 MB)], [To evaluate],
+  [C\#], [Roslyn and .NET in WASM], [Set aside],
+  [Java], [CheerpJ (license) or javac and TeaVM], [Set aside],
+  [Rust, Go], [No practical compiler], [Set aside],
 )
 
-Seuls les langages effectivement supportés par un cours sont concernés.
+Only the languages actually supported by a course are concerned.
 
-Déroulement d'une exécution de test pour un langage retenu :
+Flow of a test run for a retained language:
 
-+ Les tests visibles s'exécutent dans un Web Worker, et les résultats s'affichent au fur et à mesure.
-+ Le code n'est envoyé au serveur *que si tous les tests visibles passent*. La plupart des essais échouent sur un test visible et ne sollicitent donc jamais le serveur.
-+ Le serveur exécute les tests cachés, et aussi les tests visibles. Le coût principal est le démarrage du sandbox et la compilation. Les tests visibles coûtent donc peu de plus, et ils permettent de détecter un écart entre le navigateur et le juge, signalé à l'élève.
++ The visible tests run in a Web Worker, and results are displayed as they come in.
++ The code is sent to the server *only if all visible tests pass*. Most attempts fail on a visible test and therefore never reach the server.
++ The server runs the hidden tests, and the visible tests as well. The main cost is sandbox startup and compilation. The visible tests therefore add little cost, and they make it possible to detect a discrepancy between the browser and the judge, which is reported to the student.
 
-Pour les autres langages, le code est envoyé directement au serveur.
+For the other languages, the code is sent directly to the server.
 
-Les résultats du serveur arrivent par *Server-Sent Events*, dans un flux unique par élève. Le juge prévient l'API au moyen de `LISTEN`/`NOTIFY` de PostgreSQL. Aucun nouveau composant n'est ajouté.
+Server results arrive through *Server-Sent Events*, in a single stream per student. The judge notifies the API through PostgreSQL's `LISTEN`/`NOTIFY`. No new component is added.
 
-Côté serveur, les exécutions de test partagent un même sandbox et une seule compilation. Les élèves sont servis à tour de rôle, avec au plus une exécution en cours par élève. Une nouvelle demande remplace la précédente si celle-ci n'a pas encore démarré. Les tests cachés s'arrêtent au premier échec.
+On the server side, test runs share the same sandbox and a single compilation. Students are served in turn, with at most one run in progress per student. A new request replaces the previous one if it has not started yet. Hidden tests stop at the first failure.
 
-=== Conséquences
+=== Consequences
 
-- Pour chaque langage retenu, le runtime du juge a la même version que celui du navigateur ; par exemple, la version de Pyodide fixe celle de CPython. Les paquets permis sont les mêmes des deux côtés.
-- Le serveur reste la référence : le résultat du navigateur est présenté comme indicatif.
-- Les runtimes sont préchargés au début de l'examen par un service worker. Une boucle infinie est interrompue par `terminate()` sur le Web Worker.
-- Le flux SSE exige de désactiver la mise en tampon dans nginx. Après une coupure, il reprend grâce à `Last-Event-ID` ; si le flux ne fonctionne pas, le client interroge le serveur périodiquement.
-- La compatibilité avec Safe Exam Browser (WebAssembly, Web Workers, service workers) doit être vérifiée.
+- For each retained language, the judge's runtime has the same version as the browser's; for example, the Pyodide version pins the CPython version. The allowed packages are the same on both sides.
+- The server remains the reference: the browser's result is presented as indicative.
+- Runtimes are preloaded at the start of the exam by a service worker. An infinite loop is interrupted by `terminate()` on the Web Worker.
+- The SSE stream requires disabling buffering in nginx. After a disconnection, it resumes using `Last-Event-ID`; if the stream does not work, the client polls the server periodically.
+- Compatibility with Safe Exam Browser (WebAssembly, Web Workers, service workers) must be verified.
 
 #validation(id: "V-0008")[
-  Test de charge d'examen (environ 400 élèves) : comparer le 95#super[e] centile du délai entre le clic sur « tester » et la réponse du serveur, avec et sans exécution dans le navigateur. Mesurer, pour chaque langage retenu, le taux d'écart entre le navigateur et le juge. Vérifier le fonctionnement sous Safe Exam Browser.
+  Exam load test (about 400 students): compare the 95#super[th] percentile of the delay between clicking "test" and the server's answer, with and without in-browser execution. Measure, for each retained language, the rate of discrepancy between the browser and the judge. Verify that it works under Safe Exam Browser.
 ]

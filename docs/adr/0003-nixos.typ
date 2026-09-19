@@ -1,43 +1,43 @@
 #import "../template.typ": validation
 
-== ADR-0003 — NixOS pour la configuration de la VM
+== ADR-0003 — NixOS for VM configuration
 
-*Statut :* remplacé par ADR-0006 (l'établissement fournit une VM Ubuntu). \
-*Voir aussi :* architecture, section « Infrastructure ».
+*Status:* superseded by ADR-0006 (the institution provides an Ubuntu VM). \
+*See also:* architecture, section "Infrastructure".
 
-=== Contexte
+=== Context
 
-L'infrastructure doit pouvoir être reconstruite à partir du dépôt. Dans CTester, la configuration vit dans un rôle Ansible séparé (`VHome`), et plusieurs pannes ne sont apparues qu'en production parce qu'un fait de configuration vivait dans un dépôt et sa dépendance dans un autre.
+The infrastructure must be rebuildable from the repository. In CTester, the configuration lives in a separate Ansible role (`VHome`), and several failures only surfaced in production because a configuration fact lived in one repository and its dependency in another.
 
-=== Options considérées
+=== Options considered
 
 #table(
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
-  [*Option*], [*Avantages*], [*Inconvénients*],
+  [*Option*], [*Pros*], [*Cons*],
   [NixOS],
-  [Configuration déclarative et versionnée ; générations et rollback du système entier.],
-  [Courbe d'apprentissage ; peut ne pas être supporté par l'équipe d'infrastructure.],
+  [Declarative, versioned configuration; generations and rollback of the whole system.],
+  [Learning curve; may not be supported by the infrastructure team.],
 
-  [Distribution classique + Ansible],
-  [Connue, supportée ; déjà utilisée pour CTester.],
-  [Convergence impérative : l'état réel peut dériver de ce que le dépôt décrit.],
+  [Classic distribution + Ansible],
+  [Well known, supported; already used for CTester.],
+  [Imperative convergence: the actual state can drift from what the repository describes.],
 
-  [Distribution classique + images de conteneurs],
-  [Application reproductible.],
-  [L'hôte (runtime, gVisor, pare-feu) reste configuré à la main.],
+  [Classic distribution + container images],
+  [Reproducible application.],
+  [The host (runtime, gVisor, firewall) is still configured by hand.],
 )
 
-=== Décision
+=== Decision
 
-NixOS est le système privilégié pour la VM principale si l'établissement l'autorise. Ansible n'est conservé que pour l'orchestration qui ne constitue pas l'état permanent d'une machine.
+NixOS is the preferred system for the main VM if the institution allows it. Ansible is only kept for orchestration that is not part of a machine's permanent state.
 
-=== Conséquences
+=== Consequences
 
-- Une seule source de vérité pour l'état d'une machine.
-- Le rollback d'une mise à jour système est une génération précédente, ce qui réduit le risque à l'approche d'un examen.
-- Si NixOS est refusé, cette décision est remplacée par une nouvelle ADR ; les autres ne dépendent pas d'elle.
+- A single source of truth for a machine's state.
+- Rolling back a system update means switching to a previous generation, which reduces risk ahead of an exam.
+- If NixOS is refused, this decision is superseded by a new ADR; the others do not depend on it.
 
 #validation(id: "V-0003")[
-  Obtenir la position de l'équipe d'infrastructure de l'ÉTS et vérifier la compatibilité de gVisor avec la version de NixOS retenue.
+  Obtain the position of the ÉTS infrastructure team and check gVisor compatibility with the chosen NixOS version.
 ]

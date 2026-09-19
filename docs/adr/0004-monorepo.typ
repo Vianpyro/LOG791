@@ -1,24 +1,24 @@
-== ADR-0004 — Monorepo pour le code, l'infrastructure et la documentation
+== ADR-0004 — Monorepo for code, infrastructure and documentation
 
-*Statut :* accepté. \
-*Voir aussi :* architecture, section « Organisation du code ».
+*Status:* accepted. \
+*See also:* architecture, section "Code organization".
 
-=== Contexte
+=== Context
 
-La plateforme comprend une interface web, une API, un moteur de jugement, une configuration d'infrastructure et une documentation de conception. Dans CTester, l'application et son déploiement vivent dans deux dépôts, et les droits de la base de données ont dû être rapatriés dans le dépôt applicatif après trois pannes de désynchronisation.
+The platform comprises a web interface, an API, a judge engine, an infrastructure configuration and design documentation. In CTester, the application and its deployment live in two repositories, and database privileges had to be moved back into the application repository after three desynchronization failures.
 
-=== Options considérées
+=== Options considered
 
-- *Monorepo* : une version cohérente de tous les composants, une seule CI, changements transverses atomiques.
-- *Un dépôt par composant* : cycles de publication indépendants, mais compatibilité à coordonner à la main.
+- *Monorepo*: one consistent version of all components, a single CI, atomic cross-cutting changes.
+- *One repository per component*: independent release cycles, but compatibility has to be coordinated by hand.
 
-=== Décision
+=== Decision
 
-Un monorepo est retenu pour l'application, le juge, l'infrastructure et la documentation.
+A monorepo is chosen for the application, the judge, the infrastructure and the documentation.
 
-Le *contenu pédagogique* reste dans un dépôt distinct : il contient les données d'évaluation privées, il est modifié par l'équipe enseignante et il est publié sans redéploiement (voir « Cycle de vie du contenu »).
+*Pedagogical content* stays in a separate repository: it contains private assessment data, it is edited by the teaching team and it is published without redeployment (see "Content lifecycle").
 
-=== Conséquences
+=== Consequences
 
-- Les frontières entre composants doivent rester explicites : un monorepo ne signifie ni un langage commun, ni un cycle de déploiement commun.
-- La CI doit construire et tester sélectivement les composants modifiés.
+- Boundaries between components must remain explicit: a monorepo implies neither a common language nor a common deployment cycle.
+- CI must build and test the modified components selectively.

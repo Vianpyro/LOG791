@@ -1,36 +1,37 @@
-// Rapport technique final. Point d'entrée : typst compile --root . rapport/main.typ
+// Final technical report. Entry point: typst compile --root . report/main.typ
 //
-// Règle : un chapitre qui existe déjà dans docs/ est INCLUS, jamais recopié.
-// Un chapitre propre au rapport reste ici tant qu'il est court, et passe dans
-// son propre fichier quand il grossit.
+// Rule: a chapter that already exists in docs/ is INCLUDED, never copied.
+// A chapter specific to the report stays here while it is short, and moves to
+// its own file when it grows.
 //
-// ⚠ Structure provisoire : à aligner sur le « Guide de rédaction du rapport de
-// fin d'études » (ACCROS) cité par le plan de cours, qui fait autorité.
+// ⚠ Provisional structure: to be aligned with the "Guide de rédaction du
+// rapport de fin d'études" (ACCROS) cited in the course outline, which is
+// authoritative.
 #import "../docs/template.typ": document, todo
 
 #show: document.with(
-  titre: "Rapport technique final",
-  sous-titre: [Plateforme d'apprentissage et d'évaluation de la programmation],
-  slug: "rapport",
+  title: "Final Technical Report",
+  subtitle: [Programming Learning and Assessment Platform],
+  slug: "report",
 )
 
 = Introduction
 
-#todo[Contexte, problématique, objectifs et plan du rapport — condensés du plan de projet, sans les recopier.]
+#todo[Context, problem statement, objectives and outline of the report — condensed from the project plan, not copied.]
 
-= État de l'art
+= State of the art
 
-#todo[Juges existants (Judge0, DMOJ, CodeRunner), mécanismes d'isolation, évaluation automatisée en enseignement. Créer docs/etat-de-l-art.typ.]
+#todo[Existing judges (Judge0, DMOJ, CodeRunner), isolation mechanisms, automated assessment in education. Create docs/state-of-the-art.typ.]
 
-= Méthodologie
+= Methodology
 
-#todo[Processus itératif, cycle hypothèse → mesure → décision, gestion de projet.]
+#todo[Iterative process, hypothesis → measurement → decision cycle, project management.]
 
-= Exigences
+= Requirements
 
-#todo[Exigences identifiées (EF-xx, ENF-xx). Créer docs/requirements.typ.]
+#todo[Identified requirements (FR-xx, NFR-xx). Create docs/requirements.typ.]
 
-= Conception
+= Design
 
 #[#set heading(offset: 1)
 #include "../docs/architecture.typ"]
@@ -38,26 +39,26 @@
 #[#set heading(offset: 1)
 #include "../docs/adr/index.typ"]
 
-= Implémentation
+= Implementation
 
-#todo[Ce qui a été réalisé, écarts avec la conception.]
+#todo[What was built, deviations from the design.]
 
-= Expérimentation
+= Experimentation
 
-#todo[Protocole (écrit AVANT les mesures), environnement, charges. Créer docs/evaluation.typ.]
+#todo[Protocol (written BEFORE the measurements), environment, loads. Create docs/evaluation.typ.]
 
-= Résultats
+= Results
 
-#todo[Mesures, réponse à chaque hypothèse et validation par identifiant.]
+#todo[Measurements, answer to each hypothesis and validation by identifier.]
 
 = Discussion
 
-#todo[Interprétation, menaces à la validité, enjeux économiques et sociaux revisités.]
+#todo[Interpretation, threats to validity, economic and social stakes revisited.]
 
-= Conclusion et recommandations
+= Conclusion and recommendations
 
-#todo[Rappel du travail, limites, travaux futurs.]
+#todo[Summary of the work, limitations, future work.]
 
-= Annexes
+= Appendices
 
-#todo[Matrice de traçabilité exigence → décision → test/expérience → résultat ; glossaire.]
+#todo[Traceability matrix requirement → decision → test/experiment → result; glossary.]

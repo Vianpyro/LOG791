@@ -1,25 +1,25 @@
-== ADR-0005 — Publication du contenu par releases immuables
+== ADR-0005 — Content publishing through immutable releases
 
-*Statut :* accepté, repris de CTester où il est en production. \
-*Voir aussi :* architecture, section « Cycle de vie du contenu ».
+*Status:* accepted, carried over from CTester where it is in production. \
+*See also:* architecture, section "Content lifecycle".
 
-=== Contexte
+=== Context
 
-Le contenu d'un exercice mêle des données publiques (énoncé, gabarits) et des données d'évaluation privées (tests, cas, réponses). Il est modifié en cours de session, parfois pendant une séance, et une erreur de publication peut exposer un corrigé ou retirer un exercice du menu la veille d'un cours.
+An exercise's content mixes public data (statement, templates) and private assessment data (tests, cases, answers). It is modified during the term, sometimes during a class session, and a publishing mistake can expose an answer key or remove an exercise from the menu the day before a class.
 
-=== Options considérées
+=== Options considered
 
-- *Contenu en base, édité dans l'application* : interface d'édition, mais données privées dans le processus exposé à Internet et historique à construire.
-- *Copie du dépôt de contenu servie telle quelle* : simple, mais une seule erreur de filtrage expose les données d'évaluation.
-- *Projection publique en releases immuables* : validation avant écriture, liste positive de champs publiés, révision adressée par contenu, pointeur de release active.
+- *Content in the database, edited in the application*: editing interface, but private data inside the Internet-facing process and a history to build.
+- *Copy of the content repository served as is*: simple, but a single filtering mistake exposes the assessment data.
+- *Public projection into immutable releases*: validation before writing, allow-list of published fields, content-addressed revision, pointer to the active release.
 
-=== Décision
+=== Decision
 
-Le contenu est publié par projection en releases immuables. La release active est désignée par un pointeur, et le moteur de jugement lit les données d'évaluation directement dans le dépôt de contenu après avoir revalidé l'ouverture de l'exercice.
+Content is published by projection into immutable releases. The active release is designated by a pointer, and the judge engine reads the assessment data directly from the content repository after re-checking that the exercise is open.
 
-=== Conséquences
+=== Consequences
 
-- Le rollback du contenu est une réécriture de pointeur, sans redéploiement.
-- L'API ne peut exposer que ce que la projection a écrit.
-- Les énoncés Typst sont compilés à la publication ; rien ne compile à la requête.
-- L'édition passe par Git : l'équipe enseignante doit être à l'aise avec ce flux, ou un outil d'édition devra le produire.
+- Rolling back content is a pointer rewrite, with no redeployment.
+- The API can only expose what the projection wrote.
+- Typst statements are compiled at publication time; nothing is compiled per request.
+- Editing goes through Git: the teaching team must be comfortable with this workflow, or an editing tool will have to produce it.

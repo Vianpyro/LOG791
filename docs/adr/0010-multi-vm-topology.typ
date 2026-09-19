@@ -1,44 +1,44 @@
 #import "../template.typ": validation
 
-== ADR-0010 — Plusieurs VM répliquables et tolérantes aux pannes
+== ADR-0010 — Multiple replicable, fault-tolerant VMs
 
-*Statut :* proposé. Précise ADR-0001 et ADR-0006, qui supposaient une VM unique. \
-*Voir aussi :* architecture, sections « Couche d'entrée » et « Infrastructure ».
+*Status:* proposed. Refines ADR-0001 and ADR-0006, which assumed a single VM. \
+*See also:* architecture, sections "Entry layer" and "Infrastructure".
 
-=== Contexte
+=== Context
 
-Le MVP vise environ 50 élèves. La plateforme doit ensuite servir tous les enseignants du département LOG/TI de l'ÉTS et leurs groupes, ainsi qu'une partie du DEG. À cette échelle, il est peu probable que l'établissement fournisse une seule grosse VM. De plus, une VM unique est un point de défaillance unique : une panne pendant un examen touche tous les étudiants au pire moment.
+The MVP targets about 50 students. The platform must then serve all instructors of the ÉTS LOG/TI department and their groups, as well as part of the DEG. At that scale, the institution is unlikely to provide a single large VM. Moreover, a single VM is a single point of failure: an outage during an exam hits every student at the worst possible moment.
 
-=== Options considérées
+=== Options considered
 
 #table(
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
-  [*Option*], [*Avantages*], [*Inconvénients*],
-  [Une VM unique agrandie],
-  [Aucune coordination entre machines.],
-  [Point de défaillance unique ; taille bornée par ce que l'ÉTS fournit.],
+  [*Option*], [*Pros*], [*Cons*],
+  [A single, larger VM],
+  [No coordination between machines.],
+  [Single point of failure; size bounded by what ÉTS provides.],
 
-  [Plusieurs VM configurées par les mêmes rôles Ansible],
-  [Capacité ajoutée VM par VM ; une VM perdue n'arrête pas le service.],
-  [Réplication de la base et répartition HTTP à opérer.],
+  [Several VMs configured by the same Ansible roles],
+  [Capacity added one VM at a time; losing a VM does not stop the service.],
+  [Database replication and HTTP load balancing to operate.],
 )
 
-=== Décision
+=== Decision
 
-Plusieurs VM Ubuntu identiques par rôle, décrites dans un inventaire Ansible par groupes (`web`, `judge`, `db`). Ajouter ou remplacer une VM se fait en l'ajoutant à l'inventaire puis en exécutant un seul playbook.
+Several identical Ubuntu VMs per role, described in an Ansible inventory by groups (`web`, `judge`, `db`). Adding or replacing a VM is done by adding it to the inventory and running a single playbook.
 
-- *Juges* : sans état et interchangeables. Ils tirent les travaux de la file PostgreSQL ; un travail abandonné par un juge en panne est repris par un autre (ADR-0001). La perte d'un juge réduit la capacité sans perdre de soumission.
-- *Base de données* : seul composant avec état. Un réplica PostgreSQL en attente chaude (réplication en continu) peut être promu en cas de panne du primaire, avec des sauvegardes régulières hors de la VM.
-- *API web* : sans état. Si plusieurs VM `web` sont nécessaires, un bloc `upstream` nginx répartit la charge entre elles et écarte une instance défaillante. Ce choix sera tranché d'après les tests de charge.
+- *Judges*: stateless and interchangeable. They pull jobs from the PostgreSQL queue; a job abandoned by a failed judge is picked up by another one (ADR-0001). Losing a judge reduces capacity without losing any submission.
+- *Database*: the only stateful component. A hot-standby PostgreSQL replica (streaming replication) can be promoted if the primary fails, with regular backups outside the VM.
+- *Web API*: stateless. If several `web` VMs are needed, an nginx `upstream` block balances the load across them and removes a failed instance. This choice will be settled based on load tests.
 
-=== Conséquences
+=== Consequences
 
-- Une panne de VM en cours d'examen dégrade le service sans l'interrompre ni perdre de soumission, à condition que chaque rôle ait au moins deux instances.
-- Les playbooks d'ADR-0006 deviennent multi-hôtes ; la reproductibilité à partir du dépôt est aussi le mécanisme de remplacement d'une machine.
-- Le MVP (50 élèves) peut rester sur une ou deux VM ; la topologie est la même, seul l'inventaire change.
-- La bascule de la base et la répartition HTTP sont à tester avant chaque période d'examen.
+- A VM failure during an exam degrades the service without interrupting it or losing any submission, provided each role has at least two instances.
+- The ADR-0006 playbooks become multi-host; reproducibility from the repository is also the mechanism for replacing a machine.
+- The MVP (50 students) can stay on one or two VMs; the topology is the same, only the inventory changes.
+- Database failover and HTTP load balancing must be tested before each exam period.
 
 #validation(id: "V-0010")[
-  Confirmer avec l'équipe d'infrastructure de l'ÉTS le nombre de VM disponibles, la possibilité d'une IP flottante (ou d'un répartiteur fourni par l'établissement) et l'emplacement des sauvegardes ; simuler la perte d'un juge et du primaire PostgreSQL pendant un test de charge.
+  Confirm with the ÉTS infrastructure team the number of available VMs, the possibility of a floating IP (or a load balancer provided by the institution) and where backups are stored; simulate the loss of a judge and of the PostgreSQL primary during a load test.
 ]

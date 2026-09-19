@@ -1,32 +1,34 @@
-// Typst ne sait pas lister un répertoire : une ADR ajoutée doit l'être ici.
-// Une ADR n'est jamais modifiée après acceptation ; elle est remplacée par une
-// nouvelle qui la cite (« remplace ADR-000N »).
+// Typst cannot list a directory: a new ADR must be added here.
+// An ADR is never modified after acceptance; it is superseded by a new one
+// that cites it ("supersedes ADR-000N").
 
-= Registre des décisions d'architecture
+= Architecture decision log
 
 #table(
   columns: (2.2cm, 1fr, 3.5cm),
   stroke: 0.5pt,
-  [*ADR*], [*Décision*], [*Statut*],
-  [0001], [File de soumissions dans PostgreSQL], [Accepté, à valider],
-  [0002], [gVisor comme isolation initiale], [Accepté, à comparer],
-  [0003], [NixOS pour la VM], [Remplacé (#link(<adr-0006>)[0006])],
-  [0004], [Monorepo], [Accepté],
-  [0005], [Publication du contenu par releases immuables], [Accepté],
-  [0006 <adr-0006>], [Ubuntu et Ansible pour la VM], [Accepté, à valider],
-  [0007], [Mesure de performance par comptage d'instructions], [Proposé],
-  [0008], [Tests visibles exécutés dans le navigateur], [Proposé],
-  [0009], [Vérification de Safe Exam Browser par le serveur], [Proposé],
-  [0010], [Plusieurs VM répliquables et tolérantes aux pannes], [Proposé],
+  [*ADR*], [*Decision*], [*Status*],
+  [0001], [Submission queue in PostgreSQL], [Accepted, to validate],
+  [0002], [gVisor as initial isolation], [Accepted, to compare],
+  [0003], [NixOS for the VM], [Superseded (#link(<adr-0006>)[0006])],
+  [0004], [Monorepo], [Accepted],
+  [0005], [Content publishing through immutable releases], [Accepted],
+  [0006 <adr-0006>], [Ubuntu and Ansible for the VM], [Accepted, to validate],
+  [0007], [Performance measurement by instruction counting], [Proposed],
+  [0008], [Visible tests run in the browser], [Proposed],
+  [0009], [Server-side verification of Safe Exam Browser], [Proposed],
+  [0010], [Multiple replicable, fault-tolerant VMs], [Proposed],
+  [0011], [User interface internationalization], [Proposed],
 )
 
-#include "0001-file-postgresql.typ"
-#include "0002-isolation-gvisor.typ"
+#include "0001-postgresql-queue.typ"
+#include "0002-gvisor-isolation.typ"
 #include "0003-nixos.typ"
 #include "0004-monorepo.typ"
-#include "0005-publication-contenu.typ"
+#include "0005-content-publishing.typ"
 #include "0006-ubuntu-ansible.typ"
-#include "0007-mesure-performance.typ"
-#include "0008-tests-visibles-navigateur.typ"
-#include "0009-verification-seb.typ"
-#include "0010-topologie-multi-vm.typ"
+#include "0007-performance-measurement.typ"
+#include "0008-visible-tests-in-browser.typ"
+#include "0009-seb-verification.typ"
+#include "0010-multi-vm-topology.typ"
+#include "0011-ui-internationalization.typ"

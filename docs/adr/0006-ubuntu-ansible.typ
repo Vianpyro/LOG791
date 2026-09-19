@@ -1,40 +1,40 @@
 #import "../template.typ": validation
 
-== ADR-0006 — Ubuntu et Ansible pour la configuration de la VM
+== ADR-0006 — Ubuntu and Ansible for VM configuration
 
-*Statut :* accepté. Remplace ADR-0003. \
-*Voir aussi :* architecture, section « Infrastructure ».
+*Status:* accepted. Supersedes ADR-0003. \
+*See also:* architecture, section "Infrastructure".
 
-=== Contexte
+=== Context
 
-L'établissement fournit une VM sous Ubuntu LTS ; NixOS (ADR-0003) n'est pas retenu. L'infrastructure doit malgré tout pouvoir être reconstruite à partir du dépôt, et les pannes de CTester dues à une configuration répartie entre plusieurs dépôts ne doivent pas se reproduire.
+The institution provides a VM running Ubuntu LTS; NixOS (ADR-0003) is not retained. The infrastructure must nevertheless be rebuildable from the repository, and the CTester failures caused by configuration spread across several repositories must not happen again.
 
-=== Options considérées
+=== Options considered
 
 #table(
   columns: (3cm, 1fr, 1fr),
   stroke: 0.5pt,
-  [*Option*], [*Avantages*], [*Inconvénients*],
-  [Ubuntu + Ansible dans le monorepo],
-  [Connu, supporté par l'établissement ; déjà utilisé pour CTester ; versionné avec l'application.],
-  [Convergence impérative : l'état réel peut dériver ; pas de rollback système natif.],
+  [*Option*], [*Pros*], [*Cons*],
+  [Ubuntu + Ansible in the monorepo],
+  [Well known, supported by the institution; already used for CTester; versioned with the application.],
+  [Imperative convergence: the actual state can drift; no native system rollback.],
 
-  [Ubuntu + images de conteneurs seules],
-  [Application reproductible.],
-  [L'hôte (runtime, gVisor, pare-feu) reste configuré à la main.],
+  [Ubuntu + container images only],
+  [Reproducible application.],
+  [The host (runtime, gVisor, firewall) is still configured by hand.],
 )
 
-=== Décision
+=== Decision
 
-Ubuntu LTS, configuré par des playbooks Ansible idempotents versionnés dans le monorepo. Ansible porte tout l'état permanent de l'hôte : paquets, runtime de conteneurs, gVisor (`runsc` via le dépôt apt officiel), pare-feu, nginx et certbot, utilisateurs, journalisation.
+Ubuntu LTS, configured by idempotent Ansible playbooks versioned in the monorepo. Ansible holds all of the host's permanent state: packages, container runtime, gVisor (`runsc` from the official apt repository), firewall, nginx and certbot, users, logging.
 
-=== Conséquences
+=== Consequences
 
-- Une seule source de vérité pour l'état d'une machine : les playbooks du dépôt. Toute modification manuelle y est répercutée.
-- La dérive est détectée en exécutant régulièrement les playbooks en mode `--check --diff`.
-- Sans générations système, le rollback repose sur un snapshot de la VM avant chaque mise à jour et sur des versions de paquets épinglées.
-- `unattended-upgrades` est limité aux correctifs de sécurité et suspendu à l'approche d'un examen.
+- A single source of truth for a machine's state: the repository's playbooks. Any manual change is carried back into them.
+- Drift is detected by regularly running the playbooks in `--check --diff` mode.
+- Without system generations, rollback relies on a VM snapshot before each update and on pinned package versions.
+- `unattended-upgrades` is limited to security fixes and suspended ahead of an exam.
 
 #validation(id: "V-0006")[
-  Confirmer avec l'équipe d'infrastructure de l'ÉTS la disponibilité des snapshots de VM et l'accès `sudo` pour Ansible ; vérifier le fonctionnement de gVisor sur le noyau Ubuntu fourni.
+  Confirm with the ÉTS infrastructure team that VM snapshots and `sudo` access for Ansible are available; check that gVisor works on the provided Ubuntu kernel.
 ]
