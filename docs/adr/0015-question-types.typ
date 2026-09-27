@@ -48,7 +48,9 @@ Tiers are an order, not an exclusion: Q1 comes with #course("LOG200") and #cours
 
 *Mixed assessments.* An exam or assignment is an activity mode (#adr("0014")) and an ordered list of _slots_. A slot is a fixed item or a draw of $n$ items from a pool (a tag or a category of the course bank), with its points, and whether its choices are shuffled. The exam defines its sections, whether slots are shuffled and whether navigation is free or sequential. Draws, shuffles and calculated variants are deterministic: the seed is derived from (offering, exam, student) by the server, so a reload or a Safe Exam Browser restart shows the same exam. Every item is autosaved as a draft. The score is the sum of item scores; a code item keeps its full judge verdict.
 
-*Grading.* The judge stays the only reader of assessment data (#arch("double-check-by-the-judge")[architecture]). Non-code graders are pure functions over data and run in the judge process, without a sandbox; code items go through the sandbox as before. Regular expressions written by instructors run on a linear-time engine (#ext("re2")[RE2] or the Rust `regex` crate), which rules out catastrophic backtracking. Calculated variants and derived keys are computed at publication time, never per request. Manual items wait in a grading queue visible to the TAs of the offering (#adr("0012")).
+*Grading.* The judge stays the only reader of assessment data (#arch("double-check-by-the-judge")[architecture]). Non-code graders are pure functions over data and run in the judge process, without a sandbox; code items go through the sandbox as before. Regular expressions written by instructors run on a linear-time engine (#ext("re2")[RE2]), which rules out catastrophic backtracking. Calculated variants and derived keys are computed at publication time, never per request. Manual items wait in a grading queue visible to the TAs of the offering (#adr("0012")).
+
+*Answer shape.* The interface may say that an answer does not have the expected shape (eight binary digits, a number, a unit), never whether it is right: a per-field right/wrong hint would let an 8-bit answer be found in 256 tries. When the same rule is written twice, once in the browser and once in the grader, one shared file of test vectors binds both implementations, as in #ext("ctester")[CTester].
 
 *Projection.* The keys reserved for assessment data grow with the families (`correct`, `key`, `tolerance`, `pairs`, `order`, `regions`, private feedback…) and stay checked by negative enumeration (#adr("0005")).
 
@@ -57,7 +59,7 @@ Tiers are an order, not an exclusion: Q1 comes with #course("LOG200") and #cours
 - About nine graders and their display components cover some thirty types; a new type usually adds a schema and a display, not a grader.
 - One exam, one timer, one SEB configuration, whatever the mix of items. Moodle only receives the grade (#ext("ags")[AGS]).
 - Grading non-code items in the judge adds a round trip through the queue for a trivial computation; exam priority keeps it short.
-- Importing existing Moodle banks (Moodle XML, GIFT) is not part of this decision.
+- Importing existing Moodle banks (Moodle XML, GIFT) is not part of this decision; see #arch("open-questions")[open question 19].
 
 #validation(id: "V-0015")[
   One exam mixing at least one item of each Q1 family is taken end to end under SEB and graded correctly. After a SEB restart, the student gets the same draw, order and variants. The published projection of a bank contains no key of any family. A regular expression known to backtrack catastrophically is evaluated in bounded time.

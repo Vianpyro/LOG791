@@ -95,5 +95,5 @@ Technologies: Python/#ext("fastapi")[FastAPI], #ext("postgresql")[PostgreSQL] (q
   [R8], [A course requires a language or test format not planned.], [Language packs and test runners are extension points with a conformance suite: added without touching the core (#adr("0013"), #adr("0014")).],
   [R9], [The question-type catalog (some thirty types) is too large for one person.], [Types grouped into about nine grader families; delivered by tiers, Q1 with LOG200 (#adr("0015")).],
   [R10], [The professor and the IT service cannot maintain the platform after the handover.], [One server language (Python); tools the IT service already operates; everything rebuildable by Ansible; operations guide delivered with the prototype; repository location agreed with the IT service.],
-  [R11], [Student passwords leak through the platform, which receives them for the LDAP bind.], [LDAPS only; no password stored or logged; rate-limited sign-in; covered by the threat model (#adr("0017")).],
+  [R11], [Student passwords leak through the platform, which receives them for the LDAP bind.], [LDAPS only; no password stored; logs carry no identity by construction (#arch("logs")[Logs]); rate-limited sign-in; covered by the threat model (#adr("0017")).],
 )

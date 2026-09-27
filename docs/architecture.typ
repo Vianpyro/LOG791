@@ -298,6 +298,8 @@ No dedicated load balancer is planned as long as the API fits on one VM.
 - On the HTTP side, the API is run by several processes (#ext("uvicorn")[uvicorn] workers) sharing the same socket; the kernel distributes connections among them.
 - On the judging side, judges _pull_ jobs from the queue rather than having them pushed. The queue therefore acts as the dispatcher itself, and capacity is adjusted by changing the number of judges.
 
+Since several processes serve the API, none of them holds state in memory that another would need: quotas, presence and sessions live in PostgreSQL. CTester runs a single uvicorn worker precisely because its quotas and presence are held in memory.
+
 #decision[
   If the API is spread over several `web` VMs, an nginx #ext("nginx-upstream")[`upstream`] block balances the load and removes a failed instance; this choice will be settled based on load tests (#adr("0010")).
 ]
@@ -558,6 +560,8 @@ These limits must be enforced regardless of the program's correctness.
 
 A program stuck in an infinite loop must produce a timeout rather than consume a system resource indefinitely.
 
+Under gVisor, the process limit also counts the threads of the sandbox's own kernel: in CTester, a sandbox with `--pids-limit` below 64 does not start, and fork bombs are stopped by the memory limit instead. Process limits are therefore set per language pack and checked by the conformance suite (#adr("0013")).
+
 == Performance measurement <arch-performance-measurement>
 
 Execution time is a safeguard, not a measurement. It varies with the VM's load and with the language, and therefore cannot be used to compare algorithms fairly.
@@ -646,6 +650,10 @@ Authentication is an #ext("ldap")[LDAP] bind against the ÉTS Active Directory (
 
 #decision[
   A shared cache will only be introduced if several API instances need to share the same state.
+]
+
+#hypothesis[
+  A verdict cache, as in CTester, would absorb identical resubmissions during an exam. Its key covers the judge version, the language pack, the exercise's assessment data and the submitted sources. A timeout is never cached, since it depends on load rather than on code, and randomized exercises opt out. It comes after the MVP, once measurements show how often submissions repeat; every deployment invalidates it once.
 ]
 
 == Metrics <arch-metrics>
@@ -970,6 +978,8 @@ The active release is designated by a pointer, a file rather than a symbolic lin
 #decision[
   Rolling back content consists of rewriting the pointer to a previous release. It is instantaneous and redeploys no component. Each course has its own content repository and its own pointer: rolling back one course leaves the others unchanged (#adr("0012")).
 ]
+
+CTester made the opposite choice when it gained a second course: every content repository is merged into one release, published all or nothing, so a bad commit in one course blocks the publication of every course. A pointer per course avoids exactly this.
 
 Pruning keeps the latest releases according to a publication date written in their manifest, not according to the file system's modification time. In CTester, the latter had a different granularity on Windows and on Linux, which caused a release that was supposed to be kept to be deleted.
 
@@ -1333,7 +1343,7 @@ CI/CD must not, however, automatically deploy any change directly to the environ
 The ÉTS VMs are only reachable through the school's VPN (Cisco Secure Client), which a hosted CI runner cannot join.
 
 #decision[
-  CI builds, tests and publishes the images to a registry. Deployment is an Ansible run from an operator's workstation connected to the VPN, which pulls those images. A runner inside the ÉTS network, or `ansible-pull` on the VMs, is only considered if manual runs become a burden.
+  CI builds, tests and publishes the images to a registry, with a build attestation that Ansible verifies before pulling them. Deployment is an Ansible run from an operator's workstation connected to the VPN, which pulls those images. A runner inside the ÉTS network, or `ansible-pull` on the VMs, is only considered if manual runs become a burden.
 ]
 
 A distinction must be maintained between:
@@ -1343,47 +1353,67 @@ A distinction must be maintained between:
 * human validation;
 * deployment to production.
 
+= Observability <arch-observability>
+
+Diagnosing an ongoing exam relies on three mechanisms carried over from #ext("ctester")[CTester], none of which adds a service to the VMs.
+
+== Dashboard <arch-dashboard>
+
+A separate, read-only application shows the judges, the queue, the served release and, for the instructors of an offering, the runs and per-exercise statistics (#adr("0019")).
+
+== Logs <arch-logs>
+
+Every component writes one JSON object per line to stderr, following the #ext("otel-logs")[OpenTelemetry Logs data model], with no SDK and no collector: journald and Docker keep them. Event names (`job.enqueued`, `job.reclaimed`, `db.unavailable`…) are stable identifiers, since queries depend on them. A collector can read these lines later without any change.
+
+#decision[
+  No identity enters a log: no account, name, password, token, address, request body or code. Attributes outside an allow-list are dropped, a stack trace keeps its frames but not the exception's message, and a request is logged by its route template, never its path. A test scans every logging call.
+]
+
+This protects the passwords that transit through the API (#adr("0017")) and keeps logs, which a data deletion does not reach, outside the scope of #ext("law25")[Law 25].
+
+== Maintenance notice <arch-maintenance-notice>
+
+While a flag file exists on the `web` VMs, every open tab shows that an update is under way, then that the service is back once the API answers again. The notice goes through the existing SSE stream. A flag older than thirty minutes is ignored, so an interrupted run cannot leave the notice up for good. The Ansible deployment raises the flag in a `block` and removes it in `always`.
+
+#decision[
+  A deployment refuses to start while an exam is scheduled or in progress (#adr("0012")), and waits for the queue to drain before restarting the judges.
+]
+
 = Code organization <arch-code-organization>
 
 A monorepo is currently preferred in order to keep a consistent view of the project's various components.
 
-A possible layout is:
+The layout only contains what the MVP needs:
 
 ```text
-log-platform/
-│
-├── apps/
-│   ├── web/
-│   ├── api/
-│   └── judge/
-│
-├── packages/
-│
-├── content/
-│
-├── infrastructure/
-│   ├── ansible/
-│   │   ├── site.yml
-│   │   ├── inventory/
-│   │   └── roles/
-│   │
-│   └── terraform/
-│
-├── deployment/
-│
-├── tests/
-│
-├── docs/
-│
-└── .github/
+apps/
+├── admin/            read-only dashboard for operations and instructors
+├── api/              FastAPI: sign-in, sessions, offerings, submissions, SSE
+├── judge/            pulls jobs, runs the sandbox, writes the verdict
+├── publisher/        validation, projection, releases, pointer; typst/ template
+└── web/              static interface served by nginx; locales/ (en, fr)
+packages/             shared code: the API never imports the judge, nor the reverse
+├── contracts/        JSON Schemas: job, verdict report, pack manifest, exercise
+└── content/          active release reader and the single "is it open?" rule
+packs/                declarative extension points, not core code
+├── languages/        one directory per language pack (python, java first)
+├── runners/          test runners (stdio first)
+└── question-types/   Q1 item schemas
+db/migrations/        PostgreSQL schema: queue, offerings, sessions, submissions
+infrastructure/
+└── ansible/          inventory/ (local, ets) and roles/ (one per service)
+tests/                cross-component tests: architecture, conformance, load
+examples/content/     fake content repository for development
+spikes/               throwaway study code, deleted once its ADR is decided
+docs/  report/  site/  .github/
 ```
 
-The `infrastructure/ansible/` directory contains the configuration of the machines administered by the project as well as the administrative operations.
+The `infrastructure/ansible/` directory contains the configuration of the machines administered by the project as well as the administrative operations. A `terraform/` directory is only added if the hosting environment offers a provisioning interface.
 
-The `terraform/` directory contains only the resources actually managed by Terraform.
+Language packs sit outside `apps/judge/`: adding one is adding data, not changing the judge (#adr("0013")). The opening rule lives in `packages/content/` because the API, the judge and the publisher must apply the same one.
 
 #decision[
-  The monorepo is preferred in order to keep a consistent version of the application, the judge engine, the pedagogical content and the infrastructure.
+  The monorepo is preferred in order to keep a consistent version of the application, the judge engine and the infrastructure. Pedagogical content lives in its own repository (#adr("0004")); `examples/content/` only serves development.
 ]
 
 Boundaries between components must nevertheless remain explicit.
@@ -1468,6 +1498,8 @@ Student code normally has no reason to access the Internet or the institution's 
 ]
 
 Network and firewall configuration must be considered part of the declarative infrastructure and not a manual configuration of the machine.
+
+Docker inserts its own rules ahead of ufw: a `ufw deny` on a published port looks effective and does nothing, as CTester found. Rules that concern containers are therefore written in the `DOCKER-USER` chain by the Ansible role, and checked from outside the VM.
 
 == Resources <arch-resources>
 
@@ -1587,14 +1619,14 @@ Several important questions are deliberately left open.
 9. How should language-specific dependencies be managed?
 10. How much state should be persisted in PostgreSQL, and for how long? The retention period for submissions, results and logs follows Quebec's #ext("access-act")[_Access to Information Act_] and the ÉTS retention schedule (#ext("archives-act")[_Archives Act_]); it remains to be confirmed with ÉTS. Purging relies on autovacuum and, if the volume justifies it, on partitioning by date rather than on `VACUUM FULL`.
 11. How can recovery be guaranteed after the failure of a worker, a VM or the PostgreSQL primary during an exam? An approach is proposed in #adr("0010").
-12. What observability is needed to diagnose an ongoing exam?
+12. What observability is needed to diagnose an ongoing exam? A first answer is given in #arch("observability")[Observability] and #adr("0019"); it remains to be checked during a load test.
 13. How can Moodle and Safe Exam Browser be integrated cleanly? For the MVP, the platform is allowed in the instructor's `.seb` file; SEB verification (#adr("0009")) is deferred, and the handoff from Moodle to the platform through LTI remains to be specified.
 14. Which part of the architecture should be common to the different courses? A first answer is given by #adr("0012") and #adr("0014"); LOG121 will test it.
 15. How is assessment data distributed to the judges when they are spread over several machines: shared mount, copy at publication time or versioned artifact?
 16. Is performance graded by a complexity verdict (one reference per exercise) or by a full ranking (one reference per language)? To be settled with the instructor.
 17. Is code that does not pass all tests measured? If the last submission fails while an earlier one passed, which one is measured?
 18. Which languages does each course support, and which of them can run in the browser? A first inventory is given in the #arch("appendix-course-inventory")[appendix] and the tiers in #adr("0013"); it remains to be confirmed with each course coordinator.
-19. Should existing Moodle question banks be imported (Moodle XML, GIFT), and for which families?
+19. Should existing Moodle question banks be imported (Moodle XML, GIFT), and for which families? CTester's importer is a starting point: it converts Moodle XML and reports what it cannot express instead of dropping it. The grader families (#adr("0015")) cover more types than CTester, such as calculated, essay and image drag and drop.
 20. How do TAs grade manual items (essay, UML diagram, file upload) during a heavy exam period: per item across students, or per student?
 
 = Validation methodology <arch-validation-methodology>
