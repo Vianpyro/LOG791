@@ -29,6 +29,7 @@
   [#adr("0017", body: "0017")], [Authentication against the ÉTS directory over LDAP], [Proposed],
   [#adr("0018", body: "0018")], [Build the judge or reuse an existing one], [To write],
   [#adr("0019", body: "0019")], [Operations and teaching dashboard], [Proposed],
+  [#adr("0020", body: "0020")], [Schedules per course group], [Proposed],
 )
 
 #include "0001-postgresql-queue.typ"
@@ -50,3 +51,4 @@
 #include "0017-ldap-authentication.typ"
 #include "0018-build-or-reuse.typ"
 #include "0019-dashboard.typ"
+#include "0020-group-schedules.typ"

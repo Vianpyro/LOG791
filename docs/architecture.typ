@@ -814,9 +814,10 @@ The platform serves several courses, each taught every term by several people in
 ]
 
 - *Enrollments* come from Moodle through LTI 1.3 (the LTI context identifies the offering, #ext("nrps")[Names and Roles] provides the roster, #ext("ags")[Assignment and Grade Services] returns grades), or from a CSV import when Moodle is not available. The ÉTS Active Directory provides identity only (#adr("0017")).
-- *Shared capacity*: exams are scheduled in advance and reserve judges for their time slot; outside exams, each offering has a queue quota.
+- *Schedules per group*: groups do not have their lectures, labs or contests at the same time. Opening and closing dates are entered per group by the instructor, in the platform, and never in the content (#adr("0020")).
+- *Shared capacity*: exams are scheduled in advance and reserve judges for each group's time slot; outside exams, each offering has a queue quota.
 - *Accommodations*: extra time and a shifted time slot per student and per exam, computed by the server.
-- *Instructor tools* (minimum): results per group, CSV export, re-judging an exercise after a test is fixed, individual extensions, preview.
+- *Instructor tools* (minimum): dates per group, results per group, CSV export, re-judging an exercise after a test is fixed, individual extensions, preview.
 - *Personal data*: an instructor only sees their offerings; retention is purged per completed offering (#ext("law25")[Law 25]).
 - *Accessibility*: the interface targets #ext("wcag")[WCAG 2.1 AA], including a keyboard-navigable editor.
 
@@ -929,7 +930,7 @@ Content is edited in a repository separate from the platform's code. Each exerci
 
 ```text
 exercises/<id>/
-├── exercise.json      metadata, skills, opening rules
+├── exercise.json      metadata, skills (no dates: ADR-0020)
 ├── statement.md       or statement.typ, never both
 ├── public/            templates handed to the student
 └── assessment/        tests, cases, judge configuration (private)
@@ -962,7 +963,7 @@ A second check then re-reads the produced projection and refuses to publish if a
   The projection is built by positive enumeration (what is published) and checked by negative enumeration (what must never be). The first protects against today's oversight, the second against the field added tomorrow.
 ]
 
-The published catalog contains *all* exercises, including those not yet open, with their opening date. An exercise's details (statement, templates, questions) are only written for open exercises.
+The published catalog contains *all* exercises. The API shows each student every exercise, including those not yet open, with the dates of their own group (#adr("0020")). An exercise's details (statement, templates, questions) are only served through the access gate.
 
 #hypothesis[
   Showing a locked exercise with its date is better than hiding it: in CTester, an exercise missing from the menu was perceived by students as an outage.
@@ -984,10 +985,10 @@ Pruning keeps the latest releases according to a publication date written in the
 
 == Opening over time <arch-opening-over-time>
 
-Each exercise carries a state (`draft`, `scheduled`, `open`, `archived`) and, if needed, an opening date.
+The content only carries a state (`draft`, `archived`). Dates belong to the offering's schedule: groups of the same course do not have their labs, assignments or contests at the same time, and one content repository serves every group and every term (#adr("0012")).
 
-#decision[
-  A single function decides whether an exercise is accessible at a given instant. A `scheduled` exercise whose date has passed is open, without any commit or scheduled task on the morning of the class.
+#decision(id: "ADR-0020")[
+  A single function decides whether an exercise is accessible to a student at a given instant: the student's override (extension, accommodation), otherwise their group's dates, otherwise the offering's. Without dates for the student's group, the exercise is closed. An exercise opens when its date passes, without any commit or scheduled task on the morning of the class, and an instructor's postponement applies without publication.
 ]
 
 All reads of an exercise (details, submission, draft, discussion) go through a single gate that resolves the identifier in the active release and refuses anything that is not open. A link shared ahead of time therefore bypasses nothing.
@@ -1602,6 +1603,10 @@ The following choices remain conditional or will have to be confirmed experiment
   [Diagrams],
   [Mermaid through merman at publication time (#adr("0016"))],
   [Supported diagram types, equivalence between Markdown and Typst],
+
+  [Group schedules],
+  [Dates per group, closed by default (#adr("0020"))],
+  [Same activity open for one group and closed for another, through the API and the judge],
 )
 
 The architecture will be considered stable only after validation of the hypotheses that have a significant impact on the system's security, performance or operability.
@@ -1632,6 +1637,7 @@ Several important questions are deliberately left open.
 18. Which languages does each course support, and which of them can run in the browser? A first inventory is given in the #arch("appendix-course-inventory")[appendix] and the tiers in #adr("0013"); it remains to be confirmed with each course coordinator.
 19. Should existing Moodle question banks be imported (Moodle XML, GIFT), and for which families? CTester's importer is a starting point: it converts Moodle XML and reports what it cannot express instead of dropping it. The grader families (#adr("0015")) cover more types than CTester, such as calculated, essay and image drag and drop.
 20. How do TAs grade manual items (essay, UML diagram, file upload) during a heavy exam period: per item across students, or per student?
+21. Do ÉTS Moodle spaces match one course group each, or merge several groups? In the first case the LTI context gives the group; in the second, group membership comes from the CSV import (#adr("0020")).
 
 = Validation methodology <arch-validation-methodology>
 
