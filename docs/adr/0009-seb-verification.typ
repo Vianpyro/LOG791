@@ -2,12 +2,14 @@
 
 == ADR-0009 — Server-side verification of Safe Exam Browser <adr-0009>
 
-*Status:* proposed; to be validated under SEB. \
+*Status:* proposed; deferred after the MVP. \
 *See also:* #arch("purpose-of-the-document")[architecture], section #arch("safe-exam-browser")[Safe Exam Browser]; #adr("0008").
 
 === Context
 
 During an exam, the platform must reject any browser other than #ext("seb")[Safe Exam Browser] (SEB), or a SEB launched with a different configuration. The exam may start in #ext("moodle")[Moodle] and then move to the platform through #ext("lti")[LTI]: the check performed by Moodle then does not cover requests sent to the platform.
+
+For the MVP, the instructor may simply add the platform to the URL filter of the `.seb` file already used for exams, as is done today for the Java documentation. The platform then needs no SEB integration, and this verification becomes defense in depth: SEB also sends the header to an allowed site, so it can be added later without changing anything else.
 
 === Options considered
 
@@ -35,9 +37,9 @@ The expected Config Key is stored with the exam in #ext("postgresql")[PostgreSQL
 
 - Whenever the `.seb` file changes, the instructor updates the exam's Config Key.
 - The Config Key is treated as a secret.
-- SEB's URL filter allows the platform and `login.microsoftonline.com`, and no CDN.
+- SEB's URL filter allows the platform only, with no CDN and no external identity domain (#adr("0017")).
 - An exam request without a valid hash is rejected.
 
 #validation(id: "V-0009")[
-  Under SEB for Windows with the exam's `.seb` file: access works. Outside SEB or with a different configuration, it is refused. Also verify that Entra sign-in, #ext("pyodide")[Pyodide] execution and the SSE stream work.
+  Under SEB for Windows with the exam's `.seb` file: access works. Outside SEB or with a different configuration, it is refused. Also verify that sign-in, #ext("pyodide")[Pyodide] execution and the SSE stream work.
 ]

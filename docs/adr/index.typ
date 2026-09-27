@@ -18,7 +18,7 @@
   [#adr("0006", body: "0006")], [Ubuntu and Ansible for the VM], [Accepted, to validate],
   [#adr("0007", body: "0007")], [Performance measurement by instruction counting], [Proposed],
   [#adr("0008", body: "0008")], [Visible tests run in the browser], [Proposed],
-  [#adr("0009", body: "0009")], [Server-side verification of Safe Exam Browser], [Proposed],
+  [#adr("0009", body: "0009")], [Server-side verification of Safe Exam Browser], [Proposed, deferred],
   [#adr("0010", body: "0010")], [Multiple replicable, fault-tolerant VMs], [Proposed],
   [#adr("0011", body: "0011")], [User interface internationalization], [Proposed],
   [#adr("0012", body: "0012")], [Courses, offerings and per-course roles], [Proposed],
@@ -26,6 +26,8 @@
   [#adr("0014", body: "0014")], [Stable core and extension points], [Proposed],
   [#adr("0015", body: "0015")], [Question types and mixed assessments], [Proposed],
   [#adr("0016", body: "0016")], [Mermaid diagrams in statements], [Proposed],
+  [#adr("0017", body: "0017")], [Authentication against the ÉTS directory over LDAP], [Proposed],
+  [#adr("0018", body: "0018")], [Build the judge or reuse an existing one], [To write],
 )
 
 #include "0001-postgresql-queue.typ"
@@ -44,3 +46,5 @@
 #include "0014-extension-points.typ"
 #include "0015-question-types.typ"
 #include "0016-mermaid-statements.typ"
+#include "0017-ldap-authentication.typ"
+#include "0018-build-or-reuse.typ"

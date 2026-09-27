@@ -19,8 +19,9 @@ The #course("LOG200") course wants a comparable platform, with constraints that 
 + Keep the core closed to special cases: LOG121 is added after LOG200 without modifying the core, only extension point implementations and content (#adr("0014")).
 + Demonstrate that the platform withstands a simulated exam load of 400 students, with latency thresholds defined in advance.
 + Make the infrastructure rebuildable from the repository.
++ Hand the platform over to the supervising professor and the ÉTS IT service, who will keep improving it.
 
-#todo[Attach a measurable success criterion to each objective (P95 latency, tolerated failure rate).]
+#todo[Attach a measurable success criterion to each objective (P95 latency, tolerated failure rate), with a load profile taken from CTester's production logs (TCH009) rather than assumed.]
 
 = Supervision and method <plan-supervision-and-method>
 
@@ -37,16 +38,19 @@ Individual project supervised by the supervising professor. Work proceeds in sho
   [Project plan], [This document.],
   [Architecture and ADRs], [High-level design and rationale for the choices, including the threat model.],
   [Prototype], [Deployable application, judge engine and isolation.],
+  [Operations guide], [For the professor and the IT service: deploy, add a VM, add a language, restore a backup, prepare an exam.],
   [Final report], [Approach, measurement results and recommendations for LOG200.],
 )
 
 #todo[Confirm the required deliverables and deadlines with the supervising professor.]
 
+#todo[Write the threat model (STRIDE): sandbox boundary, separation between API and judge, LDAP password transiting through the API.]
+
 = Scope <plan-scope>
 
 *Required.* Isolated execution of untrusted code; several languages; submission and structured verdict; confidentiality of tests; exam mode with reserved capacity; exams mixing every question type, from multiple choice to judged code, with Q1 types first (#adr("0015")); statements in Markdown or Typst with Mermaid diagrams (#adr("0016")); institutional authentication; roles per course offering (#adr("0012")); user interface in English and French (#adr("0011")). The model is designed for every LOG/GTI and DEG computing course; the MVP delivers LOG200, then LOG121.
 
-*Constraints.* Hosting on ÉTS infrastructure; several VMs replicable by #ext("ansible")[Ansible] and fault-tolerant (#adr("0010")); 50 students for the MVP, then the scale of a department; personal data subject to Quebec's #ext("law25")[Law 25]; workload of an individual project course.
+*Constraints.* Hosting on ÉTS infrastructure, reachable only through the school's VPN; several VMs replicable by #ext("ansible")[Ansible] and fault-tolerant (#adr("0010")); 50 students for the MVP, then the scale of a department; personal data subject to Quebec's #ext("law25")[Law 25]; workload of an individual project course.
 
 *Exclusions.* Social features, gamification, collaborative editing, plagiarism detection, content editing interface, mobile emulation, Windows commands and Windows Server roles, multi-service projects, translations into languages other than English and French (left to contributors). Moodle / Safe Exam Browser integration is optional, depending on the access obtained.
 
@@ -62,12 +66,14 @@ The detailed analysis is recorded in the #arch("purpose-of-the-document")[archit
   [Queue], [#ext("postgresql")[PostgreSQL], #ext("redis")[Redis], #ext("rabbitmq")[RabbitMQ], file spool], [PostgreSQL (#adr("0001"))],
   [System], [#ext("nixos")[NixOS], distribution + Ansible, containers only], [Ubuntu + Ansible (#adr("0006"))],
   [Content], [database, served copy, immutable releases], [Releases (#adr("0005"))],
-  [Build or reuse], [extend CTester, #ext("judge0")[Judge0], #ext("dmoj")[DMOJ], #ext("coderunner")[CodeRunner]], [To justify],
+  [Authentication], [#ext("entra")[Entra ID] (OIDC), #ext("ldap")[LDAP] against Active Directory], [LDAP (#adr("0017"))],
+  [Judge language], [Python, Rust], [Python (handover)],
+  [Build or reuse], [extend CTester, #ext("judge0")[Judge0], #ext("dmoj")[DMOJ], #ext("coderunner")[CodeRunner]], [To decide (#adr("0018"))],
 )
 
-Technologies: Python/#ext("fastapi")[FastAPI], #ext("postgresql")[PostgreSQL] (queue and #ext("streaming-replication")[streaming replication]), #ext("gvisor")[gVisor], #ext("docker")[Docker] or #ext("podman")[Podman], #ext("qemu-user")[QEMU user mode] (performance measurement), #ext("pyodide")[Pyodide]/WebAssembly (visible tests in the browser), #ext("ubuntu")[Ubuntu LTS] and #ext("ansible")[Ansible], #ext("nginx")[nginx] and #ext("certbot")[certbot], #ext("entra")[Microsoft Entra ID], #ext("seb")[Safe Exam Browser], #ext("moodle")[Moodle] (#ext("lti")[LTI]), #ext("typst")[Typst], #ext("github-actions")[GitHub Actions].
+Technologies: Python/#ext("fastapi")[FastAPI], #ext("postgresql")[PostgreSQL] (queue and #ext("streaming-replication")[streaming replication]), #ext("gvisor")[gVisor], #ext("docker")[Docker] or #ext("podman")[Podman], #ext("qemu-user")[QEMU user mode] (performance measurement), #ext("pyodide")[Pyodide]/WebAssembly (visible tests in the browser), #ext("ubuntu")[Ubuntu LTS] and #ext("ansible")[Ansible], #ext("nginx")[nginx] and #ext("certbot")[certbot], #ext("ldap")[LDAP] (ÉTS Active Directory), #ext("seb")[Safe Exam Browser], #ext("moodle")[Moodle] (#ext("lti")[LTI]), #ext("typst")[Typst], #ext("github-actions")[GitHub Actions].
 
-#todo[Justify why an existing judge (Judge0, DMOJ, CodeRunner) is not reused.]
+#todo[Complete #adr("0018"): whether an existing judge (Judge0, DMOJ, CodeRunner) is reused. First priority: it blocks the judge implementation.]
 
 = Schedule <plan-schedule>
 
@@ -83,9 +89,11 @@ Technologies: Python/#ext("fastapi")[FastAPI], #ext("postgresql")[PostgreSQL] (q
   [R2], [Sandbox escape by hostile code.], [Defense in depth, no network or secrets in the judge, hostile tests in CI.],
   [R3], [Exam load not sustained.], [Early measurements; reserved capacity; backpressure.],
   [R4], [Scope too broad for one person.], [Explicit exclusions; prototype focused on judging.],
-  [R5], [The platform does not work under SEB (a prerequisite for the project).], [SEB is free and installs without ÉTS: prototype tested under SEB from the first weeks, with a test `.seb` file (#adr("0009")); confirm early the SEB version and the exam workstation image; direct launch through a `sebs://` link, without Moodle.],
+  [R5], [The platform does not work under SEB (a prerequisite for the project).], [SEB is free and installs without ÉTS: prototype tested from the first weeks with the platform added to the URL filter of a test `.seb` file, as the instructor does today for documentation sites; sign-in stays on the platform's domain (#adr("0017")); confirm early the SEB version and the exam workstation image. Config Key verification (#adr("0009")) comes after the MVP.],
   [R6], [Moodle access blocked.], [Optional Moodle integration: the exam starts directly in the platform.],
   [R7], [A VM fails during an exam.], [Stateless, redundant judges, recovery of abandoned jobs, PostgreSQL replica, VMs rebuilt by Ansible (#adr("0010")).],
   [R8], [A course requires a language or test format not planned.], [Language packs and test runners are extension points with a conformance suite: added without touching the core (#adr("0013"), #adr("0014")).],
   [R9], [The question-type catalog (some thirty types) is too large for one person.], [Types grouped into about nine grader families; delivered by tiers, Q1 with LOG200 (#adr("0015")).],
+  [R10], [The professor and the IT service cannot maintain the platform after the handover.], [One server language (Python); tools the IT service already operates; everything rebuildable by Ansible; operations guide delivered with the prototype; repository location agreed with the IT service.],
+  [R11], [Student passwords leak through the platform, which receives them for the LDAP bind.], [LDAPS only; no password stored or logged; rate-limited sign-in; covered by the threat model (#adr("0017")).],
 )

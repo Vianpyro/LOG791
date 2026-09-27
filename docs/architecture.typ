@@ -76,6 +76,9 @@ The following properties are considered particularly important:
 
   [Maintainability],
   [Keep responsibilities clearly separated, boundaries checked in CI and components testable independently (#adr("0014")).],
+
+  [Transferability],
+  [Be handed over to the supervising professor and the ÉTS IT service: one server language, tools the IT service already operates, a written operations guide.],
 )
 
 = Architectural principles <arch-architectural-principles>
@@ -179,7 +182,7 @@ The envisioned overall architecture is as follows:
     A[Student] --> B[Browser / SEB]
 
     subgraph AUTH[Authentication]
-        IDP[Microsoft Entra ID]
+        IDP[ÉTS Active Directory]
     end
 
     RP[nginx reverse proxy<br/>TLS · static · rate limit]
@@ -214,9 +217,9 @@ The envisioned overall architecture is as follows:
     REL -->|read-only| API
     CR -->|assessment data| S
 
-    B -->|OIDC| IDP
-    B -->|HTTPS + token| RP
+    B -->|HTTPS + session cookie| RP
     RP --> API
+    API -->|LDAPS bind| IDP
 
     API --> DB
     API -->|Submission| Q
@@ -387,16 +390,18 @@ LOG200 aims for as many languages as possible, prioritized by industry use and i
   columns: (1.4cm, 1fr, 3.2cm),
   stroke: 0.5pt,
   [*Tier*], [*Languages*], [*When*],
-  [P1], [Python 3, Java, C, C++, JavaScript, TypeScript, C\#, Go, Rust, Kotlin], [With LOG200],
+  [P1], [Java, Python 3, JavaScript, TypeScript, C, C++, C\#, Go, Rust, Kotlin], [With LOG200],
   [P2], [PHP, Ruby, Swift, Dart, Scala, Bash, SQL (PostgreSQL)], [After load validation],
   [P3], [Haskell, OCaml, Elixir, Erlang, Racket, Clojure, Lua, Perl, F\#, Groovy, VB.NET, Pascal, D, Objective-C, #ext("pep8")[Pep/8]], [On request or contribution],
 )
 
+Within P1, the LOG200 priority is Java, then Python, then JavaScript/TypeScript. Python is delivered first to build the end-to-end path, then Java (#adr("0013")).
+
 Standard I/O is the default test format for LOG200: one set of tests is valid for every language. A function-signature harness requires a driver per language and is only added per exercise.
 
-== Rust <arch-rust>
+== Implementation language <arch-implementation-language>
 
-The judge engine is a natural candidate for an implementation in Rust.
+The judge engine was first seen as a natural candidate for an implementation in Rust.
 
 It is likely to handle:
 
@@ -409,13 +414,13 @@ It is likely to handle:
 - metrics collection.
 
 #decision[
-  The pedagogical application can initially stay in Python/#ext("fastapi")[FastAPI] while the judge engine is treated as an independent component, potentially implemented in Rust.
+  The judge engine is written in Python, like the application (#ext("fastapi")[FastAPI]), while remaining an independent component. The platform is handed over to the supervising professor and the ÉTS IT service: a single server language keeps it maintainable by them.
 ]
 
-This decision is not, however, based solely on the claim that Rust would be "faster".
+The dominant cost of a submission is expected in sandbox startup and compilation, not in the orchestrator (see #arch("cache")[Cache]).
 
 #validation[
-  The choice of the engine's language will have to be validated by profiling and benchmarks. A complete rewrite of CTester in Rust is not considered a goal in itself.
+  Rust is only reconsidered if profiling shows that the judge process itself, not the sandbox, limits throughput.
 ]
 
 = Submission isolation <arch-submission-isolation>
@@ -633,7 +638,7 @@ No dedicated cache server (Redis, #ext("memcached")[Memcached]) is planned initi
   [Preloaded images and toolchains, sandboxes prepared in advance and, possibly, compiled artifacts of the private tests.],
 )
 
-Authentication relies on #ext("oidc")[OIDC] tokens issued by #ext("entra")[Microsoft Entra ID], which avoids maintaining server-side session storage.
+Authentication is an #ext("ldap")[LDAP] bind against the ÉTS Active Directory (#adr("0017")). The session is a random identifier in a cookie, stored in PostgreSQL, which every API instance already shares: no dedicated session store.
 
 #hypothesis[
   The dominant cost of a submission lies in sandbox startup and compilation rather than in data access. Judge-side caching should therefore have a greater impact than any application cache.
@@ -772,8 +777,8 @@ SEB mainly controls the environment of the student's computer, while the platfor
 
 === Constraints imposed by SEB <arch-constraints-imposed-by-seb>
 
-- *Verification.* The server verifies the SEB configuration on exam routes, even if the exam starts in Moodle (#adr("0009")).
-- *Authentication.* The URL filter allows `login.microsoftonline.com`. Phone-based multi-factor authentication is incompatible with the ban on phones: the session is opened before the exam, or a conditional access policy applies to the rooms.
+- *Access.* For the MVP, the platform is added to the URL filter of the instructor's existing `.seb` file, like the documentation sites allowed today. Server-side verification of the SEB configuration is deferred as defense in depth (#adr("0009")).
+- *Authentication.* The sign-in page is served by the platform (#adr("0017")): no external identity domain to allow and no phone-based multi-factor authentication, which the ban on phones would prevent.
 - *Resources.* No CDN: browser runtimes (#ext("pyodide")[Pyodide], #ext("esbuild")[esbuild-wasm], etc.) are served by the platform.
 - *Navigation.* No new windows and no downloads: statements are rendered as HTML or SVG, not PDF. Automatic submission redirects to SEB's "Quit URL".
 - *Recovery.* If SEB is restarted, the student gets their autosaved drafts back, time is computed by the server and the SSE stream resumes using `Last-Event-ID`.
@@ -801,7 +806,7 @@ The platform serves several courses, each taught every term by several people in
   Data belongs to an _offering_ (a course in a term, e.g. LOG200 A2026), split into groups. Roles are held per offering, never globally: `student`, `ta` (results, no private tests), `instructor` (publishes, previews, runs exams for their groups), `coordinator` (every group of the course). Only `admin` is global, for platform operations.
 ]
 
-- *Enrollments* come from Moodle through LTI 1.3 (the LTI context identifies the offering, #ext("nrps")[Names and Roles] provides the roster, #ext("ags")[Assignment and Grade Services] returns grades), or from a CSV import when Moodle is not available. Microsoft Entra ID provides identity only.
+- *Enrollments* come from Moodle through LTI 1.3 (the LTI context identifies the offering, #ext("nrps")[Names and Roles] provides the roster, #ext("ags")[Assignment and Grade Services] returns grades), or from a CSV import when Moodle is not available. The ÉTS Active Directory provides identity only (#adr("0017")).
 - *Shared capacity*: exams are scheduled in advance and reserve judges for their time slot; outside exams, each offering has a queue quota.
 - *Accommodations*: extra time and a shifted time slot per student and per exam, computed by the server.
 - *Instructor tools* (minimum): results per group, CSV export, re-judging an exercise after a test is fixed, individual extensions, preview.
@@ -1325,6 +1330,12 @@ The pipeline must in particular make it possible to verify that a change to the 
 
 CI/CD must not, however, automatically deploy any change directly to the environment used for exams.
 
+The ÉTS VMs are only reachable through the school's VPN (Cisco Secure Client), which a hosted CI runner cannot join.
+
+#decision[
+  CI builds, tests and publishes the images to a registry. Deployment is an Ansible run from an operator's workstation connected to the VPN, which pulls those images. A runner inside the ÉTS network, or `ansible-pull` on the VMs, is only considered if manual runs become a burden.
+]
+
 A distinction must be maintained between:
 
 * automatic validation;
@@ -1516,7 +1527,11 @@ The following choices remain conditional or will have to be confirmed experiment
 
   [Provisioning], [Terraform if a compatible API is available], [Actual capabilities of the ÉTS environment],
 
-  [Configuration], [Ansible playbooks], [Drift detection, VM snapshots and `sudo` access],
+  [Configuration], [Ansible playbooks run over the VPN], [Drift detection, VM snapshots, `sudo` access, VPN for a service account],
+
+  [Authentication], [LDAP bind against the ÉTS Active Directory (#adr("0017"))], [LDAPS endpoint and attributes, no password in logs],
+
+  [Build or reuse], [To decide (#adr("0018"))], [Comparison with Judge0, DMOJ, CodeRunner],
 
   [Runtime], [Docker or Podman], [Compatibility with the isolation mechanism],
 
@@ -1573,7 +1588,7 @@ Several important questions are deliberately left open.
 10. How much state should be persisted in PostgreSQL, and for how long? The retention period for submissions, results and logs follows Quebec's #ext("access-act")[_Access to Information Act_] and the ÉTS retention schedule (#ext("archives-act")[_Archives Act_]); it remains to be confirmed with ÉTS. Purging relies on autovacuum and, if the volume justifies it, on partitioning by date rather than on `VACUUM FULL`.
 11. How can recovery be guaranteed after the failure of a worker, a VM or the PostgreSQL primary during an exam? An approach is proposed in #adr("0010").
 12. What observability is needed to diagnose an ongoing exam?
-13. How can Moodle and Safe Exam Browser be integrated cleanly? SEB verification is proposed in #adr("0009"); the handoff from Moodle to the platform through LTI remains to be specified.
+13. How can Moodle and Safe Exam Browser be integrated cleanly? For the MVP, the platform is allowed in the instructor's `.seb` file; SEB verification (#adr("0009")) is deferred, and the handoff from Moodle to the platform through LTI remains to be specified.
 14. Which part of the architecture should be common to the different courses? A first answer is given by #adr("0012") and #adr("0014"); LOG121 will test it.
 15. How is assessment data distributed to the judges when they are spread over several machines: shared mount, copy at publication time or versioned artifact?
 16. Is performance graded by a complexity verdict (one reference per exercise) or by a full ranking (one reference per language)? To be settled with the instructor.

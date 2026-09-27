@@ -25,10 +25,12 @@
   columns: (3cm, 1fr, 3cm),
   stroke: 0.5pt,
   [*Tier*], [*Languages*], [*When*],
-  [P1], [Python 3, Java, C, C++, JavaScript, TypeScript, C\#, Go, Rust, Kotlin], [With LOG200],
+  [P1], [Java, Python 3, JavaScript, TypeScript, C, C++, C\#, Go, Rust, Kotlin], [With LOG200],
   [P2], [PHP, Ruby, Swift, Dart, Scala, Bash, SQL (#ext("postgresql")[PostgreSQL])], [After load validation],
   [P3], [Haskell, OCaml, Elixir, Erlang, Racket, Clojure, Lua, Perl, F\#, Groovy, VB.NET, Pascal, D, Objective-C, Pep/8], [On request or contribution],
 )
+
+Within P1, the LOG200 priority is Java, then Python, then JavaScript/TypeScript. Packs are delivered in this order: Python first, the simplest, to build the end-to-end path; then Java, which completes the two real implementations required by #adr("0014") with the opposite profile (compiled, slow start, memory-hungry JVM). The remaining P1 languages follow, ordered by a survey of LOG200.
 
 P1 images are preloaded on every judge; P2 and P3 images are pulled on first use, never during an exam.
 
@@ -49,6 +51,7 @@ P1 images are preloaded on every judge; P2 and P3 images are pulled on first use
 - Adding a language is a directory and a passing conformance suite, without changing the judge.
 - Instruction counting is reliable for compiled languages and noisy for JIT or garbage-collected languages; a pack that declares itself unmeasurable gets a complexity verdict against a reference in the same language only.
 - The judge image footprint grows with P1; the shared base layer must be kept small.
+- The Java pack caps the heap (`-Xmx`) below the sandbox memory limit, so that an overrun yields a memory verdict rather than a killed JVM; Java has no browser capability (#adr("0008")).
 - The shared Oracle instance is a component outside the sandbox and must be isolated from the application's database and secrets.
 
 #validation(id: "V-0013")[
