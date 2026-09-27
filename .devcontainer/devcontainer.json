@@ -1,0 +1,31 @@
+{
+  "name": "LOG791",
+  "dockerComposeFile": "compose.yml",
+  "service": "dev",
+  "runServices": ["dev", "postgres", "ldap", "ldap-seed"],
+  "workspaceFolder": "/workspaces/LOG791",
+  "features": {
+    // A dockerd inside the container, where runsc can be registered (see Dockerfile).
+    // Docker CE rather than Moby, which is not packaged for Debian trixie.
+    "ghcr.io/devcontainers/features/docker-in-docker:4": { "moby": false }
+  },
+  "forwardPorts": [8000, 8001, "ldap:17170"],
+  "portsAttributes": {
+    "8000": { "label": "API" },
+    "8001": { "label": "Admin" },
+    "ldap:17170": { "label": "lldap (admin / log791-admin)" }
+  },
+  "postStartCommand": "bash .devcontainer/check.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "myriad-dreamin.tinymist",
+        "redhat.ansible",
+        "ms-azuretools.vscode-containers",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  }
+}

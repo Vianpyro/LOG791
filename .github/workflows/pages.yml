@@ -1,8 +1,17 @@
 name: Documentation
 
+# Built on pull requests to catch a broken document before merging; deployed from main only.
 on:
   push:
     branches: [main]
+    paths: &docs
+      - docs/**
+      - report/**
+      - site/**
+      - .devcontainer/Dockerfile
+      - .github/workflows/pages.yml
+  pull_request:
+    paths: *docs
   workflow_dispatch:
 
 permissions:
@@ -10,13 +19,10 @@ permissions:
   pages: write
   id-token: write
 
+# Per ref, so a pull request never cancels a deployment from main.
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  # Same version as locally: the HTML export changes from one version to the next.
-  TYPST_VERSION: "0.15.1"
 
 jobs:
   build:
@@ -24,8 +30,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Same version as the dev container, read from its Dockerfile: the HTML export
+      # changes from one version to the next.
       - name: Install Typst
         run: |
+          TYPST_VERSION=$(sed -n 's/^ARG TYPST_VERSION=//p' .devcontainer/Dockerfile)
+          echo "TYPST_VERSION=$TYPST_VERSION" >> "$GITHUB_ENV"
           curl -fsSL "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
             | tar -xJ --strip-components=1 -C /usr/local/bin typst-x86_64-unknown-linux-musl/typst
           typst --version
@@ -40,12 +50,14 @@ jobs:
       - name: Build
         run: sh site/build.sh
 
-      - uses: actions/upload-pages-artifact@v5
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The same environment as locally: PostgreSQL, LDAP and gVisor, checked by check.sh.
+  # Integration tests go in this runCmd once they exist, since the services are up.
+  devcontainer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          runCmd: bash .devcontainer/check.sh
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Shell scripts
+        run: shellcheck .devcontainer/*.sh site/*.sh
+
+      - name: Workflows
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
+
+      - name: Python
+        uses: astral-sh/ruff-action@v4
+
+      # Same versions as the dev container, from its requirements file.
+      - name: Ansible
+        if: hashFiles('infrastructure/ansible/**/*.yml') != ''
+        run: |
+          pip install -r .devcontainer/requirements.txt
+          ansible-lint infrastructure/ansible

@@ -61,18 +61,16 @@ The following properties are considered particularly important:
   stroke: 0.5pt,
   [*Property*], [*Objective*],
 
-  [Security],
-  [Limit a student program's ability to access the hosting system, other submissions or sensitive data.],
+  [Security], [Limit a student program's ability to access the hosting system, other submissions or sensitive data.],
 
   [Performance], [Keep latency acceptable even during heavy bursts of submissions.],
 
-  [Scalability],
-  [Allow judging capacity to grow independently of the main application's capacity.],
+  [Scalability], [Allow judging capacity to grow independently of the main application's capacity.],
 
-  [Reproducibility],
-  [Be able to rebuild the infrastructure and deployment environments in an automated way.],
+  [Reproducibility], [Be able to rebuild the infrastructure and deployment environments in an automated way.],
 
-  [Extensibility], [Add a course, a language, a question type or an activity mode without modifying the core (#adr("0014")).],
+  [Extensibility],
+  [Add a course, a language, a question type or an activity mode without modifying the core (#adr("0014")).],
 
   [Maintainability],
   [Keep responsibilities clearly separated, boundaries checked in CI and components testable independently (#adr("0014")).],
@@ -394,7 +392,9 @@ LOG200 aims for as many languages as possible, prioritized by industry use and i
   [*Tier*], [*Languages*], [*When*],
   [P1], [Java, Python 3, JavaScript, TypeScript, C, C++, C\#, Go, Rust, Kotlin], [With LOG200],
   [P2], [PHP, Ruby, Swift, Dart, Scala, Bash, SQL (PostgreSQL)], [After load validation],
-  [P3], [Haskell, OCaml, Elixir, Erlang, Racket, Clojure, Lua, Perl, F\#, Groovy, VB.NET, Pascal, D, Objective-C, #ext("pep8")[Pep/8]], [On request or contribution],
+  [P3],
+  [Haskell, OCaml, Elixir, Erlang, Racket, Clojure, Lua, Perl, F\#, Groovy, VB.NET, Pascal, D, Objective-C, #ext("pep8")[Pep/8]],
+  [On request or contribution],
 )
 
 Within P1, the LOG200 priority is Java, then Python, then JavaScript/TypeScript. Python is delivered first to build the end-to-end path, then Java (#adr("0013")).
@@ -633,8 +633,7 @@ No dedicated cache server (Redis, #ext("memcached")[Memcached]) is planned initi
   stroke: 0.5pt,
   [*Location*], [*Content*],
 
-  [Browser / nginx],
-  [Static files versioned by hash and served with long-lived `Cache-Control` headers.],
+  [Browser / nginx], [Static files versioned by hash and served with long-lived `Cache-Control` headers.],
 
   [API], [Published exercise data, rarely modified, kept in process memory.],
 
@@ -1386,12 +1385,17 @@ A monorepo is currently preferred in order to keep a consistent view of the proj
 The layout only contains what the MVP needs:
 
 ```text
+.devcontainer/        local services (PostgreSQL, LDAP) and tools, gVisor included
 apps/
 ├── admin/            read-only dashboard for operations and instructors
 ├── api/              FastAPI: sign-in, sessions, offerings, submissions, SSE
 ├── judge/            pulls jobs, runs the sandbox, writes the verdict
 ├── publisher/        validation, projection, releases, pointer; typst/ template
 └── web/              static interface served by nginx; locales/ (en, fr)
+db/migrations/        PostgreSQL schema: queue, offerings, sessions, submissions
+examples/content/     fake content repository for development
+infrastructure/
+└── ansible/          inventory/ (local, ets) and roles/ (one per service)
 packages/             shared code: the API never imports the judge, nor the reverse
 ├── contracts/        JSON Schemas: job, verdict report, pack manifest, exercise
 └── content/          active release reader and the single "is it open?" rule
@@ -1399,12 +1403,8 @@ packs/                declarative extension points, not core code
 ├── languages/        one directory per language pack (python, java first)
 ├── runners/          test runners (stdio first)
 └── question-types/   Q1 item schemas
-db/migrations/        PostgreSQL schema: queue, offerings, sessions, submissions
-infrastructure/
-└── ansible/          inventory/ (local, ets) and roles/ (one per service)
-tests/                cross-component tests: architecture, conformance, load
-examples/content/     fake content repository for development
 spikes/               throwaway study code, deleted once its ADR is decided
+tests/                cross-component tests: architecture, conformance, load
 docs/  report/  site/  .github/
 ```
 
@@ -1559,9 +1559,13 @@ The following choices remain conditional or will have to be confirmed experiment
 
   [Provisioning], [Terraform if a compatible API is available], [Actual capabilities of the ÉTS environment],
 
-  [Configuration], [Ansible playbooks run over the VPN], [Drift detection, VM snapshots, `sudo` access, VPN for a service account],
+  [Configuration],
+  [Ansible playbooks run over the VPN],
+  [Drift detection, VM snapshots, `sudo` access, VPN for a service account],
 
-  [Authentication], [LDAP bind against the ÉTS Active Directory (#adr("0017"))], [LDAPS endpoint and attributes, no password in logs],
+  [Authentication],
+  [LDAP bind against the ÉTS Active Directory (#adr("0017"))],
+  [LDAPS endpoint and attributes, no password in logs],
 
   [Build or reuse], [To decide (#adr("0018"))], [Comparison with Judge0, DMOJ, CodeRunner],
 
@@ -1681,9 +1685,15 @@ Courses the platform is designed for, in priority order: LOG200, then LOG121, th
   stroke: 0.5pt,
   [*Course*], [*Title*], [*Languages / tools*], [*Test format*],
   table.cell(colspan: 4)[*Software and IT engineering (LOG/GTI)*],
-  [#course("LOG200")], [Structures de données et algorithmes], [Full catalog (#adr("0013"))], [Standard I/O, performance],
+  [#course("LOG200")],
+  [Structures de données et algorithmes],
+  [Full catalog (#adr("0013"))],
+  [Standard I/O, performance],
   [#course("LOG121")], [Conception orientée objet], [Java], [Unit tests, design questions],
-  [#course("LOG100")], [Programmation et réseautique en génie logiciel], [C, Python, sockets], [Standard I/O, loopback network],
+  [#course("LOG100")],
+  [Programmation et réseautique en génie logiciel],
+  [C, Python, sockets],
+  [Standard I/O, loopback network],
   [#course("LOG210")], [Analyse et conception de logiciels], [Java, TypeScript], [Unit tests],
   [#course("LOG240")], [Tests et maintenance], [Java, TypeScript], [Unit tests, coverage],
   [#course("LOG635")], [Systèmes intelligents et algorithmes], [Python (#ext("numpy")[NumPy])], [Unit tests],

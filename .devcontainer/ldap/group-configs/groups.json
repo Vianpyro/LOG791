@@ -1,0 +1,4 @@
+{ "name": "lldap_strict_readonly" }
+{ "name": "etudiants" }
+{ "name": "enseignants" }
+{ "name": "admins" }

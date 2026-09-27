@@ -1,0 +1,61 @@
+# Local services for development. Every password here is a development value.
+name: log791
+
+services:
+  dev:
+    build: .
+    command: sleep infinity
+    volumes:
+      - ..:/workspaces/LOG791:cached
+    environment:
+      DATABASE_URL: postgresql://log791:log791@postgres:5432/log791
+      # Plain LDAP on the Compose network only; the ÉTS directory is reached over LDAPS (ADR-0017).
+      LDAP_URL: ldap://ldap:3890
+      LDAP_BASE_DN: dc=log791,dc=local
+      # uid here; probably sAMAccountName on the ÉTS Active Directory.
+      LDAP_USER_ATTRIBUTE: uid
+      LDAP_BIND_DN: uid=svc-log791,ou=people,dc=log791,dc=local
+      LDAP_BIND_PASSWORD: log791-svc
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ldap:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18.6
+    environment:
+      POSTGRES_USER: log791
+      POSTGRES_PASSWORD: log791
+      POSTGRES_DB: log791
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "log791"]
+      interval: 2s
+      retries: 30
+
+  ldap:
+    image: lldap/lldap:v0.6.3
+    environment:
+      LLDAP_LDAP_BASE_DN: dc=log791,dc=local
+      LLDAP_LDAP_USER_PASS: log791-admin
+      LLDAP_JWT_SECRET: dev-only-jwt-secret
+      LLDAP_KEY_SEED: dev-only-key-seed
+    healthcheck:
+      test: ["CMD", "/app/lldap", "healthcheck", "--config-file", "/data/lldap_config.toml"]
+      interval: 2s
+      retries: 30
+
+  # Creates the test accounts of ldap/ once lldap answers, then exits.
+  ldap-seed:
+    image: lldap/lldap:v0.6.3
+    entrypoint: ["/app/bootstrap.sh"]
+    environment:
+      LLDAP_URL: http://ldap:17170
+      LLDAP_ADMIN_USERNAME: admin
+      LLDAP_ADMIN_PASSWORD: log791-admin
+    volumes:
+      - ./ldap:/bootstrap:ro
+    depends_on:
+      ldap:
+        condition: service_healthy
+    restart: "no"

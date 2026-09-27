@@ -1,0 +1,75 @@
+{
+  // Meant to run inside the dev container, where the tools and services exist.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "env: check",
+      "detail": "Check that PostgreSQL, LDAP, gVisor and the tools answer",
+      "type": "shell",
+      "command": "bash .devcontainer/check.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "docs: build site",
+      "detail": "Every PDF and HTML page into _site/, then the dead-link check",
+      "type": "shell",
+      "command": "sh site/build.sh",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "docs: watch",
+      "detail": "Recompile one document on every save into _site/watch.pdf",
+      "type": "shell",
+      "command": "typst watch --root . ${input:document} _site/watch.pdf",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "ansible: lint",
+      "type": "shell",
+      "command": "ansible-lint infrastructure/ansible",
+      "problemMatcher": []
+    },
+    {
+      "label": "db: psql",
+      "type": "shell",
+      "command": "psql \"$DATABASE_URL\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "ldap: find user",
+      "detail": "Search the local directory with the service account, as the API will",
+      "type": "shell",
+      "command": "ldapsearch -x -H \"$LDAP_URL\" -D \"$LDAP_BIND_DN\" -w \"$LDAP_BIND_PASSWORD\" -b \"$LDAP_BASE_DN\" \"($LDAP_USER_ATTRIBUTE=${input:ldapUser})\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "gvisor: sandbox shell",
+      "detail": "A shell in a gVisor sandbox with no network, for the isolation spike",
+      "type": "shell",
+      "command": "docker run --rm -it --runtime=runsc --network=none python:3.14-alpine sh",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "document",
+      "type": "pickString",
+      "description": "Document to watch",
+      "options": [
+        "docs/pdf/architecture.typ",
+        "docs/pdf/adr.typ",
+        "docs/pdf/project-plan.typ",
+        "report/main.typ"
+      ],
+      "default": "docs/pdf/architecture.typ"
+    },
+    {
+      "id": "ldapUser",
+      "type": "promptString",
+      "description": "User identifier",
+      "default": "etudiant1"
+    }
+  ]
+}

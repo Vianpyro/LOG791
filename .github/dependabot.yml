@@ -1,0 +1,30 @@
+# Keeps every pinned version current. The Typst and runsc ARGs of
+# .devcontainer/Dockerfile are outside its reach and are updated by hand.
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ["*"] }
+
+  - package-ecosystem: devcontainers
+    directory: /
+    schedule: { interval: weekly }
+
+  - package-ecosystem: docker
+    directory: /.devcontainer
+    schedule: { interval: weekly }
+
+  - package-ecosystem: docker-compose
+    directory: /.devcontainer
+    schedule: { interval: weekly }
+    groups:
+      services: { patterns: ["*"] }
+
+  - package-ecosystem: pip
+    directory: /.devcontainer
+    schedule: { interval: weekly }
+    groups:
+      tools: { patterns: ["*"] }
