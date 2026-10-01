@@ -624,6 +624,10 @@ For example:
 
 This architecture allows capacity to be adjusted without modifying the pedagogical logic.
 
+#decision(id: "ADR-0021")[
+  Each judge VM keeps a floor of permanent judges and starts more, up to a measured cap, while jobs wait in the queue; an on-demand judge leaves after being idle and is never stopped from outside. The floor is raised before each scheduled exam session.
+]
+
 == Cache <arch-cache>
 
 No dedicated cache server (Redis, #ext("memcached")[Memcached]) is planned initially. Caching is instead placed where it reduces a real cost:
@@ -1618,7 +1622,7 @@ Several important questions are deliberately left open.
 1. Is PostgreSQL sufficient as a submission queue under an exam load?
 2. Which scheduling policy minimizes perceived latency during an
   exam?
-3. How many workers are needed for a load of 400 students?
+3. How many workers are needed for a load of 400 students? The cap per judge VM is measured for this (#adr("0021")).
 4. How many resources should be allocated to each submission?
 5. What is the real cost of gVisor for realistic compilations?
 6. Under what conditions does Firecracker become preferable to gVisor?

@@ -21,7 +21,7 @@ The architecture was written for a single course. The instructor preview relies 
 - *Roles, per offering, never global*: `student`; `ta` (sees results, not private tests); `instructor` (course instructor or lecturer: publishes, previews, runs exams for their groups); `coordinator` (every group of the course). Only `admin` is global, and it grants operations on the platform, not access to results.
 - *Enrollment sources* (an extension point under #adr("0014")): #ext("lti")[LTI 1.3] from Moodle, where the LTI `context` identifies the offering, #ext("nrps")[Names and Roles] provides the roster and #ext("ags")[Assignment and Grade Services] returns grades; a CSV import by the instructor when Moodle is not available. The ÉTS directory (#adr("0017")) provides identity only, never roles.
 - *Content*: one content repository per course, with its own owners and its own proof CI; the `current` release pointer (#adr("0005")) is kept per course, so rolling back LOG121 does not affect LOG200.
-- *Capacity*: exams are scheduled in advance and reserve judges for each group's time slot (#adr("0020")); outside exams, each offering has a queue quota so that a large assignment does not starve a lab.
+- *Capacity*: exams are scheduled in advance and reserve judges for each group's time slot (#adr("0020"), #adr("0021")); outside exams, each offering has a queue quota so that a large assignment does not starve a lab.
 - *Accommodations*: extra time and a shifted time slot per student and per exam; time is still computed by the server.
 
 === Consequences

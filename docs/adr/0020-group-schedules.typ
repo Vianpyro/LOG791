@@ -23,7 +23,7 @@ An offering is split into groups that do not meet at the same time: in #course("
 - *A single function* computes a student's window for an activity: the student's override (extension, accommodation, #adr("0012")), otherwise their group's row, otherwise the offering's row. The access gate, the catalog, the judge's double check and the preview all use it.
 - *Entry*: an instructor edits the dates of their groups, and a coordinator those of every group, in the platform or by CSV import. A change applies on the next request, with no publication.
 - *Group membership*: a student is in exactly one group per offering. When the #ext("moodle")[Moodle] space matches one group, the #ext("lti")[LTI] context gives the group; when a space merges several groups, membership comes from the CSV import. Which case applies at ÉTS remains to be confirmed.
-- *Capacity*: exams and contests reserve judges per group session; groups at different times spread the load.
+- *Capacity*: exams and contests reserve judges per group session (#adr("0021")); groups at different times spread the load.
 
 === Consequences
 
