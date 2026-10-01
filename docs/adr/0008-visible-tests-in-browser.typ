@@ -82,5 +82,5 @@ On the server side, test runs share the same sandbox and a single compilation. S
 - Compatibility with #ext("seb")[Safe Exam Browser] (WebAssembly, Web Workers, service workers) must be verified.
 
 #validation(id: "V-0008")[
-  Exam load test (about 400 students): compare the 95#super[th] percentile of the delay between clicking "test" and the server's answer, with and without in-browser execution. Measure, for each retained language, the rate of discrepancy between the browser and the judge. Verify that it works under Safe Exam Browser.
+  Exam load test (about 250 students): compare the 95#super[th] percentile of the delay between clicking "test" and the server's answer, with and without in-browser execution. Measure, for each retained language, the rate of discrepancy between the browser and the judge. Verify that it works under Safe Exam Browser.
 ]

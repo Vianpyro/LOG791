@@ -17,7 +17,7 @@ The #course("LOG200") course wants a comparable platform, with constraints that 
 + Design and justify an architecture that separates the pedagogical application from the judge engine.
 + Implement a multi-language judge engine whose isolation is independent of the language.
 + Keep the core closed to special cases: LOG121 is added after LOG200 without modifying the core, only extension point implementations and content (#adr("0014")).
-+ Demonstrate that the platform withstands a simulated exam load of 400 students, with latency thresholds defined in advance.
++ Demonstrate that the platform withstands a simulated exam load of 250 students, with latency thresholds defined in advance.
 + Make the infrastructure rebuildable from the repository.
 + Hand the platform over to the supervising professor and the ÉTS IT service, who will keep improving it.
 

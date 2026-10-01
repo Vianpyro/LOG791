@@ -574,16 +574,32 @@ Execution time is a safeguard, not a measurement. It varies with the VM's load a
 
 == Target load <arch-target-load>
 
-An exam may involve about 400 students.
+The MVP targets the final exam of one course: about 250 students (5 groups of 50). At the scale of the department, that is not the peak: a final exam is common to every group of a course, and several courses share the same final exam slot. The peak load is therefore the sum of the sessions that overlap in the busiest slot.
 
-It would, however, be incorrect to model the load as simply 400 concurrent HTTP requests.
+The final exam schedule changes every term; only its shape matters. On a draft schedule, counting 250 students per course in the busiest slot gives:
+
+#table(
+  columns: (1fr, 2.2cm, 2.6cm),
+  stroke: 0.5pt,
+  [*Courses counted*], [*Courses in the slot*], [*Students*],
+  [Every course, without exception], [24], [6000],
+  [Every course except final projects (no written exam)], [16], [4000],
+  [Every LOG, GTI, MTI, MGL, INF and TCH course with an exam], [5], [1250],
+  [The #arch("appendix-course-inventory")[course inventory] only], [3], [750],
+)
+
+#decision[
+  The platform is sized for 1250 students in concurrent exams. 6000 is a theoretical ceiling, documented but not load-tested: it assumes that mechanical or electrical engineering courses hold programming exams on the platform. Graduate courses never have 250 students, so 1250 already includes a margin. The MVP load test targets 250 students.
+]
+
+It would, however, be incorrect to model the load as so many concurrent HTTP requests.
 
 Each student may produce several submissions:
 
 #mermaid(
   "
   flowchart LR
-    A[~400 students] --> B[Burst of submissions]
+    A[Students of every session in the slot] --> B[Burst of submissions]
 
     B --> C[Judging queue]
 
@@ -596,6 +612,21 @@ Each student may produce several submissions:
 )
 
 The actual load therefore depends heavily on the students' behavior over time.
+
+#hypothesis[
+  At the end of an exam, each student submits about once every 3 minutes and a job takes about 2 s; drafts, presence and verdicts add about 0.4 database writes per second per student. By Little's law (concurrent jobs = arrival rate $times$ duration):
+
+  #table(
+    columns: (1fr, 1fr, 1fr, 1fr),
+    stroke: 0.5pt,
+    [*Students*], [*Writes/s*], [*Jobs/s*], [*Concurrent sandboxes*],
+    [250], [≈ 100], [≈ 1.4], [≈ 3],
+    [1250], [≈ 500], [≈ 7], [≈ 14],
+    [6000], [≈ 2400], [≈ 33], [≈ 67],
+  )
+
+  PostgreSQL stays within its range even at the ceiling; the number of judge VMs is what varies. The load tests measure the two rates assumed here.
+]
 
 == Sizing <arch-sizing>
 
@@ -1622,7 +1653,7 @@ Several important questions are deliberately left open.
 1. Is PostgreSQL sufficient as a submission queue under an exam load?
 2. Which scheduling policy minimizes perceived latency during an
   exam?
-3. How many workers are needed for a load of 400 students? The cap per judge VM is measured for this (#adr("0021")).
+3. How many workers are needed for 1250 students in concurrent exams (#arch("target-load")[Target load])? The cap per judge VM is measured for this (#adr("0021")).
 4. How many resources should be allocated to each submission?
 5. What is the real cost of gVisor for realistic compilations?
 6. Under what conditions does Firecracker become preferable to gVisor?

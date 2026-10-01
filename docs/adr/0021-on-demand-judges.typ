@@ -27,7 +27,7 @@ Judging capacity is currently a fixed number of judges per VM, changed by hand o
 === Consequences
 
 - Off-peak, judge VMs keep only the floor running; capacity grows with the queue, up to the cap.
-- The cap per VM is the measured answer to #arch("open-questions")[open question 3]: the number of judges for 400 students is the sum of the caps.
+- The cap per VM is the measured answer to #arch("open-questions")[open question 3]: the number of judge VMs for the target load (#arch("target-load")[Target load]) follows from the cap of each one.
 - The dashboard (#adr("0019")) shows on-demand judges appearing and leaving; a judge that left after being idle is not a dead judge.
 - Ramp-up is reactive: outside scheduled sessions, a burst waits a few seconds per additional judge.
 
