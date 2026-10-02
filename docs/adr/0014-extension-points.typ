@@ -43,7 +43,7 @@ An exam or an assignment is a list of items of any type combined with a mode. A 
 
 *Guards against technical debt*:
 
-- Component boundaries are checked in CI by an architecture test (for example #ext("import-linter")[`import-linter`] on the Python side): the API does not import the judge, and the core does not import any implementation of an extension point.
+- Component boundaries are checked in CI by an architecture test that reads the crate graph (#adr("0025")): the API does not depend on the judge, and the core does not depend on any implementation of an extension point.
 - Every deliberate shortcut is marked in the code and collected by a report; an unmarked shortcut is a bug.
 - Every contract has its ADR; an accepted ADR is superseded, never edited.
 - Dependencies are pinned and language images are built in CI, never installed at run time.
@@ -56,5 +56,5 @@ An exam or an assignment is a list of items of any type combined with a mode. A 
 - Conformance suites become part of the CI cost of every extension.
 
 #validation(id: "V-0014")[
-  When LOG121 is added, the diff touches only extension point implementations and content. The architecture test fails if the API imports the judge or if the core imports a language pack.
+  When LOG121 is added, the diff touches only extension point implementations and content. The architecture test fails if the API depends on the judge or if the core depends on a language pack.
 ]

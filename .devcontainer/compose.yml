@@ -8,9 +8,9 @@ services:
     volumes:
       - ..:/workspaces/LOG791:cached
     environment:
-      # Outside the bind mount: a .venv made on the host points to another interpreter,
-      # and many small files on a bind mount are slow under Docker Desktop.
-      UV_PROJECT_ENVIRONMENT: /home/vscode/.venv
+      # Outside the bind mount: many small files there are slow under Docker Desktop,
+      # and builds from the host would invalidate the container's.
+      CARGO_TARGET_DIR: /home/vscode/target
       DATABASE_URL: postgresql://log791:log791@postgres:5432/log791
       # Plain LDAP on the Compose network only; the ÉTS directory is reached over LDAPS (ADR-0017).
       LDAP_URL: ldap://ldap:3890

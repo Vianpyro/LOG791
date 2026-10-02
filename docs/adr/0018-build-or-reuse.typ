@@ -18,6 +18,7 @@ Several judges already exist. Reusing one could remove the judge from the projec
   [#ext("judge0")[Judge0]], [REST API, many languages, isolation through isolate.], [Exam priority, test confidentiality, maintenance activity.],
   [#ext("dmoj")[DMOJ]], [Full contest platform with its own judge and sandbox.], [Reusing the judge alone, Python/Java support under load.],
   [#ext("coderunner")[CodeRunner] and Jobe], [Moodle question type already known at ÉTS; Jobe runs the code.], [Isolation of Jobe, exam load, dependency on Moodle.],
+  [Extend #ext("ctester")[CTester]], [Rust judge with gVisor in production, by the same author, in the language of #adr("0025"); single language (C), file spool as queue.], [Replacing the spool with the PostgreSQL queue (#adr("0001")); fitting language packs (#adr("0013")) into its judge.],
   [Build], [Isolation by gVisor (#adr("0002")), language packs (#adr("0013")).], [Cost for one person and for the maintainers after the handover.],
 )
 

@@ -76,7 +76,7 @@ The following properties are considered particularly important:
   [Keep responsibilities clearly separated, boundaries checked in CI and components testable independently (#adr("0014")).],
 
   [Transferability],
-  [Be handed over to the supervising professor and the ÉTS IT service: one server language, tools the IT service already operates, a written operations guide.],
+  [Be handed over to the supervising professor and the ÉTS IT service: one server language (Rust, #adr("0025")), tools the IT service already operates, a written operations guide.],
 )
 
 = Architectural principles <arch-architectural-principles>
@@ -299,10 +299,10 @@ An #ext("nginx")[nginx] reverse proxy is the platform's only HTTP entry point. I
 
 No dedicated load balancer is planned as long as the API fits on one VM.
 
-- On the HTTP side, the API is run by several processes (#ext("uvicorn")[uvicorn] workers) sharing the same socket; the kernel distributes connections among them.
+- On the HTTP side, the API is one process per `web` VM whose asynchronous runtime (#ext("tokio")[tokio]) spreads connections over every core.
 - On the judging side, judges _pull_ jobs from the queue rather than having them pushed. The queue therefore acts as the dispatcher itself, and capacity is adjusted by changing the number of judges.
 
-Since several processes serve the API, none of them holds state in memory that another would need: quotas, presence and sessions live in PostgreSQL. CTester runs a single uvicorn worker precisely because its quotas and presence are held in memory. The same property lets a new API instance take over from the old one during an update, without interrupting the service (#adr("0024")).
+Since several API instances may run at once (one per `web` VM, two during an update), none of them holds state in memory that another would need: quotas, presence and sessions live in PostgreSQL. CTester runs a single #ext("uvicorn")[uvicorn] worker precisely because its quotas and presence are held in memory. The same property lets a new API instance take over from the old one during an update, without interrupting the service (#adr("0024")).
 
 #decision[
   If the API is spread over several `web` VMs, an nginx #ext("nginx-upstream")[`upstream`] block balances the load and removes a failed instance; this choice will be settled based on load tests (#adr("0010")).
@@ -440,9 +440,7 @@ Standard I/O is the default test format for LOG200: one set of tests is valid fo
 
 == Implementation language <arch-implementation-language>
 
-The judge engine was first seen as a natural candidate for an implementation in Rust.
-
-It is likely to handle:
+The judge engine is likely to handle:
 
 - many concurrent jobs;
 - external processes;
@@ -452,15 +450,13 @@ It is likely to handle:
 - communication with the sandboxes;
 - metrics collection.
 
-#decision[
-  The judge engine is written in Python, like the application (#ext("fastapi")[FastAPI]), while remaining an independent component. The platform is handed over to the supervising professor and the ÉTS IT service: a single server language keeps it maintainable by them.
+It is also the only privileged process, and it receives hostile input: student code, course content (#adr("0023")) and possibly a compromised API.
+
+#decision(id: "ADR-0025")[
+  All server code, the judge engine included, is written in #ext("rust")[Rust], in one #ext("cargo")[Cargo] workspace that forbids `unsafe` code. Rust is the only language that both the author and the instructor who takes over the platform rank above Python; a single server language keeps it maintainable by them and by the ÉTS IT service.
 ]
 
-The dominant cost of a submission is expected in sandbox startup and compilation, not in the orchestrator (see #arch("cache")[Cache]).
-
-#validation[
-  Rust is only reconsidered if profiling shows that the judge process itself, not the sandbox, limits throughput.
-]
+Speed is not the reason: the dominant cost of a submission is expected in sandbox startup and compilation, not in the orchestrator (see #arch("cache")[Cache]).
 
 = Submission isolation <arch-submission-isolation>
 
@@ -1624,7 +1620,7 @@ The layout only contains what the MVP needs:
 .devcontainer/        local services (PostgreSQL, LDAP) and tools, gVisor included
 apps/
 ├── admin/            read-only dashboard for operations and instructors
-├── api/              FastAPI: sign-in, sessions, offerings, submissions, SSE
+├── api/              axum: sign-in, sessions, offerings, submissions, SSE
 ├── judge/            pulls jobs, runs the sandbox, writes the verdict
 ├── publisher/        validation, projection, releases, pointer; typst/ template
 └── web/              static interface served by nginx; locales/ (en, fr)
@@ -1632,8 +1628,8 @@ db/migrations/        PostgreSQL schema: queue, offerings, sessions, submissions
 examples/content/     fake content repository for development
 infrastructure/
 └── ansible/          inventory/ (local, ets) and roles/ (one per service)
-packages/             shared code: the API never imports the judge, nor the reverse
-├── contracts/        JSON Schemas: job, verdict report, pack manifest, exercise
+packages/             shared library crates: the API never depends on the judge, nor the reverse
+├── contracts/        JSON Schemas and their Rust types: job, verdict report, pack manifest, exercise
 └── content/          active release reader and the single "is it open?" rule
 packs/                declarative extension points, not core code
 ├── languages/        one directory per language pack (python, java first)
@@ -1642,6 +1638,8 @@ packs/                declarative extension points, not core code
 spikes/               throwaway study code, deleted once its ADR is decided
 tests/                cross-component tests: architecture, conformance, load
 docs/  report/  site/  .github/
+Cargo.toml            workspace of every crate in apps/ and packages/
+rust-toolchain.toml   Rust version, read by rustup everywhere
 ```
 
 The `infrastructure/ansible/` directory contains the configuration of the machines administered by the project as well as the administrative operations. A `terraform/` directory is only added if the hosting environment offers a provisioning interface.
@@ -1657,7 +1655,7 @@ Language packs sit outside `apps/judge/`: adding one is adding data, not changin
       PUB[publisher]
     end
     subgraph PKG[packages]
-      CON[contracts<br/>JSON Schemas]
+      CON[contracts<br/>JSON Schemas, Rust types]
       CNT[content<br/>release reader, opening rule]
     end
     subgraph PACKS[packs]
@@ -1672,13 +1670,13 @@ Language packs sit outside `apps/judge/`: adding one is adding data, not changin
     PUB --> CON
     PUB --> CNT
     JUDGE -.->|reads as data| PACKS
-    API -.-|never import each other| JUDGE
+    API -.-|never depend on each other| JUDGE
   ",
   document-context: true,
   width: 100%,
 )
 
-The forbidden import, and the core importing any implementation in `packs/`, make the architecture test fail (#adr("0014")).
+A dependency between the API and the judge, or from a shared crate to an application, makes the architecture test fail; it reads the crate graph rather than the imports (#adr("0014"), #adr("0025")). Packs are data read at run time, never compiled into the core.
 
 #decision[
   The monorepo is preferred in order to keep a consistent version of the application, the judge engine and the infrastructure. Pedagogical content lives in its own repository (#adr("0004")); `examples/content/` only serves development.
@@ -1887,6 +1885,10 @@ The following choices remain conditional or will have to be confirmed experiment
   [Judge capacity],
   [Floor and cap per judge VM, floor raised before exams (#adr("0021"))],
   [Rise to the cap and back to the floor with no run cut short; reserved judges up before the exam],
+
+  [Server language],
+  [Rust for every server component (#adr("0025"))],
+  [Successor's confirmation; first end-to-end path within its milestone],
 
   [Updates],
   [Passive per component, notice for disruptive steps only (#adr("0024"))],

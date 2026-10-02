@@ -4,18 +4,18 @@ A platform where students write, run and submit code that is judged in an isolat
 
 ## Getting started
 
-Everything runs in the dev container: Python 3.14, uv, PostgreSQL, a local LDAP directory, Docker with gVisor, Typst and Ansible.
+The server code is a Cargo workspace in Rust 1.99.0 (ADR-0025), pinned by [`rust-toolchain.toml`](rust-toolchain.toml). Everything runs in the dev container: Rust, PostgreSQL, a local LDAP directory, Docker with gVisor, Typst and Ansible.
 
 1. Open the repository in VS Code and choose **Reopen in Container** (Docker required).
-2. Wait for the first build. It installs the Python workspace (`uv sync`), then `check.sh` prints one line per service; every line should read `ok`.
-3. Run the architecture check: `uv run lint-imports`.
+2. Wait for the first build. It fetches the crates (`cargo fetch`), then `check.sh` prints one line per service; every line should read `ok`.
+3. Run the checks CI runs: `cargo clippy --all-targets`, `cargo test` and `bash tests/architecture/boundaries.sh`.
 
 Common commands are VS Code tasks (**Tasks: Run Task**):
 
 | Task | What it does |
 |------|--------------|
-| `python: sync` | Install the locked dependencies after a pull |
-| `architecture: check` | Check component boundaries, as CI does |
+| `rust: check` | Format, Clippy and tests, as CI does |
+| `architecture: check` | Check component boundaries in the crate graph, as CI does |
 | `env: check` | Check that every local service answers |
 | `docs: build site` | Build every document into `_site/` |
 | `db: psql` | Open a shell on the local database |
@@ -23,14 +23,14 @@ Common commands are VS Code tasks (**Tasks: Run Task**):
 
 Test accounts for the local directory are in [`.devcontainer/ldap/`](.devcontainer/ldap/); the lldap admin interface is forwarded on port 17170.
 
-Outside the dev container, install [uv](https://docs.astral.sh/uv/) and run `uv sync`; the services and gVisor are then yours to provide.
+Outside the dev container, install [rustup](https://rustup.rs/): it reads `rust-toolchain.toml` and installs the right toolchain on the first `cargo` command. The services and gVisor are then yours to provide.
 
 ## Layout
 
 | Path | Contents |
 |------|----------|
-| `apps/` | `api`, `judge`, `publisher`, `admin` (Python) and `web` (static) |
-| `packages/` | Code shared by the apps: `contracts` (JSON Schemas), `content` (release reader, opening rule) |
+| `apps/` | `api`, `judge`, `publisher`, `admin` (Rust binaries) and `web` (static) |
+| `packages/` | Code shared by the apps: `contracts` (JSON Schemas and their Rust types), `content` (release reader, opening rule) |
 | `packs/` | Language packs, test runners and question types: data, not core code |
 | `db/migrations/` | PostgreSQL schema |
 | `infrastructure/ansible/` | Machine configuration and operations |
@@ -42,7 +42,8 @@ The full description is in the *Code organization* section of the architecture d
 
 ## Rules
 
-- The API and the judge never import each other, and `packages/` imports no app. `lint-imports` checks this in CI (ADR-0014).
+- The API and the judge never depend on each other, and `packages/` depends on no app. `tests/architecture/boundaries.sh` checks the crate graph in CI (ADR-0014).
+- No `unsafe` code: the workspace forbids it.
 - A language, a course or a question type is added as data under `packs/` or in content, never as a special case in the core.
 - An accepted ADR is never edited: a new ADR supersedes it. A new ADR is also listed in [`docs/adr/index.typ`](docs/adr/index.typ).
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (see [`.copilot/commit-message-instructions.md`](.copilot/commit-message-instructions.md)).

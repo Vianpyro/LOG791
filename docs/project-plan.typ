@@ -67,11 +67,11 @@ The detailed analysis is recorded in the #arch("purpose-of-the-document")[archit
   [System], [#ext("nixos")[NixOS], distribution + Ansible, containers only], [Ubuntu + Ansible (#adr("0006"))],
   [Content], [database, served copy, immutable releases], [Releases (#adr("0005"))],
   [Authentication], [#ext("entra")[Entra ID] (OIDC), #ext("ldap")[LDAP] against Active Directory], [LDAP (#adr("0017"))],
-  [Judge language], [Python, Rust], [Python (handover)],
+  [Server language], [Python, Java, C++, #ext("rust")[Rust]], [Rust (#adr("0025"))],
   [Build or reuse], [extend CTester, #ext("judge0")[Judge0], #ext("dmoj")[DMOJ], #ext("coderunner")[CodeRunner]], [To decide (#adr("0018"))],
 )
 
-Technologies: Python/#ext("fastapi")[FastAPI], #ext("postgresql")[PostgreSQL] (queue and #ext("streaming-replication")[streaming replication]), #ext("gvisor")[gVisor], #ext("docker")[Docker] or #ext("podman")[Podman], #ext("qemu-user")[QEMU user mode] (performance measurement), #ext("pyodide")[Pyodide]/WebAssembly (visible tests in the browser), #ext("ubuntu")[Ubuntu LTS] and #ext("ansible")[Ansible], #ext("nginx")[nginx] and #ext("certbot")[certbot], #ext("ldap")[LDAP] (ÉTS Active Directory), #ext("seb")[Safe Exam Browser], #ext("moodle")[Moodle] (#ext("lti")[LTI]), #ext("typst")[Typst], #ext("github-actions")[GitHub Actions].
+Technologies: #ext("rust")[Rust] (#ext("axum")[axum], #ext("tokio")[tokio], #ext("sqlx")[sqlx]), #ext("postgresql")[PostgreSQL] (queue and #ext("streaming-replication")[streaming replication]), #ext("gvisor")[gVisor], #ext("docker")[Docker] or #ext("podman")[Podman], #ext("qemu-user")[QEMU user mode] (performance measurement), #ext("pyodide")[Pyodide]/WebAssembly (visible tests in the browser), #ext("ubuntu")[Ubuntu LTS] and #ext("ansible")[Ansible], #ext("nginx")[nginx] and #ext("certbot")[certbot], #ext("ldap")[LDAP] (ÉTS Active Directory), #ext("seb")[Safe Exam Browser], #ext("moodle")[Moodle] (#ext("lti")[LTI]), #ext("typst")[Typst], #ext("github-actions")[GitHub Actions].
 
 #todo[Complete #adr("0018"): whether an existing judge (Judge0, DMOJ, CodeRunner) is reused. First priority: it blocks the judge implementation.]
 
@@ -94,6 +94,6 @@ Technologies: Python/#ext("fastapi")[FastAPI], #ext("postgresql")[PostgreSQL] (q
   [R7], [A VM fails during an exam.], [Stateless, redundant judges, recovery of abandoned jobs, PostgreSQL replica, VMs rebuilt by Ansible (#adr("0010")).],
   [R8], [A course requires a language or test format not planned.], [Language packs and test runners are extension points with a conformance suite: added without touching the core (#adr("0013"), #adr("0014")).],
   [R9], [The question-type catalog (some thirty types) is too large for one person.], [Types grouped into about nine grader families; delivered by tiers, Q1 with LOG200 (#adr("0015")).],
-  [R10], [The professor and the IT service cannot maintain the platform after the handover.], [One server language (Python); tools the IT service already operates; everything rebuildable by Ansible; operations guide delivered with the prototype; repository location agreed with the IT service.],
+  [R10], [The professor and the IT service cannot maintain the platform after the handover.], [One server language (Rust, ranked above Python by the author and the successor, #adr("0025")); tools the IT service already operates; everything rebuildable by Ansible; operations guide delivered with the prototype; repository location agreed with the IT service.],
   [R11], [Student passwords leak through the platform, which receives them for the LDAP bind.], [LDAPS only; no password stored; logs carry no identity by construction (#arch("logs")[Logs]); rate-limited sign-in; covered by the threat model (#adr("0017")).],
 )

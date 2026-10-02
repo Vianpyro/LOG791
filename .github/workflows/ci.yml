@@ -26,25 +26,35 @@ jobs:
           push: never
           runCmd: bash .devcontainer/check.sh
 
+  # The runner's rustup installs the toolchain of rust-toolchain.toml on first use.
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --locked
+
+      # Component boundaries (ADR-0014), from the crate graph.
+      - name: Architecture
+        run: bash tests/architecture/boundaries.sh
+
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
       - name: Shell scripts
-        run: shellcheck .devcontainer/*.sh site/*.sh
+        run: shellcheck .devcontainer/*.sh site/*.sh tests/architecture/*.sh
 
       - name: Workflows
         run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
-
-      - name: Python
-        uses: astral-sh/ruff-action@v4.1.0
-
-      # Component boundaries (ADR-0014); uv at the dev container's version.
-      - name: Architecture
-        run: |
-          pip install "$(grep '^uv==' .devcontainer/requirements.txt)"
-          uv run --locked lint-imports
 
       # Same versions as the dev container, from its requirements file.
       - name: Ansible

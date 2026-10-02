@@ -10,17 +10,17 @@
       "problemMatcher": []
     },
     {
-      "label": "python: sync",
-      "detail": "Install the workspace and its locked dependencies after a pull",
+      "label": "rust: check",
+      "detail": "Format, Clippy and tests, as CI does",
       "type": "shell",
-      "command": "uv sync",
-      "problemMatcher": []
+      "command": "cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test",
+      "problemMatcher": ["$rustc"]
     },
     {
       "label": "architecture: check",
-      "detail": "Check component boundaries (ADR-0014), as CI does",
+      "detail": "Check component boundaries (ADR-0014) in the crate graph, as CI does",
       "type": "shell",
-      "command": "uv run lint-imports",
+      "command": "bash tests/architecture/boundaries.sh",
       "problemMatcher": []
     },
     {
