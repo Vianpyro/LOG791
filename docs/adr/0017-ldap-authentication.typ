@@ -1,4 +1,4 @@
-#import "../template.typ": adr, arch, ext, validation
+#import "../template.typ": adr, arch, ext, mermaid, validation
 
 == ADR-0017 — Authentication against the ÉTS directory over LDAP <adr-0017>
 
@@ -29,6 +29,30 @@ The architecture assumed #ext("oidc")[OIDC] sign-in through #ext("entra")[Micros
 The API authenticates a user by an LDAP bind against the ÉTS Active Directory, over LDAPS (or StartTLS) only, with the directory's CA certificate pinned in the Ansible configuration. The directory provides identity (identifier, name, e-mail) and nothing else: roles stay per offering (#adr("0012")).
 
 The session is a random identifier in an `HttpOnly`, `Secure`, `SameSite=Lax` cookie, stored in #ext("postgresql")[PostgreSQL], which every API instance already shares (#adr("0010")). A session can therefore be revoked, and no dedicated session store is added.
+
+#mermaid(
+  "
+  sequenceDiagram
+    participant B as Browser
+    participant N as nginx
+    participant A as API
+    participant L as ÉTS Active Directory
+    participant D as PostgreSQL
+    B->>N: sign-in form (identifier, password)
+    N->>A: forwarded (limit_req)
+    A->>L: LDAP bind over LDAPS, CA pinned
+    alt bind succeeds
+      L-->>A: identity (identifier, name, e-mail)
+      A->>D: session stored (random identifier)
+      A-->>B: cookie HttpOnly, Secure, SameSite=Lax
+    else wrong password, expired account or unreachable directory
+      A-->>B: distinct error code
+    end
+    Note over A: the password is never stored nor logged
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 There is a single identity implementation, so no identity-provider extension point (#adr("0014")): all LDAP code lives in one module.
 

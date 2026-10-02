@@ -1,4 +1,4 @@
-#import "../template.typ": adr, arch, ext, validation
+#import "../template.typ": adr, arch, ext, mermaid, validation
 
 == ADR-0021 — Bounded on-demand judges <adr-0021>
 
@@ -23,6 +23,36 @@ Judging capacity is currently a fixed number of judges per VM, changed by hand o
 - *Never stopped from outside*: an on-demand judge leaves by itself after 5 minutes without a job, and its unit only restarts on failure. No run is cut short.
 - *Exams*: before each exam or contest session in the schedule (#adr("0020")), the floor is raised to the reserved number of judges, so the start of the exam does not wait for cold starts. It drops back to normal after the session.
 - No coordination between VMs: judges pull from the same queue, which stays the only dispatcher.
+
+The scaler on one judge VM, and the life of a judge:
+
+#mermaid(
+  "
+  flowchart LR
+    T[Every 2 s] --> W{Jobs waiting<br/>more than 2 s?}
+    W -->|no| T
+    W -->|yes| C{Below the cap?<br/>cap read again}
+    C -->|no| T
+    C -->|yes| S[Start one more<br/>judge@N]
+    S --> G[Give it time<br/>to claim a job]
+    G --> T
+  ",
+  document-context: true,
+  width: 100%,
+)
+
+#mermaid(
+  "
+  stateDiagram-v2
+    direction LR
+    [*] --> idle: started by the floor or the scaler
+    idle --> running: claims a job
+    running --> idle: verdict written
+    idle --> [*]: on-demand judge, 5 min without a job
+  ",
+  document-context: true,
+  width: 75%,
+)
 
 === Consequences
 

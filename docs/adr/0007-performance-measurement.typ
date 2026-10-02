@@ -1,4 +1,4 @@
-#import "../template.typ": adr, arch, ext, validation
+#import "../template.typ": adr, arch, ext, mermaid, validation
 
 == ADR-0007 — Deterministic and fair performance measurement <adr-0007>
 
@@ -58,6 +58,27 @@ Memory follows the same logic: the peak memory, minus the runtime's baseline, is
 - *Measurement pass*: it runs after the exam and only covers the *last* submission of each student for each exercise (one unique key per student–exercise pair). The queue is drained when the server is lightly loaded. Accuracy does not depend on it; the point is to leave the CPU to live judging.
 
 The measurement queue is a lower-priority queue in #ext("postgresql")[PostgreSQL] (#adr("0001")). No new component is added.
+
+#mermaid(
+  "
+  flowchart TB
+    subgraph EXAM[During the exam]
+      direction LR
+      S[Submission] --> C[Correctness pass<br/>native, generous time limits]
+      C --> V[Verdict to the student]
+    end
+    subgraph AFTER[After the exam, lower-priority queue]
+      direction LR
+      L[Last submission of each<br/>student for each exercise] --> Q[Measurement pass<br/>QEMU user mode, instruction budget]
+      Q --> N[Instructions counted<br/>at several input sizes]
+      N --> SL[Log-log slope]
+      SL --> CMP[Compared with the reference<br/>in the same language]
+    end
+    C -.-> L
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 === Consequences
 

@@ -1,4 +1,4 @@
-#import "../template.typ": adr
+#import "../template.typ": adr, mermaid
 
 // Typst cannot list a directory: a new ADR must be added here.
 // An ADR is never modified after acceptance; it is superseded by a new one
@@ -33,6 +33,53 @@
   [#adr("0021", body: "0021")], [Bounded on-demand judges], [Proposed],
   [#adr("0022", body: "0022")], [Submission scheduling policy], [Proposed],
   [#adr("0023", body: "0023")], [Course content as untrusted input], [Proposed],
+)
+
+Relations declared in the status of each ADR: a solid arrow refines, a thick arrow supersedes, a dotted arrow applies, extends or feeds the ADR it points to. ADRs without a declared relation are not shown.
+
+#mermaid(
+  "
+  flowchart LR
+    A0001[0001 Queue in PostgreSQL]
+    A0003[0003 NixOS]
+    A0005[0005 Immutable releases]
+    A0006[0006 Ubuntu and Ansible]
+    A0008[0008 Visible tests in the browser]
+    A0010[0010 Multiple VMs]
+    A0012[0012 Offerings and roles]
+    A0013[0013 Language packs]
+    A0014[0014 Extension points]
+    A0015[0015 Question types]
+    A0016[0016 Mermaid in statements]
+    A0020[0020 Group schedules]
+    A0021[0021 On-demand judges]
+    A0022[0022 Scheduling policy]
+    A0023[0023 Untrusted content]
+
+    A0006 ==> A0003
+    A0010 --> A0001
+    A0010 --> A0006
+    A0020 --> A0012
+    A0021 --> A0010
+    A0022 --> A0001
+    A0012 -.->|applies| A0014
+    A0013 -.->|applies| A0014
+    A0015 -.->|applies| A0014
+    A0016 -.->|extends| A0005
+    A0021 -.->|judge reservation| A0012
+    A0021 -.->|judge reservation| A0020
+    A0022 -.->|queue priority| A0014
+    A0023 --> A0005
+    A0023 --> A0008
+    A0023 --> A0012
+    A0023 --> A0013
+    A0023 --> A0015
+    A0023 --> A0016
+    A0023 --> A0021
+    A0023 --> A0022
+  ",
+  document-context: true,
+  width: 100%,
 )
 
 #include "0001-postgresql-queue.typ"

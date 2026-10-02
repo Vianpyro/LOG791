@@ -1,4 +1,4 @@
-#import "../template.typ": arch, ext, validation
+#import "../template.typ": arch, ext, mermaid, validation
 
 == ADR-0011 — User interface internationalization <adr-0011>
 
@@ -24,6 +24,22 @@ Every user-facing string goes through a message key; no text is hard-coded in th
 - *Other languages* are external contributions and may be incomplete. A missing key falls back to its English text, key by key, so a partial translation is still usable.
 - The language is chosen from the user's preference, then from the browser's `Accept-Language`, then defaults to English.
 - The API and the judge return *codes* with parameters (verdict, error, reason), never sentences to display. The interface turns them into text. The server therefore stays language-neutral.
+
+#mermaid(
+  "
+  flowchart LR
+    U{User preference?} -->|set| L[That language]
+    U -->|none| AL{Accept-Language<br/>offered?}
+    AL -->|yes| L
+    AL -->|no| EN[English]
+    C[Code and parameters<br/>from the API or judge] --> K
+    L --> K{Key present in<br/>that language?}
+    K -->|yes| T[Translated text]
+    K -->|no| ENK[English text<br/>for this key]
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 Out of scope: the pedagogical content (statements, test messages written by the instructor), which stays in its author's language, and the project documentation, which is in English only.
 

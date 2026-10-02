@@ -1,4 +1,4 @@
-#import "../template.typ": adr, arch, course, ext, validation
+#import "../template.typ": adr, arch, course, ext, mermaid, validation
 
 == ADR-0013 — Language packs and test runners <adr-0013>
 
@@ -41,6 +41,24 @@ P1 images are preloaded on every judge; P2 and P3 images are pulled on first use
 - *Standard I/O* (CodinGame style): the default for LOG200, since one set of tests is valid for every language. A function-signature harness (LeetCode style) requires a driver per language and is added per exercise only if needed.
 - *Unit tests*: #ext("junit")[JUnit], #ext("pytest")[pytest] and a C framework, for #course("LOG121") and courses testing classes or functions.
 - *SQL*: queries run against a disposable environment provided by a judging service: an ephemeral PostgreSQL inside the sandbox, or, for Oracle (#course("TCH055")), a schema created then dropped on a shared Oracle instance outside the sandbox, with quotas and a time limit, since one Oracle instance per submission is too heavy.
+
+#mermaid(
+  "
+  flowchart LR
+    SUB[Submission<br/>language known] --> J[Generic judge]
+    PACK[Language pack<br/>pinned image, commands, options,<br/>limits, capabilities] --> J
+    J --> SB[Its own sandbox<br/>from the pack's image only]
+    SB --> IO[Standard I/O runner]
+    SB --> UT[Unit test runner]
+    SB --> SQL[SQL runner]
+    SQL --> JS[Judging service<br/>ephemeral PostgreSQL<br/>or shared Oracle schema]
+    IO --> REP[Same JSON report]
+    UT --> REP
+    SQL --> REP
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 *Network.* Denied by default. An exercise may declare loopback-only networking (a namespace with no external interface) for socket exercises (#course("LOG100"), #course("GTI611")).
 

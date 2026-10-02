@@ -339,6 +339,33 @@ It will eventually need to support:
 
 This choice adds no service to the VM and places the queue state in the same transaction as the submission state. Retries, detection of abandoned jobs and exam priority can then be expressed directly in SQL.
 
+The path of one submission, from the browser to the verdict:
+
+#mermaid(
+  "
+  sequenceDiagram
+    participant B as Browser
+    participant N as nginx
+    participant A as API
+    participant D as PostgreSQL
+    participant J as Judge
+    participant S as Sandbox
+    B->>N: submission (HTTPS + session cookie)
+    N->>A: forwarded (limit_req)
+    A->>D: job and submission in one transaction, NOTIFY
+    D-->>J: NOTIFY wakes a waiting judge
+    J->>D: claim: SELECT … FOR UPDATE SKIP LOCKED
+    J->>J: resolve the exercise in the active release, recheck opening
+    J->>S: compile and run with limits
+    S-->>J: JSON report
+    J->>D: write the verdict, NOTIFY
+    D-->>A: LISTEN
+    A-->>B: verdict over SSE
+  ",
+  document-context: true,
+  width: 100%,
+)
+
 #validation[
   Load tests will have to confirm that PostgreSQL is sufficient as a queue for an exam load. A dedicated broker will only be considered if a limit is measured.
 ]
@@ -866,6 +893,26 @@ The platform serves several courses, each taught every term by several people in
 - *Personal data*: an instructor only sees their offerings; retention is purged per completed offering (#ext("law25")[Law 25]).
 - *Accessibility*: the interface targets #ext("wcag")[WCAG 2.1 AA], including a keyboard-navigable editor.
 
+Enrollments and grades through Moodle:
+
+#mermaid(
+  "
+  sequenceDiagram
+    participant M as Moodle
+    participant A as API
+    participant D as PostgreSQL
+    M->>A: LTI 1.3 launch (the context identifies the offering)
+    A->>M: Names and Roles: roster
+    M-->>A: members and their roles
+    A->>D: recompute roles in this offering
+    Note over A,D: without Moodle, a CSV import by the instructor
+    Note over M,D: later, once results are final
+    A->>M: Assignment and Grade Services: grades
+  ",
+  document-context: true,
+  width: 100%,
+)
+
 = Pedagogical model <arch-pedagogical-model>
 
 The architecture must not limit an exercise to a "statement + solution" pair.
@@ -874,20 +921,24 @@ An exercise is instead considered a declarative resource containing pedagogical 
 
 Conceptually:
 
-```text
-Exercise
-│
-├── metadata
-├── statement
-├── language constraints
-├── difficulty
-├── skills
-├── prerequisites
-├── context
-├── tests
-├── hints
-└── release rules
-```
+#mermaid(
+  "
+  classDiagram
+    class Exercise {
+      metadata
+      statement
+      language constraints
+      difficulty
+      skills
+      prerequisites
+      context
+      tests
+      hints
+      release rules
+    }
+  ",
+  document-context: true,
+)
 
 Public and private tests must remain separate.
 
@@ -1024,6 +1075,26 @@ The active release is designated by a pointer, a file rather than a symbolic lin
   Rolling back content consists of rewriting the pointer to a previous release. It is instantaneous and redeploys no component. Each course has its own content repository and its own pointer: rolling back one course leaves the others unchanged (#adr("0012")).
 ]
 
+A publication, with the cases where it stops:
+
+#mermaid(
+  "
+  flowchart TD
+    C[Change to a course's<br/>content repository] --> V{Valid?<br/>schema, unique identifiers,<br/>a single statement format}
+    V -->|no| K[Publishing stops and names<br/>the exercise and field.<br/>The previous release keeps being served.]
+    V -->|yes| P[Public projection<br/>positive enumeration]
+    P --> N{Reserved key in<br/>the projection?<br/>negative enumeration}
+    N -->|yes| K
+    N -->|no| H{Release with this<br/>hash already exists?}
+    H -->|yes| U[Nothing is created]
+    H -->|no| R[New immutable release]
+    R --> PTR[The course's current<br/>pointer is rewritten]
+    R --> PR[Old releases pruned<br/>by manifest date]
+    RB[Rollback] -->|pointer rewritten to<br/>an earlier release| PTR
+  ",
+  document-context: true,
+)
+
 CTester made the opposite choice when it gained a second course: every content repository is merged into one release, published all or nothing, so a bad commit in one course blocks the publication of every course. A pointer per course avoids exactly this.
 
 Pruning keeps the latest releases according to a publication date written in their manifest, not according to the file system's modification time. In CTester, the latter had a different granularity on Windows and on Linux, which caused a release that was supposed to be kept to be deleted.
@@ -1036,11 +1107,52 @@ The content only carries a state (`draft`, `archived`). Dates belong to the offe
   A single function decides whether an exercise is accessible to a student at a given instant: the student's override (extension, accommodation), otherwise their group's dates, otherwise the offering's. Without dates for the student's group, the exercise is closed. An exercise opens when its date passes, without any commit or scheduled task on the morning of the class, and an instructor's postponement applies without publication.
 ]
 
+#mermaid(
+  "
+  flowchart TD
+    Q[Is this activity open<br/>for this student now?] --> O{Student override?<br/>extension, accommodation}
+    O -->|yes| W[Use that window]
+    O -->|no| G{Row for the<br/>student's group?}
+    G -->|yes| W
+    G -->|no| F{Offering row<br/>without a group?}
+    F -->|yes| W
+    F -->|no| C[Closed]
+    W --> T{Now inside<br/>the window?}
+    T -->|yes| OP[Open]
+    T -->|no| C
+  ",
+  document-context: true,
+)
+
+The access gate, the catalog, the judge's double check and the preview all call this function.
+
 All reads of an exercise (details, submission, draft, discussion) go through a single gate that resolves the identifier in the active release and refuses anything that is not open. A link shared ahead of time therefore bypasses nothing.
 
 == Double check by the judge <arch-double-check-by-the-judge>
 
 The API only passes an exercise identifier to the judge. The judge itself resolves this identifier against the active release before reading the assessment data.
+
+#mermaid(
+  "
+  sequenceDiagram
+    participant A as API
+    participant D as PostgreSQL queue
+    participant J as Judge
+    participant R as Active release
+    participant P as Assessment data
+    A->>D: job with the exercise identifier only
+    J->>D: claim the job
+    J->>R: resolve the identifier
+    J->>J: open for this student now? (schedule, role in the offering)
+    alt closed or unknown
+      J->>D: refused, no test runs
+    else open
+      J->>P: read the tests of this exercise
+    end
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 #decision[
   The judge does not trust the API about whether an exercise is open. A compromised API can lie about who authored a submission, but cannot get the tests of a closed exercise executed.
@@ -1152,6 +1264,22 @@ Typst's HTML export is preferred when it is complete. Publishing detects element
   HTML is displayed first and SVG serves as a fallback, with no choice exposed to the student. An HTML failure does not block publishing; an SVG failure does.
 ]
 
+#mermaid(
+  "
+  flowchart LR
+    T[statement.typ] --> SVG{Light and dark<br/>SVG rendered?}
+    SVG -->|no| STOP[Publishing stops]
+    SVG -->|yes| HTML{HTML export complete?<br/>no ignored element}
+    HTML -->|yes| BOTH[HTML, with SVG<br/>as fallback]
+    HTML -->|no or failed| ONLY[SVG only]
+    BOTH --> SAN[Allow-list sanitizer]
+    ONLY --> SAN
+    SAN --> R[Release]
+  ",
+  document-context: true,
+  width: 100%,
+)
+
 === Rendering cache <arch-rendering-cache>
 
 The cache key covers everything rendering depends on: Typst version, template, vendored packages and the exercise tree *except* its assessment data. Fixing a test case therefore recompiles no statement.
@@ -1181,6 +1309,22 @@ Diagrams (flowcharts, sequence, class and state diagrams) are written in Mermaid
 #decision(id: "ADR-0016")[
   Mermaid is rendered at publication time by the #ext("merman")[merman] Typst package, in the existing Typst container, to light and dark SVG. No diagram library is sent to the browser: nothing to serve under Safe Exam Browser and no exception to the CSP.
 ]
+
+#mermaid(
+  "
+  flowchart LR
+    MD[statement.md] --> X[Each fenced mermaid<br/>block extracted]
+    X --> W[Wrapped in a one-line<br/>Typst document]
+    TY[statement.typ<br/>calls the template's mermaid] --> T
+    W --> T[Typst container<br/>merman, course template]
+    T --> OK{Supported type<br/>and rendered?}
+    OK -->|no| STOP[Publishing stops,<br/>naming the exercise and block]
+    OK -->|yes| SVG[Inline SVG, light and dark<br/>Mermaid source as text alternative]
+    SVG --> R[Release]
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 The Mermaid source is kept as the SVG's text alternative. A diagram type merman does not support, or a diagram that fails to render, stops publishing and names the exercise and the block.
 
@@ -1366,15 +1510,22 @@ The envisioned pipeline is:
       B3[Judge]
     end
 
-    B --> IMG[Images / artifacts]
+    B --> IMG[Images / artifacts<br/>with build attestation]
     IMG --> REG[Registry / artifact storage]
-    REG --> D[Deployment]
 
-    D --> VAL[Staging environment]
-    D --> PROD[Production]
+    subgraph ETS[ÉTS network, through the VPN]
+      OP[Ansible run from an<br/>operator workstation]
+      VAL[Staging environment]
+      HV{Human validation}
+      PROD[Production]
+    end
+
+    REG -->|attestation verified,<br/>images pulled| OP
+    OP --> VAL
+    VAL --> HV
+    HV -->|approved| PROD
   ",
   document-context: true,
-  width: 100%,
 )
 
 The Ansible configuration must itself be tested (`ansible-lint`, runs in `--check` mode) and versioned in the same development cycle.
@@ -1426,6 +1577,21 @@ While a flag file exists on the `web` VMs, every open tab shows that an update i
   A deployment refuses to start while an exam is scheduled or in progress (#adr("0012")), and waits for the queue to drain before restarting the judges.
 ]
 
+#mermaid(
+  "
+  flowchart TD
+    S[Ansible run from an operator<br/>workstation on the VPN] --> E{Exam scheduled<br/>or in progress?}
+    E -->|yes| X[Refused]
+    E -->|no| F[Flag raised on the web VMs<br/>block]
+    F --> N[Every open tab shows the notice<br/>through the SSE stream]
+    N --> Q[Wait for the queue to drain]
+    Q --> J[Judges restarted]
+    J --> R[Flag removed<br/>always]
+    R --> B[Tabs show the service is back<br/>once the API answers]
+  ",
+  document-context: true,
+)
+
 = Code organization <arch-code-organization>
 
 A monorepo is currently preferred in order to keep a consistent view of the project's various components.
@@ -1459,6 +1625,38 @@ docs/  report/  site/  .github/
 The `infrastructure/ansible/` directory contains the configuration of the machines administered by the project as well as the administrative operations. A `terraform/` directory is only added if the hosting environment offers a provisioning interface.
 
 Language packs sit outside `apps/judge/`: adding one is adding data, not changing the judge (#adr("0013")). The opening rule lives in `packages/content/` because the API, the judge and the publisher must apply the same one.
+
+#mermaid(
+  "
+  flowchart LR
+    subgraph APPS[apps]
+      API[api]
+      JUDGE[judge]
+      PUB[publisher]
+    end
+    subgraph PKG[packages]
+      CON[contracts<br/>JSON Schemas]
+      CNT[content<br/>release reader, opening rule]
+    end
+    subgraph PACKS[packs]
+      LANG[languages]
+      RUN[runners]
+      QT[question-types]
+    end
+    API --> CON
+    API --> CNT
+    JUDGE --> CON
+    JUDGE --> CNT
+    PUB --> CON
+    PUB --> CNT
+    JUDGE -.->|reads as data| PACKS
+    API -.-|never import each other| JUDGE
+  ",
+  document-context: true,
+  width: 100%,
+)
+
+The forbidden import, and the core importing any implementation in `packs/`, make the architecture test fail (#adr("0014")).
 
 #decision[
   The monorepo is preferred in order to keep a consistent version of the application, the judge engine and the infrastructure. Pedagogical content lives in its own repository (#adr("0004")); `examples/content/` only serves development.
@@ -1757,7 +1955,6 @@ The following sections should gradually be completed with:
 - functional and non-functional requirements;
 - a formal threat model;
 - the ADRs;
-- deployment diagrams;
 - protocols between components;
 - the definition of the judge engine's interfaces;
 - the benchmark methodology;

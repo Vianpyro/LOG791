@@ -1,4 +1,4 @@
-#import "../template.typ": adr, arch, ext, validation
+#import "../template.typ": adr, arch, ext, mermaid, validation
 
 == ADR-0010 — Multiple replicable, fault-tolerant VMs <adr-0010>
 
@@ -31,6 +31,30 @@ Several identical Ubuntu VMs per role, described in an Ansible inventory by grou
 - *Judges*: stateless and interchangeable. They pull jobs from the #ext("postgresql")[PostgreSQL] queue; a job abandoned by a failed judge is picked up by another one (#adr("0001")). Losing a judge reduces capacity without losing any submission.
 - *Database*: the only stateful component. A hot-standby PostgreSQL replica (#ext("streaming-replication")[streaming replication]) can be promoted if the primary fails, with regular backups outside the VM.
 - *Web API*: stateless. If several `web` VMs are needed, an #ext("nginx")[nginx] #ext("nginx-upstream")[`upstream`] block balances the load across them and removes a failed instance. This choice will be settled based on load tests.
+
+#mermaid(
+  "
+  flowchart LR
+    B[Browsers] --> N
+    subgraph WEB[web VMs]
+      N[nginx<br/>upstream if several] --> API[Stateless API]
+    end
+    subgraph JUDGE[judge VMs]
+      J[Stateless judges]
+    end
+    subgraph DB[db VMs]
+      P[(PostgreSQL primary)] -->|streaming replication| R[(Hot standby)]
+    end
+    API --> P
+    J -->|pull jobs| P
+    P --> BK[(Backups<br/>outside the VM)]
+    ANS[Ansible inventory<br/>web, judge, db] -.->|one playbook| WEB
+    ANS -.-> JUDGE
+    ANS -.-> DB
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 === Consequences
 

@@ -1,4 +1,4 @@
-#import "../template.typ": arch, ext, validation
+#import "../template.typ": arch, ext, mermaid, validation
 
 == ADR-0001 — Submission queue in PostgreSQL <adr-0001>
 
@@ -29,6 +29,20 @@ The application and the judge engine must be decoupled by a queue able to absorb
 === Decision
 
 The queue is implemented in PostgreSQL. Judges pull jobs with `SELECT … FOR UPDATE SKIP LOCKED` and are woken up by `LISTEN/NOTIFY`.
+
+#mermaid(
+  "
+  stateDiagram-v2
+    direction LR
+    [*] --> waiting: inserted with the submission, NOTIFY
+    waiting --> running: claimed with SKIP LOCKED
+    running --> done: verdict written with the pedagogical state
+    running --> waiting: abandoned by a failed judge, reclaimed
+    done --> [*]
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 === Consequences
 

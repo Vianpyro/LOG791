@@ -1,4 +1,4 @@
-#import "../template.typ": adr, arch, course, ext, validation
+#import "../template.typ": adr, arch, course, ext, mermaid, validation
 
 == ADR-0015 — Question types and mixed assessments <adr-0015>
 
@@ -47,6 +47,40 @@ Instructors expect at least every #ext("moodle-questions")[Moodle question type]
 Tiers are an order, not an exclusion: Q1 comes with #course("LOG200") and #course("LOG121"), Q2 after load validation, Q3 on request. Audio and video recording are out of scope.
 
 *Mixed assessments.* An exam or assignment is an activity mode (#adr("0014")) and an ordered list of _slots_. A slot is a fixed item or a draw of $n$ items from a pool (a tag or a category of the course bank), with its points, and whether its choices are shuffled. The exam defines its sections, whether slots are shuffled and whether navigation is free or sequential. Draws, shuffles and calculated variants are deterministic: the seed is derived from (offering, exam, student) by the server, so a reload or a Safe Exam Browser restart shows the same exam. Every item is autosaved as a draft. The score is the sum of item scores; a code item keeps its full judge verdict.
+
+#mermaid(
+  "
+  classDiagram
+    direction LR
+    class Exam {
+      activity mode
+      sections
+      shuffled slots or not
+      free or sequential navigation
+    }
+    class Slot {
+      points
+      shuffled choices or not
+    }
+    class FixedItem
+    class PoolDraw {
+      n items
+      pool: tag or category
+    }
+    class Item {
+      public part
+      private part
+      grader family
+    }
+    Exam \"1\" *-- \"many\" Slot
+    Slot <|-- FixedItem
+    Slot <|-- PoolDraw
+    FixedItem --> \"1\" Item
+    PoolDraw --> \"n\" Item : seeded by offering, exam, student
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 *Grading.* The judge stays the only reader of assessment data (#arch("double-check-by-the-judge")[architecture]). Non-code graders are pure functions over data and run in the judge process, without a sandbox; code items go through the sandbox as before. Regular expressions written by instructors run on a linear-time engine (#ext("re2")[RE2]), which rules out catastrophic backtracking. Calculated variants and derived keys are computed at publication time, never per request. Manual items wait in a grading queue visible to the TAs of the offering (#adr("0012")).
 

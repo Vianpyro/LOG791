@@ -1,4 +1,4 @@
-#import "../template.typ": adr, arch, ext, validation
+#import "../template.typ": adr, arch, ext, mermaid, validation
 
 == ADR-0008 — Running visible tests in the browser <adr-0008>
 
@@ -61,13 +61,34 @@ The other languages keep running on the server.
 
 Only the languages actually supported by a course are concerned.
 
-Flow of a test run for a retained language:
+Flow of a test run:
 
-+ The visible tests run in a Web Worker, and results are displayed as they come in.
-+ The code is sent to the server *only if all visible tests pass*. Most attempts fail on a visible test and therefore never reach the server.
-+ The server runs the hidden tests, and the visible tests as well. The main cost is sandbox startup and compilation. The visible tests therefore add little cost, and they make it possible to detect a discrepancy between the browser and the judge, which is reported to the student.
+#mermaid(
+  "
+  sequenceDiagram
+    participant B as Browser
+    participant W as Web Worker
+    participant A as API
+    participant J as Judge
+    alt retained language
+      B->>W: run the visible tests
+      W-->>B: results, displayed as they come in
+      opt all visible tests pass
+        B->>A: code
+      end
+    else other languages
+      B->>A: code
+    end
+    A->>J: job through the queue
+    J->>J: one compilation, hidden tests, visible tests
+    J-->>A: NOTIFY
+    A-->>B: result over SSE, browser/judge discrepancy reported
+  ",
+  document-context: true,
+  width: 100%,
+)
 
-For the other languages, the code is sent directly to the server.
+The code is sent to the server *only if all visible tests pass*. Most attempts fail on a visible test and therefore never reach the server. The server runs the visible tests as well: the main cost is sandbox startup and compilation, so they add little, and they make it possible to detect a discrepancy between the browser and the judge, which is reported to the student.
 
 Server results arrive through *#ext("sse")[Server-Sent Events]*, in a single stream per student. The judge notifies the API through #ext("postgresql")[PostgreSQL]'s #ext("listen-notify")[`LISTEN`/`NOTIFY`]. No new component is added.
 

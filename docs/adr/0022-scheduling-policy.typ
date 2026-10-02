@@ -1,4 +1,4 @@
-#import "../template.typ": adr, arch, ext, validation
+#import "../template.typ": adr, arch, ext, mermaid, validation
 
 == ADR-0022 — Submission scheduling policy <adr-0022>
 
@@ -42,6 +42,24 @@ Judges keep claiming with `SELECT … FOR UPDATE SKIP LOCKED` (#adr("0001")). Th
 (protected DESC, base + aging - penalty DESC, enqueued_at, id)
 ```
 
+#mermaid(
+  "
+  flowchart TD
+    W[Waiting jobs] --> K1[1. protected first<br/>exam]
+    K1 --> K2[2. highest score]
+    K2 --> K3[3. oldest enqueued_at]
+    K3 --> K4[4. lowest id]
+    K4 --> C[Claimed with<br/>FOR UPDATE SKIP LOCKED]
+    subgraph SCORE[Score]
+      B[base<br/>mode or kind]
+      A[+ aging<br/>10 per minute, up to 300]
+      P[- penalty<br/>k × usage, up to 300]
+    end
+    SCORE --> K2
+  ",
+  document-context: true,
+)
+
 - *Protected modes*: a mode is `protected` or not; exam is protected. A protected job is always claimed before any other, whatever its score. This is a flag, not a number, so no aging or penalty setting can move a non-exam job ahead of an exam.
 - *Live and deferred jobs*: a _live_ job has someone waiting for its answer (a test run, a practice or assignment submission) and takes the base of its activity mode. A _deferred_ job is queued by the platform: grading of final submissions when a session closes (#adr("0008")), performance measurement (#adr("0007")), and re-judging requested by an instructor (#adr("0012")). A deferred job is never protected, so grading an exam that has ended never goes ahead of the test runs of an exam in progress, and it is never charged to anyone's usage.
 - *Base priority*: an integer, not code. For a live job it is part of the activity mode policy (#adr("0014")); for a deferred job it is set per kind. Values are spaced so that a new mode or kind takes a free value between two existing ones, without renumbering or retuning anything:
@@ -68,6 +86,20 @@ Judges keep claiming with `SELECT … FOR UPDATE SKIP LOCKED` (#adr("0001")). Th
   - The penalty is bounded and cannot be saved up in advance; it grows with repeated load imposed on others, not with one slow run. Submission rate is already bounded by the running-job limit and by #ext("nginx-limit-req")[`limit_req`].
 - *Grade turnaround*: how fast deferred work finishes is a matter of capacity, not priority. Waiting deferred jobs make the scaler start on-demand judges up to the cap (#adr("0021")). Since measurement is deterministic, it can also run on another VM without skewing the result (#adr("0007")). A deadline-based boost is only added if load tests show the turnaround is not met.
 - *Parameters* (base values, aging rate and cap, half-life, `k`, penalty cap, running-job limit) are read at claim time, so changing them needs no redeployment. Load tests set them.
+
+When an exam or a graded lab closes, the deferred work follows in this order:
+
+#mermaid(
+  "
+  flowchart LR
+    E[Session closes] --> G[Grading of every final submission<br/>deferred, base 600]
+    G --> M[Performance measurement of the last<br/>submission per student and exercise<br/>deferred, base 0]
+    M --> R[Grades available]
+    R --> AGS[Moodle, through AGS]
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 No scheduler process is added: the policy is the claim query.
 

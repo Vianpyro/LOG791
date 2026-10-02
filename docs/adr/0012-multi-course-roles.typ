@@ -1,4 +1,4 @@
-#import "../template.typ": adr, arch, course, ext, validation
+#import "../template.typ": adr, arch, course, ext, mermaid, validation
 
 == ADR-0012 — Courses, offerings and per-course roles <adr-0012>
 
@@ -23,6 +23,35 @@ The architecture was written for a single course. The instructor preview relies 
 - *Content*: one content repository per course, with its own owners and its own proof CI; the `current` release pointer (#adr("0005")) is kept per course, so rolling back LOG121 does not affect LOG200.
 - *Capacity*: exams are scheduled in advance and reserve judges for each group's time slot (#adr("0020"), #adr("0021")); outside exams, each offering has a queue quota so that a large assignment does not starve a lab.
 - *Accommodations*: extra time and a shifted time slot per student and per exam; time is still computed by the server.
+
+#mermaid(
+  "
+  erDiagram
+    COURSE ||--o{ OFFERING : \"given in a term\"
+    COURSE ||--|| CONTENT_REPOSITORY : \"owns, with its current pointer\"
+    OFFERING ||--|{ GROUP : \"split into\"
+    OFFERING ||--o{ ROLE : \"grants\"
+    USER ||--o{ ROLE : \"holds\"
+    OFFERING ||--o{ ACTIVITY : \"owns\"
+    OFFERING ||--o{ SUBMISSION : \"owns\"
+    OFFERING ||--o{ RESULT : \"owns\"
+    COURSE {
+      string code \"e.g. LOG200\"
+    }
+    OFFERING {
+      string term \"e.g. A2026\"
+      int queue_quota
+    }
+    ROLE {
+      string role \"student, ta, instructor or coordinator\"
+    }
+    USER {
+      bool admin \"the only global role\"
+    }
+  ",
+  document-context: true,
+  width: 100%,
+)
 
 === Consequences
 

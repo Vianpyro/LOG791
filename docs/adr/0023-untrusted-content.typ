@@ -1,4 +1,4 @@
-#import "../template.typ": adr, arch, course, ext, validation
+#import "../template.typ": adr, arch, course, ext, mermaid, validation
 
 == ADR-0023 — Course content as untrusted input <adr-0023>
 
@@ -58,6 +58,28 @@ Course content is untrusted input. *The blast radius of a content author is thei
 + *Every offering has a budget.* Deferred jobs started for an offering (re-judging, reference runs, derived keys) are charged to that offering's queue quota (#adr("0012")), not to no one (#adr("0022")); they still never count against a student's usage. Publications per hour are limited per course. The judges reserved for an exam are computed by the server from the group's enrollment (#adr("0021")); a reservation above a threshold needs an `admin`.
 + *Roles never come from the content's author.* An `admin` binds an LTI context to an offering. A CSV import only touches the importer's own offerings and only grants roles below the importer's. `admin` never comes from an enrollment source.
 + *Every publication is traced and can be stopped.* Each repository has its own read-only deploy key. A per-course webhook, signed with HMAC, only triggers a fetch and carries no data. The publication log records the push identity given by the Git host, since a commit's author field can be forged. An `admin` can freeze a course's publication, pin its pointer and suspend its quota.
+
+A publication, confined to one course; the publisher container runs under gVisor, without network, secrets or database access:
+
+#mermaid(
+  "
+  flowchart TD
+    PUSH[Push to a course's<br/>content repository] --> WH[Signed per-course webhook<br/>no data, triggers a fetch]
+    PUSH -.-> LOG[Publication log<br/>push identity from the Git host]
+    WH --> F[Fetch with the repository's<br/>read-only deploy key]
+    F --> X
+    subgraph PUBC[Publisher container of this course]
+      X[Tree exported from Git objects<br/>links, submodules, LFS refused] --> RND[Typst and merman]
+      RND --> SAN[Allow-list sanitizer]
+    end
+    CACHE[Rendering cache<br/>of this course only] <--> RND
+    SAN --> REL[Release area<br/>of this course only]
+    REL --> TR{Trusted step: release of<br/>this course, hash matches?}
+    TR -->|yes| PTR[current pointer moved]
+    TR -->|no| KEEP[Pointer unchanged]
+  ",
+  document-context: true,
+)
 
 === Residual risks
 
