@@ -807,7 +807,6 @@ Three conceptual modes are currently envisioned:
 
     P --> P1[Exploration]
     P --> P2[Full feedback]
-    P --> P3[Social features]
 
     A --> A1[Deadline]
     A --> A2[Progress]
@@ -871,10 +870,10 @@ An exam must be able to rely on reserved judging capacity.
 
 The goal is to prevent a non-critical activity from consuming all the workers while students are taking an exam.
 
-#hypothesis[
-  A priority system or separate capacity pools could be
-  sufficient to guarantee this property without requiring a
-  completely separate infrastructure.
+Capacity and order are guaranteed separately, without separate infrastructure or capacity pools.
+
+#decision[
+  Before each scheduled exam session, each judge VM raises its floor of permanent judges to the reserved number (#adr("0021")). Exam jobs are protected in the claim query and are always claimed before any other job (#adr("0022")).
 ]
 
 = Courses and roles <arch-courses-and-roles>
@@ -1857,6 +1856,14 @@ The following choices remain conditional or will have to be confirmed experiment
   [Reverse proxy], [nginx; `upstream` if several `web` VMs], [TLS handling by the institution],
 
   [Queue], [PostgreSQL (`SKIP LOCKED`)], [Exam load tests],
+
+  [Scheduling policy],
+  [Protected exams, base priority per mode, aging, usage penalty (#adr("0022"))],
+  [Exam p95 wait and no starvation with one student flooding the queue],
+
+  [Judge capacity],
+  [Floor and cap per judge VM, floor raised before exams (#adr("0021"))],
+  [Rise to the cap and back to the floor with no run cut short; reserved judges up before the exam],
 
   [Cache], [No dedicated service; judge-side cache], [Profiling of a submission's cost],
 
