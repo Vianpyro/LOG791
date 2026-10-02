@@ -38,7 +38,7 @@ jobs:
         run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
 
       - name: Python
-        uses: astral-sh/ruff-action@v3
+        uses: astral-sh/ruff-action@v4
 
       # Same versions as the dev container, from its requirements file.
       - name: Ansible
