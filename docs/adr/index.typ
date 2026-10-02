@@ -33,6 +33,7 @@
   [#adr("0021", body: "0021")], [Bounded on-demand judges], [Proposed],
   [#adr("0022", body: "0022")], [Submission scheduling policy], [Proposed],
   [#adr("0023", body: "0023")], [Course content as untrusted input], [Proposed],
+  [#adr("0024", body: "0024")], [Passive updates], [Proposed],
 )
 
 Relations declared in the status of each ADR: a solid arrow refines, a thick arrow supersedes, a dotted arrow applies, extends or feeds the ADR it points to. ADRs without a declared relation are not shown.
@@ -55,6 +56,7 @@ Relations declared in the status of each ADR: a solid arrow refines, a thick arr
     A0021[0021 On-demand judges]
     A0022[0022 Scheduling policy]
     A0023[0023 Untrusted content]
+    A0024[0024 Passive updates]
 
     A0006 ==> A0003
     A0010 --> A0001
@@ -77,6 +79,8 @@ Relations declared in the status of each ADR: a solid arrow refines, a thick arr
     A0023 --> A0016
     A0023 --> A0021
     A0023 --> A0022
+    A0024 --> A0010
+    A0024 --> A0021
   ",
   document-context: true,
   width: 100%,
@@ -105,3 +109,4 @@ Relations declared in the status of each ADR: a solid arrow refines, a thick arr
 #include "0021-on-demand-judges.typ"
 #include "0022-scheduling-policy.typ"
 #include "0023-untrusted-content.typ"
+#include "0024-passive-updates.typ"

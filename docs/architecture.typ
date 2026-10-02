@@ -302,7 +302,7 @@ No dedicated load balancer is planned as long as the API fits on one VM.
 - On the HTTP side, the API is run by several processes (#ext("uvicorn")[uvicorn] workers) sharing the same socket; the kernel distributes connections among them.
 - On the judging side, judges _pull_ jobs from the queue rather than having them pushed. The queue therefore acts as the dispatcher itself, and capacity is adjusted by changing the number of judges.
 
-Since several processes serve the API, none of them holds state in memory that another would need: quotas, presence and sessions live in PostgreSQL. CTester runs a single uvicorn worker precisely because its quotas and presence are held in memory.
+Since several processes serve the API, none of them holds state in memory that another would need: quotas, presence and sessions live in PostgreSQL. CTester runs a single uvicorn worker precisely because its quotas and presence are held in memory. The same property lets a new API instance take over from the old one during an update, without interrupting the service (#adr("0024")).
 
 #decision[
   If the API is spread over several `web` VMs, an nginx #ext("nginx-upstream")[`upstream`] block balances the load and removes a failed instance; this choice will be settled based on load tests (#adr("0010")).
@@ -705,7 +705,7 @@ No dedicated cache server (Redis, #ext("memcached")[Memcached]) is planned initi
   stroke: 0.5pt,
   [*Location*], [*Content*],
 
-  [Browser / nginx], [Static files versioned by hash and served with long-lived `Cache-Control` headers.],
+  [Browser / nginx], [Static files versioned by hash and served with long-lived `Cache-Control` headers; `index.html` is not cached. The previous release's files stay served, so a tab opened before an update keeps working (#adr("0024")).],
 
   [API], [Published exercise data, rarely modified, kept in process memory.],
 
@@ -1550,6 +1550,28 @@ A distinction must be maintained between:
 * human validation;
 * deployment to production.
 
+== Updates without interruption <arch-updates-without-interruption>
+
+An admin who deploys most likely does it to fix a problem, so the fix must take effect within minutes. During an exam, a deployment is refused unless the admin forces it explicitly, as with `git push --force`. Most components can change version without interrupting anyone, provided each one waits for its own idle moment.
+
+#decision(id: "ADR-0024")[
+  A deployment refuses to start while an exam is in progress or starts within 30 minutes, unless run with `-e force=true`, which leaves a `deploy.forced` event. It publishes the desired version of each component and restarts nothing passive. An outdated judge leaves after 10 s without a job, one at a time per VM, and at the latest at the end of its job after 2 minutes; a run is never cut short. The API changes hands between two instances behind nginx, the web interface changes on the next reload, and migrations are expand/contract so two versions can run side by side. Only disruptive steps show the maintenance notice.
+]
+
+#table(
+  columns: (3cm, 1fr),
+  stroke: 0.5pt,
+  [*Component*], [*Switches to the new version*],
+  [Judges], [When idle for 10 s, one per VM at a time; at the end of their job after 2 minutes],
+  [Pre-started sandboxes], [Replaced when idle],
+  [API], [New instance behind nginx; the old one finishes its requests; SSE reconnects with `Last-Event-ID`],
+  [Web interface], [On the next reload; the previous release's files stay served],
+  [nginx], [Graceful `reload`],
+  [Dashboard, scaler], [Restarted directly; they hold no job],
+  [Publisher], [At the next publication],
+  [PostgreSQL restart, heavy migration, reboot of a single instance], [Disruptive: maintenance notice],
+)
+
 = Observability <arch-observability>
 
 Diagnosing an ongoing exam relies on three mechanisms carried over from #ext("ctester")[CTester], none of which adds a service to the VMs.
@@ -1573,19 +1595,20 @@ This protects the passwords that transit through the API (#adr("0017")) and keep
 While a flag file exists on the `web` VMs, every open tab shows that an update is under way, then that the service is back once the API answers again. The notice goes through the existing SSE stream. A flag older than thirty minutes is ignored, so an interrupted run cannot leave the notice up for good. The Ansible deployment raises the flag in a `block` and removes it in `always`.
 
 #decision[
-  A deployment refuses to start while an exam is scheduled or in progress (#adr("0012")), and waits for the queue to drain before restarting the judges.
+  Only a disruptive step raises the flag: a PostgreSQL restart, a migration that takes a heavy lock, or a reboot or runtime upgrade on a role with a single instance. Passive components update themselves without a notice (#arch("updates-without-interruption")[Updates without interruption]). A deployment refuses to start while an exam is in progress or starts within 30 minutes (#adr("0012")), unless forced with `-e force=true` (#adr("0024")).
 ]
 
 #mermaid(
   "
   flowchart TD
-    S[Ansible run from an operator<br/>workstation on the VPN] --> E{Exam scheduled<br/>or in progress?}
-    E -->|yes| X[Refused]
-    E -->|no| F[Flag raised on the web VMs<br/>block]
+    S[Ansible run from an operator<br/>workstation on the VPN] --> E{Exam in progress<br/>or within 30 min?}
+    E -->|yes, not forced| X0[Refused]
+    E -->|no, or forced| D{Disruptive step?}
+    D -->|no| P[Passive components switch<br/>at their own idle moment, no notice]
+    D -->|yes| F[Flag raised on the web VMs<br/>block]
     F --> N[Every open tab shows the notice<br/>through the SSE stream]
-    N --> Q[Wait for the queue to drain]
-    Q --> J[Judges restarted]
-    J --> R[Flag removed<br/>always]
+    N --> X[Disruptive step]
+    X --> R[Flag removed<br/>always]
     R --> B[Tabs show the service is back<br/>once the API answers]
   ",
   document-context: true,
@@ -1864,6 +1887,10 @@ The following choices remain conditional or will have to be confirmed experiment
   [Judge capacity],
   [Floor and cap per judge VM, floor raised before exams (#adr("0021"))],
   [Rise to the cap and back to the floor with no run cut short; reserved judges up before the exam],
+
+  [Updates],
+  [Passive per component, notice for disruptive steps only (#adr("0024"))],
+  [No run cut short, judges converged within 2 minutes, no notice for a routine release, refused during an exam unless forced],
 
   [Cache], [No dedicated service; judge-side cache], [Profiling of a submission's cost],
 
