@@ -323,6 +323,10 @@ It will eventually need to support:
   experimentally based on the observed loads.
 ]
 
+#decision(id: "ADR-0022")[
+  Exam jobs are always claimed first. Other jobs are ordered by a base priority taken from their activity mode, plus a bonus for waiting time, minus a penalty for the judging time their author has used recently while others were waiting. The values are spaced so a new mode fits between two others. The policy is the claim query itself: no scheduler process is added.
+]
+
 #decision[
   The queue is initially implemented in PostgreSQL (#ext("skip-locked")[`SELECT … FOR UPDATE SKIP LOCKED`] and #ext("listen-notify")[`LISTEN/NOTIFY`]) rather than with a dedicated service such as #ext("redis")[Redis] or #ext("rabbitmq")[RabbitMQ].
 ]
@@ -1652,7 +1656,7 @@ Several important questions are deliberately left open.
 
 1. Is PostgreSQL sufficient as a submission queue under an exam load?
 2. Which scheduling policy minimizes perceived latency during an
-  exam?
+  exam? A first answer is given in #adr("0022"), whose parameters load tests set.
 3. How many workers are needed for 1250 students in concurrent exams (#arch("target-load")[Target load])? The cap per judge VM is measured for this (#adr("0021")).
 4. How many resources should be allocated to each submission?
 5. What is the real cost of gVisor for realistic compilations?
@@ -1673,6 +1677,7 @@ Several important questions are deliberately left open.
 19. Should existing Moodle question banks be imported (Moodle XML, GIFT), and for which families? CTester's importer is a starting point: it converts Moodle XML and reports what it cannot express instead of dropping it. The grader families (#adr("0015")) cover more types than CTester, such as calculated, essay and image drag and drop.
 20. How do TAs grade manual items (essay, UML diagram, file upload) during a heavy exam period: per item across students, or per student?
 21. Do ÉTS Moodle spaces match one course group each, or merge several groups? In the first case the LTI context gives the group; in the second, group membership comes from the CSV import (#adr("0020")).
+22. Does Moodle accept #ext("ags")[AGS] grade updates after an activity has closed? Grading and performance measurement finish after the session (#adr("0022")); a locked grade item or a grade overridden in the Moodle gradebook would reject them. To confirm with the ÉTS Moodle administrators.
 
 = Validation methodology <arch-validation-methodology>
 

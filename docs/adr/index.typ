@@ -31,6 +31,7 @@
   [#adr("0019", body: "0019")], [Operations and teaching dashboard], [Proposed],
   [#adr("0020", body: "0020")], [Schedules per course group], [Proposed],
   [#adr("0021", body: "0021")], [Bounded on-demand judges], [Proposed],
+  [#adr("0022", body: "0022")], [Submission scheduling policy], [Proposed],
 )
 
 #include "0001-postgresql-queue.typ"
@@ -54,3 +55,4 @@
 #include "0019-dashboard.typ"
 #include "0020-group-schedules.typ"
 #include "0021-on-demand-judges.typ"
+#include "0022-scheduling-policy.typ"

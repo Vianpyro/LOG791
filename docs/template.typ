@@ -118,6 +118,7 @@
   seb-config-key: "https://safeexambrowser.org/developer/seb-config-key.html",
   service-workers: "https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API",
   skip-locked: "https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE",
+  slurm-fairshare: "https://slurm.schedmd.com/priority_multifactor.html",
   sse: "https://html.spec.whatwg.org/multipage/server-sent-events.html",
   stack: "https://stack-assessment.org/",
   streaming-replication: "https://www.postgresql.org/docs/current/warm-standby.html",
