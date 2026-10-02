@@ -112,6 +112,12 @@ A submission is turned into an asynchronous job and handled by a component speci
 
 This separation reduces the main application's attack surface and allows different resource policies to be applied to code execution.
 
+Zero trust also covers the teaching team. Statements, templates, tests, reference solutions and judge configurations are written by many instructors, lecturers and lab instructors, any of whom may be malicious or have a compromised account.
+
+#decision(id: "ADR-0023")[
+  Course content is untrusted input. The blast radius of a content author is their own offering: what they do to their own course is traced, and anything outside it is impossible by construction. Content is data, author code only runs in the judge's sandbox, and the publisher, the sandbox mounts, the caches and the quotas are confined to one course (#arch("hostile-content-author")[Hostile content author]).
+]
+
 == Separation between application and judging <arch-separation-between-application-and-judging>
 
 The main application is responsible in particular for:
@@ -1096,7 +1102,7 @@ Formulas are explicitly delimited by `$…$` and converted to native #ext("mathm
   A formula is never guessed. In C, `z/4` is an integer division and not a fraction, and a fraction bar would teach the opposite. A formula that does not parse is displayed as inline code, never as an error.
 ]
 
-Markdown content comes from the private repository reviewed by the teaching team. Any HTML output is nevertheless built from escaped fragments.
+Markdown content comes from the course's content repository, which is untrusted (#adr("0023")). The grammar has no raw HTML and no links, and any HTML output is built from escaped fragments.
 
 #hypothesis[
   Content written by students (forum, discussions) requires a different pipeline: escaping before parsing and allow-list sanitization on every display. The two pipelines must not be merged.
@@ -1129,8 +1135,10 @@ Compilation treats the document as untrusted, even if it is written by the teach
 
 - it is done from a *copy* of the exercise that does not contain the assessment data;
 - the Typst project root is limited to this copy, which rejects outgoing relative paths and re-roots absolute paths;
-- the container has no network access, and the packages used (course template, #ext("mermaid")[Mermaid]) are vendored;
-- a maximum timeout bounds a heavy document that would block publishing.
+- the copy is exported from Git objects, and symbolic links, submodules and non-regular files are refused;
+- the container runs under #ext("gvisor")[gVisor], has no network access, and the packages used (course template, #ext("mermaid")[Mermaid]) are vendored;
+- a maximum timeout and a memory limit bound a heavy document that would block publishing;
+- the produced HTML and SVG go through an allow-list sanitizer: Typst's HTML export accepts any element, `script` included (#adr("0023")).
 
 The course template is distributed as a local Typst package. The instructor writes no preamble: the platform applies the template, then includes the statement.
 
@@ -1151,7 +1159,7 @@ The cache key covers everything rendering depends on: Typst version, template, v
 Rendered files are part of the release hash. A template change therefore produces a new release, which can be rolled back through the pointer like any other publication.
 
 #decision[
-  The rendering cache is content-addressed and kept outside the releases directory, which is pruned at each publication.
+  The rendering cache is content-addressed and kept outside the releases directory, which is pruned at each publication. Each course has its own cache, so one course cannot write ahead of time the output another course will look up (#adr("0023")).
 ]
 
 === Accessibility limitation <arch-accessibility-limitation>
@@ -1529,6 +1537,37 @@ A stronger physical or virtual separation between the application and the judge 
   The distribution of roles (`web`, `judge`, `db`) across the VMs (#adr("0010")) will have to be determined based on the available resources, the threat model and the results of the load tests.
 ]
 
+== Hostile content author <arch-hostile-content-author>
+
+A content author can push anything to their course's repository and holds the `instructor` or `ta` role in their offerings. The platform cannot stop them from harming their own course, but it must stop them from reaching anything else: other courses, the platform, the ÉTS accounts of their students.
+
+#table(
+  columns: (4.2cm, 1fr),
+  stroke: 0.5pt,
+  [*Attack surface*], [*Control (#adr("0023"))*],
+  [Statement HTML and SVG (script, fake sign-in form)],
+  [Allow-list sanitizer after Typst and merman; strict CSP with `form-action 'self'`],
+
+  [Files in `public/`], [Separate origin without cookies, `attachment`, `nosniff`],
+  [Symbolic links, submodules, identifiers such as `../`],
+  [Tree read from Git objects and refused; course set by the server; paths prefixed by the course],
+
+  [Rendering cache], [One cache per course],
+  [Author code (tests, reference, generators, derived keys)],
+  [Deferred job in the judge's sandbox, charged to the offering; never in the publisher or the judge process],
+
+  [Formulas and symbolic answers], [Restricted grammar, never evaluated as code],
+  [Judge configuration], [Versioned schema; pack and options from enumerations; limits capped by the pack],
+  [Private tests in the sandbox], [Only the judged exercise's `assessment/` subtree, read-only],
+  [Visible tests in the browser], [Worker in a sandboxed iframe with an opaque origin, no network],
+  [Oracle setup script], [Runs as the disposable schema's user, on its own VM and network segment],
+  [Re-judging, exam reservations], [Charged to the offering's quota; reservation computed from enrollment],
+  [LTI and CSV roles], [LTI context bound by an `admin`; CSV only grants roles below the importer's],
+  [Strings shown in the dashboard], [Plain text, inserted with `textContent`],
+)
+
+Each publication is traced with the push identity given by the Git host, and an `admin` can freeze a course's publication, pin its pointer and suspend its quota.
+
 == Network <arch-network>
 
 Student code normally has no reason to access the Internet or the institution's internal network.
@@ -1646,6 +1685,10 @@ The following choices remain conditional or will have to be confirmed experiment
   [Group schedules],
   [Dates per group, closed by default (#adr("0020"))],
   [Same activity open for one group and closed for another, through the API and the judge],
+
+  [Hostile content],
+  [Content is untrusted, confined to its offering (#adr("0023"))],
+  [Hostile content repository fixture: every case refused or neutralized],
 )
 
 The architecture will be considered stable only after validation of the hypotheses that have a significant impact on the system's security, performance or operability.
@@ -1670,7 +1713,7 @@ Several important questions are deliberately left open.
 12. What observability is needed to diagnose an ongoing exam? A first answer is given in #arch("observability")[Observability] and #adr("0019"); it remains to be checked during a load test.
 13. How can Moodle and Safe Exam Browser be integrated cleanly? For the MVP, the platform is allowed in the instructor's `.seb` file; SEB verification (#adr("0009")) is deferred, and the handoff from Moodle to the platform through LTI remains to be specified.
 14. Which part of the architecture should be common to the different courses? A first answer is given by #adr("0012") and #adr("0014"); LOG121 will test it.
-15. How is assessment data distributed to the judges when they are spread over several machines: shared mount, copy at publication time or versioned artifact?
+15. How is assessment data distributed to the judges when they are spread over several machines: shared mount, copy at publication time or versioned artifact? Whatever the answer, a sandbox only receives the judged exercise's `assessment/` subtree (#adr("0023")).
 16. Is performance graded by a complexity verdict (one reference per exercise) or by a full ranking (one reference per language)? To be settled with the instructor.
 17. Is code that does not pass all tests measured? If the last submission fails while an earlier one passed, which one is measured?
 18. Which languages does each course support, and which of them can run in the browser? A first inventory is given in the #arch("appendix-course-inventory")[appendix] and the tiers in #adr("0013"); it remains to be confirmed with each course coordinator.
@@ -1678,6 +1721,7 @@ Several important questions are deliberately left open.
 20. How do TAs grade manual items (essay, UML diagram, file upload) during a heavy exam period: per item across students, or per student?
 21. Do ÉTS Moodle spaces match one course group each, or merge several groups? In the first case the LTI context gives the group; in the second, group membership comes from the CSV import (#adr("0020")).
 22. Does Moodle accept #ext("ags")[AGS] grade updates after an activity has closed? Grading and performance measurement finish after the session (#adr("0022")); a locked grade item or a grade overridden in the Moodle gradebook would reject them. To confirm with the ÉTS Moodle administrators.
+23. Where are the content repositories hosted (GitHub, a GitLab at ÉTS), who can push to them, and does the host expose the identity of each push? The publication log relies on it, since a commit's author field can be forged (#adr("0023")).
 
 = Validation methodology <arch-validation-methodology>
 

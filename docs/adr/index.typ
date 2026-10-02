@@ -32,6 +32,7 @@
   [#adr("0020", body: "0020")], [Schedules per course group], [Proposed],
   [#adr("0021", body: "0021")], [Bounded on-demand judges], [Proposed],
   [#adr("0022", body: "0022")], [Submission scheduling policy], [Proposed],
+  [#adr("0023", body: "0023")], [Course content as untrusted input], [Proposed],
 )
 
 #include "0001-postgresql-queue.typ"
@@ -56,3 +57,4 @@
 #include "0020-group-schedules.typ"
 #include "0021-on-demand-judges.typ"
 #include "0022-scheduling-policy.typ"
+#include "0023-untrusted-content.typ"
