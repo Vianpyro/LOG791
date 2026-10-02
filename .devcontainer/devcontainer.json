@@ -15,9 +15,14 @@
     "8001": { "label": "Admin" },
     "ldap:17170": { "label": "lldap (admin / log791-admin)" }
   },
+  // The environment lives in the container (UV_PROJECT_ENVIRONMENT), so it is made once per build.
+  "postCreateCommand": "uv sync --locked",
   "postStartCommand": "bash .devcontainer/check.sh",
   "customizations": {
     "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/home/vscode/.venv/bin/python"
+      },
       "extensions": [
         "ms-python.python",
         "charliermarsh.ruff",

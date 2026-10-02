@@ -40,6 +40,12 @@ jobs:
       - name: Python
         uses: astral-sh/ruff-action@v4.1.0
 
+      # Component boundaries (ADR-0014); uv at the dev container's version.
+      - name: Architecture
+        run: |
+          pip install "$(grep '^uv==' .devcontainer/requirements.txt)"
+          uv run --locked lint-imports
+
       # Same versions as the dev container, from its requirements file.
       - name: Ansible
         if: hashFiles('infrastructure/ansible/**/*.yml') != ''

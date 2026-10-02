@@ -1,1 +1,5 @@
 _site/
+.venv/
+__pycache__/
+.ruff_cache/
+.import_linter_cache/

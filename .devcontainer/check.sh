@@ -46,6 +46,7 @@ check "gvisor: python" 1 docker run --rm --runtime=runsc python:3.14-alpine pyth
 check "typst" 1 typst --version
 check "ansible" 1 ansible --version
 check "ansible-lint" 1 ansible-lint --version
+check "uv" 1 uv --version
 
 if [ "$failed" -ne 0 ]; then
   cat <<'EOF'

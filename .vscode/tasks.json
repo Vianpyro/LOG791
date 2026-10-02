@@ -10,6 +10,20 @@
       "problemMatcher": []
     },
     {
+      "label": "python: sync",
+      "detail": "Install the workspace and its locked dependencies after a pull",
+      "type": "shell",
+      "command": "uv sync",
+      "problemMatcher": []
+    },
+    {
+      "label": "architecture: check",
+      "detail": "Check component boundaries (ADR-0014), as CI does",
+      "type": "shell",
+      "command": "uv run lint-imports",
+      "problemMatcher": []
+    },
+    {
       "label": "docs: build site",
       "detail": "Every PDF and HTML page into _site/, then the dead-link check",
       "type": "shell",
