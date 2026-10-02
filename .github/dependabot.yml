@@ -1,5 +1,3 @@
-# Keeps every pinned version current. The Typst and runsc ARGs of
-# .devcontainer/Dockerfile are outside its reach and are updated by hand.
 version: 2
 
 updates:
