@@ -11,3 +11,6 @@ tokio = { version = "1.53.2", features = ["macros", "rt-multi-thread"] }
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+tower = { version = "0.5.3", features = ["util"] }
