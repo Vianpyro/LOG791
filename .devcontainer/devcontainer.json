@@ -18,7 +18,8 @@
     "ldap:17170": { "label": "lldap (admin / log791-admin)" }
   },
   // Dependencies are fetched once per build; builds go to CARGO_TARGET_DIR, outside the bind mount.
-  "postCreateCommand": "cargo fetch --locked",
+  // The commit-msg hook is enabled in .git/config, shared with the host.
+  "postCreateCommand": "cargo fetch --locked && git config core.hooksPath .githooks",
   "postStartCommand": "bash .devcontainer/check.sh",
   "customizations": {
     "vscode": {

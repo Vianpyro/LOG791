@@ -1,0 +1,34 @@
+# After a green CI on main: bumps the workspace version if the commits call for it, then
+# releases any untagged version and starts its image build (see release.sh).
+# One workflow rather than a bump workflow and a release workflow: a push made with
+# GITHUB_TOKEN, like the bump commit, triggers no other workflow.
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      # If main moved since this CI run, the bump push fails; the next run takes over.
+      - run: bash .github/release.sh
+        env:
+          GH_TOKEN: ${{ github.token }}

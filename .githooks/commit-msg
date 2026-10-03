@@ -1,0 +1,19 @@
+#!/bin/sh
+# Refuses a commit whose subject does not follow .copilot/commit-message-instructions.md.
+# Enabled by the dev container; elsewhere: git config core.hooksPath .githooks
+# CI runs it on every pushed commit, for those that skipped it.
+
+subject=$(grep -v '^#' "$1" | grep -m 1 .)
+types='feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert'
+
+# "Merge " lets a git pull merge through, e.g. after the release bot's bump.
+printf '%s\n' "$subject" | grep -qE "^($types)(\([^()]+\))?!?: [a-z].*[^.]$|^Merge " && exit 0
+
+cat >&2 <<EOF
+commit-msg: refused: "$subject"
+Expected <type>(<optional scope>)<optional !>: <description>
+  type: $types
+  description: starts with a lowercase verb, no final period
+See .copilot/commit-message-instructions.md
+EOF
+exit 1
