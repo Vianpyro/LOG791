@@ -45,6 +45,16 @@ jobs:
       - name: Architecture
         run: bash tests/architecture/boundaries.sh
 
+  # Reference solutions of the ADR-0018 spike against the example exercises; removed with the spike.
+  # The runner already has Python 3 and Java.
+  exercises:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Reference solutions
+        run: bash spikes/build-or-reuse/check.sh
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -52,8 +62,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Every tracked script, so a new one is checked without being listed here.
       - name: Shell scripts
-        run: shellcheck .devcontainer/*.sh .github/*.sh .githooks/* site/*.sh tests/architecture/*.sh tests/release/*.sh
+        run: git ls-files -z '*.sh' '.githooks/*' | xargs -0 shellcheck
 
       # The commit-msg hook, for the commits that skipped it: web editor, Dependabot, another clone.
       - name: Commit messages
