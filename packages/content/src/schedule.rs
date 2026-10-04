@@ -3,9 +3,11 @@
 mod accommodation;
 #[cfg(test)]
 mod fixtures;
+mod session;
 mod window;
 
 pub use accommodation::{Accommodation, ExtraTime};
+pub use session::session_closes_at;
 pub use window::Window;
 
 use std::time::SystemTime;
