@@ -881,6 +881,7 @@ The platform serves several courses, each taught every term by several people in
 ]
 
 - *Enrollments* come from Moodle through LTI 1.3 (the LTI context identifies the offering, #ext("nrps")[Names and Roles] provides the roster, #ext("ags")[Assignment and Grade Services] returns grades), or from a CSV import when Moodle is not available. The ÉTS Active Directory provides identity only (#adr("0017")).
+- *Grades per activity*: a course splits its activities between Moodle and the platform, never mirroring all of them. An activity sends its grades to Moodle only if a Moodle LTI activity with a grade item points to it; the launch then carries its AGS `lineitem`. Any other activity keeps its results in the platform (results per group, CSV export). An activity that exists only in Moodle is unknown to the platform.
 - *Schedules per group*: groups do not have their lectures, labs or contests at the same time. Opening and closing dates are entered per group by the instructor, in the platform, and never in the content (#adr("0020")).
 - *Shared capacity*: exams are scheduled in advance and reserve judges for each group's time slot; outside exams, each offering has a queue quota.
 - *Accommodations*: extra time and a shifted time slot per student and per exam, computed by the server.
@@ -901,7 +902,7 @@ Enrollments and grades through Moodle:
     M-->>A: members and their roles
     A->>D: recompute roles in this offering
     Note over A,D: without Moodle, a CSV import by the instructor
-    Note over M,D: later, once results are final
+    Note over M,D: later, once results are final, for activities with a Moodle grade item
     A->>M: Assignment and Grade Services: grades
   ",
   document-context: true,

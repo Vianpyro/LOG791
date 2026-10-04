@@ -35,6 +35,8 @@
   [#adr("0023", body: "0023")], [Course content as untrusted input], [Proposed],
   [#adr("0024", body: "0024")], [Passive updates], [Proposed],
   [#adr("0025", body: "0025")], [Server implementation language], [Proposed],
+  [#adr("0026", body: "0026")], [Spaced review activity mode], [Proposed],
+  [#adr("0027", body: "0027")], [Self-assessed activities], [Proposed],
 )
 
 Relations declared in the status of each ADR: a solid arrow refines, a thick arrow supersedes, a dotted arrow applies, extends or feeds the ADR it points to. ADRs without a declared relation are not shown.
@@ -59,6 +61,8 @@ Relations declared in the status of each ADR: a solid arrow refines, a thick arr
     A0023[0023 Untrusted content]
     A0024[0024 Passive updates]
     A0025[0025 Server language]
+    A0026[0026 Spaced review]
+    A0027[0027 Self-assessment]
 
     A0006 ==> A0003
     A0010 --> A0001
@@ -74,6 +78,10 @@ Relations declared in the status of each ADR: a solid arrow refines, a thick arr
     A0021 -.->|judge reservation| A0020
     A0022 -.->|queue priority| A0014
     A0025 -.->|applies| A0014
+    A0026 -.->|applies| A0014
+    A0027 -.->|applies| A0014
+    A0027 -.->|extends| A0015
+    A0027 -.->|self ratings| A0026
     A0023 --> A0005
     A0023 --> A0008
     A0023 --> A0012
@@ -114,3 +122,5 @@ Relations declared in the status of each ADR: a solid arrow refines, a thick arr
 #include "0023-untrusted-content.typ"
 #include "0024-passive-updates.typ"
 #include "0025-server-language.typ"
+#include "0026-spaced-review.typ"
+#include "0027-self-assessment.typ"
