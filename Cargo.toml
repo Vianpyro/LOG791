@@ -3,7 +3,7 @@ resolver = "3"
 members = ["apps/admin", "apps/api", "apps/judge", "apps/publisher", "packages/content", "packages/contracts"]
 
 [workspace.package]
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 rust-version = "1.99.0"
 publish = false
