@@ -1,7 +1,8 @@
-//! End of a session (ADR-0020)
+//! End of a session (ADR-0020).
+
+use std::time::SystemTime;
 
 use super::Schedule;
-use std::time::SystemTime;
 
 pub fn session_closes_at(students: &[Schedule]) -> Option<SystemTime> {
     students

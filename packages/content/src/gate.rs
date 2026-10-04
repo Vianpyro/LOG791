@@ -1,12 +1,14 @@
-//! The single gate every read of an exercise goes through (ADR-0020)
+//! The single gate every read of an exercise goes through (ADR-0020).
 
-use crate::{Schedule, active_release, exercise::exercise_dir};
-use contracts::Id;
 use std::{
     io,
     path::{Path, PathBuf},
     time::SystemTime,
 };
+
+use contracts::Id;
+
+use crate::{Schedule, active_release, exercise::exercise_dir};
 
 pub fn accessible_exercise(
     course_dir: &Path,
@@ -45,7 +47,7 @@ mod tests {
     }
 
     #[test]
-    fn open_exercise_resolve_to_its_directory() {
+    fn open_exercise_resolves_to_its_directory() {
         let course = course_with_sum("gate-open");
         let schedule = Schedule {
             offering: Some(Window {
