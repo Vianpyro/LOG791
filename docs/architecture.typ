@@ -1868,7 +1868,7 @@ The following choices remain conditional or will have to be confirmed experiment
   [LDAP bind against the ÉTS Active Directory (#adr("0017"))],
   [LDAPS endpoint and attributes, no password in logs],
 
-  [Build or reuse], [To decide (#adr("0018"))], [Comparison with Judge0, DMOJ, CodeRunner],
+  [Build or reuse], [Port CTester's judge (#adr("0018"))], [Java and Python judged under exam load (V-0018)],
 
   [Runtime], [Docker or Podman], [Compatibility with the isolation mechanism],
 

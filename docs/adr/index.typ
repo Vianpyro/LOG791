@@ -27,7 +27,7 @@
   [#adr("0015", body: "0015")], [Question types and mixed assessments], [Proposed],
   [#adr("0016", body: "0016")], [Mermaid diagrams in statements], [Proposed],
   [#adr("0017", body: "0017")], [Authentication against the ÉTS directory over LDAP], [Proposed],
-  [#adr("0018", body: "0018")], [Build the judge or reuse an existing one], [To write],
+  [#adr("0018", body: "0018")], [Build the judge or reuse an existing one], [Accepted, to validate],
   [#adr("0019", body: "0019")], [Operations and teaching dashboard], [Proposed],
   [#adr("0020", body: "0020")], [Schedules per course group], [Proposed],
   [#adr("0021", body: "0021")], [Bounded on-demand judges], [Proposed],
@@ -55,6 +55,7 @@ Relations declared in the status of each ADR: a solid arrow refines, a thick arr
     A0014[0014 Extension points]
     A0015[0015 Question types]
     A0016[0016 Mermaid in statements]
+    A0018[0018 Build or reuse]
     A0020[0020 Group schedules]
     A0021[0021 On-demand judges]
     A0022[0022 Scheduling policy]
@@ -74,6 +75,7 @@ Relations declared in the status of each ADR: a solid arrow refines, a thick arr
     A0013 -.->|applies| A0014
     A0015 -.->|applies| A0014
     A0016 -.->|extends| A0005
+    A0018 -.->|applies| A0025
     A0021 -.->|judge reservation| A0012
     A0021 -.->|judge reservation| A0020
     A0022 -.->|queue priority| A0014

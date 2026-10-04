@@ -68,12 +68,10 @@ The detailed analysis is recorded in the #arch("purpose-of-the-document")[archit
   [Content], [database, served copy, immutable releases], [Releases (#adr("0005"))],
   [Authentication], [#ext("entra")[Entra ID] (OIDC), #ext("ldap")[LDAP] against Active Directory], [LDAP (#adr("0017"))],
   [Server language], [Python, Java, C++, #ext("rust")[Rust]], [Rust (#adr("0025"))],
-  [Build or reuse], [extend CTester, #ext("judge0")[Judge0], #ext("dmoj")[DMOJ], #ext("coderunner")[CodeRunner]], [To decide (#adr("0018"))],
+  [Build or reuse], [extend CTester, #ext("judge0")[Judge0], #ext("dmoj")[DMOJ], #ext("coderunner")[CodeRunner]], [Port CTester's judge (#adr("0018"))],
 )
 
 Technologies: #ext("rust")[Rust] (#ext("axum")[axum], #ext("tokio")[tokio], #ext("sqlx")[sqlx]), #ext("postgresql")[PostgreSQL] (queue and #ext("streaming-replication")[streaming replication]), #ext("gvisor")[gVisor], #ext("docker")[Docker] or #ext("podman")[Podman], #ext("qemu-user")[QEMU user mode] (performance measurement), #ext("pyodide")[Pyodide]/WebAssembly (visible tests in the browser), #ext("ubuntu")[Ubuntu LTS] and #ext("ansible")[Ansible], #ext("nginx")[nginx] and #ext("certbot")[certbot], #ext("ldap")[LDAP] (ÉTS Active Directory), #ext("seb")[Safe Exam Browser], #ext("moodle")[Moodle] (#ext("lti")[LTI]), #ext("typst")[Typst], #ext("github-actions")[GitHub Actions].
-
-#todo[Complete #adr("0018"): whether an existing judge (Judge0, DMOJ, CodeRunner) is reused. First priority: it blocks the judge implementation.]
 
 = Schedule <plan-schedule>
 
