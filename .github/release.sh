@@ -10,6 +10,7 @@ set -euo pipefail
 run() { if [ -n "${DRY_RUN:-}" ]; then echo "+ $*"; else "$@"; fi; }
 
 version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml)
+[ -n "$version" ] || { echo "no version line in Cargo.toml (CRLF line endings?)" >&2; exit 1; }
 last=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
 
 if [ -n "$last" ]; then

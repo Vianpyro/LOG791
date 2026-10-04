@@ -1,3 +1,4 @@
-*.sh text eol=lf
+# LF everywhere, whatever core.autocrlf says: release.sh parses Cargo.toml line by line.
+* text=auto eol=lf
 # Test data is compared byte for byte: never convert its line endings.
 **/assessment/** -text
