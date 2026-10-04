@@ -1,3 +1,4 @@
+//! Identifier of a course or an exercise, safe to put in a server path (ADR-0023).
 use std::{error::Error, fmt, str::FromStr};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -37,6 +38,13 @@ impl Error for InvalidId {}
 mod tests {
     use super::*;
 
+    #[track_caller]
+    fn assert_all_invalid(values: &[&str]) {
+        for value in values {
+            assert!(value.parse::<Id>().is_err(), "{value:?} was accepted");
+        }
+    }
+
     #[test]
     fn keeps_a_valid_identifier() {
         assert_eq!(
@@ -47,30 +55,51 @@ mod tests {
 
     #[test]
     fn empty_is_invalid() {
-        assert!("".parse::<Id>().is_err());
+        assert_all_invalid(&[""]);
     }
 
     #[test]
     fn cannot_escape_the_course() {
-        for value in [
+        assert_all_invalid(&[
             ".",
             "..",
-            "../log200/x",
-            "a/b",
-            "a\\b",
-            "/etc/passwd",
-            "sum\n",
-            " sum",
-            "sum\0",
-            "%2e%2e",
-        ] {
-            assert!(value.parse::<Id>().is_err(), "{value:?} was accepted");
-        }
+            "./foo",
+            "../foo",
+            "../../etc/passwd",
+            "../log200/x", // another course's file (V-0023)
+            "foo/../bar",
+        ]);
     }
 
     #[test]
-    fn uppercase_and_accents_are_invalid() {
-        assert!("Sum".parse::<Id>().is_err());
-        assert!("énoncé".parse::<Id>().is_err());
+    fn windows_paths_are_invalid() {
+        assert_all_invalid(&[
+            r"..\foo",
+            r"..\..\Windows\System32",
+            r"C:\Windows\System32",
+            r"C:/Windows/System32",
+            r"\\server\share",
+            r"\\?\C:\Windows",
+        ]);
+    }
+
+    #[test]
+    fn special_path_characters_are_invalid() {
+        assert_all_invalid(&["/", "\\", ":", "*", "?", "\""]);
+    }
+
+    #[test]
+    fn whitespace_and_control_characters_are_invalid() {
+        assert_all_invalid(&["\0", "\n", "\r", "\t", "foo\0", "foo\n", " foo"]);
+    }
+
+    #[test]
+    fn encoded_separators_are_invalid() {
+        assert_all_invalid(&["%2e%2e", "%2f", "%5c"]);
+    }
+
+    #[test]
+    fn uppercase_and_non_ascii_are_invalid() {
+        assert_all_invalid(&["Sum", "énoncé", "ѕum"]); // Cyrillic ѕ, looks like s
     }
 }
