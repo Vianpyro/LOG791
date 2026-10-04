@@ -7,3 +7,6 @@ mod schedule;
 pub use exercise::exercise_dir;
 pub use release::active_release;
 pub use schedule::{Accommodation, ExtraTime, Schedule, Window};
+
+#[cfg(test)]
+mod fixtures;
