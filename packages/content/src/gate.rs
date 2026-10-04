@@ -23,3 +23,49 @@ pub fn accessible_exercise(
     })?;
     Ok(dir)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Window, fixtures::temp_dir};
+    use std::{
+        assert_matches, fs,
+        time::{Duration, UNIX_EPOCH},
+    };
+
+    fn course_with_sum(name: &str) -> PathBuf {
+        let course = temp_dir(name);
+        fs::write(course.join("current"), "abc123").unwrap();
+        fs::create_dir_all(course.join("releases/abc123/exercises/sum")).unwrap();
+        course
+    }
+
+    fn sum() -> Id {
+        "sum".parse().unwrap()
+    }
+
+    #[test]
+    fn open_exercise_resolve_to_its_directory() {
+        let course = course_with_sum("gate-open");
+        let schedule = Schedule {
+            offering: Some(Window {
+                opens_at: UNIX_EPOCH,
+                closes_at: UNIX_EPOCH + Duration::from_mins(1),
+            }),
+            ..Default::default()
+        };
+        assert_eq!(
+            accessible_exercise(&course, &sum(), &schedule, UNIX_EPOCH).unwrap(),
+            course.join("releases/abc123/exercises/sum")
+        );
+    }
+
+    #[test]
+    fn closed_exercise_is_denied() {
+        let course = course_with_sum("gate-closed");
+        assert_matches!(
+            accessible_exercise(&course, &sum(), &Schedule::default(), UNIX_EPOCH),
+            Err(error) if error.kind() == io::ErrorKind::PermissionDenied
+        );
+    }
+}
