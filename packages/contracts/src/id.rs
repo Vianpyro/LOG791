@@ -1,4 +1,5 @@
 //! Identifier of a course or an exercise, safe to put in a server path (ADR-0023).
+
 use std::{error::Error, fmt, str::FromStr};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
