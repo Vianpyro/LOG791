@@ -1,8 +1,7 @@
 //! Test fixtures shared by the schedule modules.
 
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
 use super::Window;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub(super) fn at(seconds: u64) -> SystemTime {
     UNIX_EPOCH + Duration::from_secs(seconds)
