@@ -5,9 +5,6 @@ use std::{error::Error, fmt, str::FromStr};
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Id(String);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct InvalidId(String);
-
 impl Id {
     pub fn as_str(&self) -> &str {
         &self.0
@@ -32,6 +29,9 @@ impl fmt::Display for InvalidId {
         write!(f, "invalid identifier {:?}: expected [a-z0-9-]+", self.0)
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InvalidId(String);
 
 impl Error for InvalidId {}
 
