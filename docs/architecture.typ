@@ -884,7 +884,7 @@ The platform serves several courses, each taught every term by several people in
 - *Grades per activity*: a course splits its activities between Moodle and the platform, never mirroring all of them. An activity sends its grades to Moodle only if a Moodle LTI activity with a grade item points to it; the launch then carries its AGS `lineitem`. Any other activity keeps its results in the platform (results per group, CSV export). An activity that exists only in Moodle is unknown to the platform.
 - *Schedules per group*: groups do not have their lectures, labs or contests at the same time. Opening and closing dates are entered per group by the instructor, in the platform, and never in the content (#adr("0020")).
 - *Shared capacity*: exams are scheduled in advance and reserve judges for each group's time slot; outside exams, each offering has a queue quota.
-- *Accommodations*: extra time and a shifted time slot per student and per exam, computed by the server.
+- *Accommodations*: extra time and a shifted time slot, per student and per offering, relative to the group's window and applied by the activity mode; computed by the server. Only the measure is stored, never its reason.
 - *Instructor tools* (minimum): dates per group, results per group, CSV export, re-judging an exercise after a test is fixed, individual extensions, preview.
 - *Personal data*: an instructor only sees their offerings; retention is purged per completed offering (#ext("law25")[Law 25]).
 - *Accessibility*: the interface targets #ext("wcag")[WCAG 2.1 AA], including a keyboard-navigable editor.
@@ -1100,20 +1100,23 @@ Pruning keeps the latest releases according to a publication date written in the
 The content only carries a state (`draft`, `archived`). Dates belong to the offering's schedule: groups of the same course do not have their labs, assignments or contests at the same time, and one content repository serves every group and every term (#adr("0012")).
 
 #decision(id: "ADR-0020")[
-  A single function decides whether an exercise is accessible to a student at a given instant: the student's override (extension, accommodation), otherwise their group's dates, otherwise the offering's. Without dates for the student's group, the exercise is closed. An exercise opens when its date passes, without any commit or scheduled task on the morning of the class, and an instructor's postponement applies without publication.
+  A single function decides whether an exercise is accessible to a student at a given instant: the student's extension, otherwise their group's dates, otherwise the offering's; then the student's accommodation (extra time, shifted start) if the activity mode applies it. A session closes at its last student's window. Without dates for the student's group, the exercise is closed. An exercise opens when its date passes, without any commit or scheduled task on the morning of the class, and an instructor's postponement applies without publication.
 ]
 
 #mermaid(
   "
   flowchart TD
-    Q[Is this activity open<br/>for this student now?] --> O{Student override?<br/>extension, accommodation}
+    Q[Is this activity open<br/>for this student now?] --> O{Student<br/>extension?}
     O -->|yes| W[Use that window]
     O -->|no| G{Row for the<br/>student's group?}
     G -->|yes| W
     G -->|no| F{Offering row<br/>without a group?}
     F -->|yes| W
     F -->|no| C[Closed]
-    W --> T{Now inside<br/>the window?}
+    W --> A{Accommodation, and<br/>the mode applies it?}
+    A -->|yes| X[Extra time,<br/>shifted start]
+    A -->|no| T
+    X --> T{Now inside<br/>the window?}
     T -->|yes| OP[Open]
     T -->|no| C
   ",

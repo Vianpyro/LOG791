@@ -22,7 +22,7 @@ The architecture was written for a single course. The instructor preview relies 
 - *Enrollment sources* (an extension point under #adr("0014")): #ext("lti")[LTI 1.3] from Moodle, where the LTI `context` identifies the offering, #ext("nrps")[Names and Roles] provides the roster and #ext("ags")[Assignment and Grade Services] returns grades; a CSV import by the instructor when Moodle is not available. The ÉTS directory (#adr("0017")) provides identity only, never roles.
 - *Content*: one content repository per course, with its own owners and its own proof CI; the `current` release pointer (#adr("0005")) is kept per course, so rolling back LOG121 does not affect LOG200.
 - *Capacity*: exams are scheduled in advance and reserve judges for each group's time slot (#adr("0020"), #adr("0021")); outside exams, each offering has a queue quota so that a large assignment does not starve a lab.
-- *Accommodations*: extra time and a shifted time slot per student and per exam; time is still computed by the server.
+- *Accommodations*: extra time and a shifted time slot, kept per student and per offering and applied by the activity mode (#adr("0020")); time is still computed by the server. Only the measure is stored (e.g. +33%), never its reason, which is health data under #ext("law25")[Law 25]. Instructors and coordinators of the offering see it; whether TAs do (exam supervision) remains to be decided. It is purged with the offering.
 
 #mermaid(
   "
@@ -60,5 +60,5 @@ The architecture was written for a single course. The instructor preview relies 
 - A person's roles are recomputed at each LTI launch or import; a role removed in Moodle disappears at the next synchronization.
 
 #validation(id: "V-0012")[
-  An instructor of LOG121 cannot read any LOG200 result; a TA cannot read private tests; the same roles are produced by an LTI launch and by the equivalent CSV import; rolling back LOG121 content leaves LOG200 unchanged.
+  An instructor of LOG121 cannot read any LOG200 result; a TA cannot read private tests; an accommodation is stored without any reason; the same roles are produced by an LTI launch and by the equivalent CSV import; rolling back LOG121 content leaves LOG200 unchanged.
 ]

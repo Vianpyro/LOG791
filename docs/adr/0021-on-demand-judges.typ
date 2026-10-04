@@ -21,7 +21,7 @@ Judging capacity is currently a fixed number of judges per VM, changed by hand o
 - *Cap*: each judge VM has a maximum number of judges, set from the maximum number of concurrent sandboxes measured for that VM (#adr("0013")). It is read again on every pass, so changing it needs no restart.
 - *Scaler*: one systemd service per judge VM. Every 2 s, it counts the jobs waiting in the #ext("postgresql")[PostgreSQL] queue for more than 2 s (#adr("0001")). If any are waiting and the cap is not reached, it starts one more `judge@N` instance, then gives it time to claim a job before counting again. It is paused during a deployment.
 - *Never stopped from outside*: an on-demand judge leaves by itself after 5 minutes without a job, and its unit only restarts on failure. No run is cut short.
-- *Exams*: before each exam or contest session in the schedule (#adr("0020")), the floor is raised to the reserved number of judges, so the start of the exam does not wait for cold starts. It drops back to normal after the session.
+- *Exams*: before each exam or contest session in the schedule (#adr("0020")), the floor is raised to the reserved number of judges, so the start of the exam does not wait for cold starts. It drops back to normal after the session, that is after its last student's window, accommodations included (#adr("0020")).
 - No coordination between VMs: judges pull from the same queue, which stays the only dispatcher.
 
 The scaler on one judge VM, and the life of a judge:

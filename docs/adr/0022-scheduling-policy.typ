@@ -87,7 +87,7 @@ Judges keep claiming with `SELECT … FOR UPDATE SKIP LOCKED` (#adr("0001")). Th
 - *Grade turnaround*: how fast deferred work finishes is a matter of capacity, not priority. Waiting deferred jobs make the scaler start on-demand judges up to the cap (#adr("0021")). Since measurement is deterministic, it can also run on another VM without skewing the result (#adr("0007")). A deadline-based boost is only added if load tests show the turnaround is not met.
 - *Parameters* (base values, aging rate and cap, half-life, `k`, penalty cap, running-job limit) are read at claim time, so changing them needs no redeployment. Load tests set them.
 
-When an exam or a graded lab closes, the deferred work follows in this order:
+An exam or a graded lab closes at its last student's window, accommodations included (#adr("0020")); the deferred work then follows in this order:
 
 #mermaid(
   "
