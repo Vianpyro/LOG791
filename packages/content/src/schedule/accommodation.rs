@@ -40,7 +40,7 @@ mod tests {
     #[test]
     fn fixed_extra_time_only_moves_the_closing() {
         let accommodation = Accommodation {
-            extra_time: ExtraTime::Fixed(Duration::from_secs(60)),
+            extra_time: ExtraTime::Fixed(Duration::from_mins(1)),
             start_shift: Duration::ZERO,
         };
         assert_eq!(accommodation.apply(between(100, 200)), between(100, 260));

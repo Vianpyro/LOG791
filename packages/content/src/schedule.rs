@@ -150,7 +150,7 @@ mod tests {
         let schedule = Schedule {
             group: window(100, 100),
             accommodation: Some(Accommodation {
-                extra_time: ExtraTime::Fixed(Duration::from_secs(60)),
+                extra_time: ExtraTime::Fixed(Duration::from_mins(1)),
                 start_shift: Duration::ZERO,
             }),
             mode_applies_accommodation: true,
