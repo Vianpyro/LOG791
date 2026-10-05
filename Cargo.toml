@@ -19,6 +19,8 @@ publish = false
 contracts = { path = "packages/contracts" }
 
 [workspace.lints.rust]
+dead_code_pub_in_binary = "warn"
+unreachable_pub = "warn"
 unsafe_code = "forbid"
 
 [workspace.lints.clippy]
