@@ -5,3 +5,6 @@ mod statement;
 
 pub use exercises::exercises;
 pub use statement::statement;
+
+#[cfg(test)]
+mod fixtures;

@@ -8,11 +8,21 @@ use std::{
 const FILES: [&str; 3] = ["statement.md", "statement.typ", "statement.tex"];
 
 pub fn statement(exercise: &Path) -> io::Result<PathBuf> {
-    let found: Vec<PathBuf> = FILES
-        .iter()
-        .map(|name| exercise.join(name))
-        .filter(|path| fs::symlink_metadata(path).is_ok_and(|metadata| metadata.is_file()))
-        .collect();
+    let mut found = Vec::new();
+    for name in FILES {
+        let path = exercise.join(name);
+        match fs::symlink_metadata(&path) {
+            Ok(metadata) if metadata.is_file() => found.push(path),
+            Ok(_) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("{}: expected a regular file", path.display()),
+                ));
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error),
+        }
+    }
     let [statement] = found.as_slice() else {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
@@ -29,20 +39,14 @@ pub fn statement(exercise: &Path) -> io::Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::assert_matches;
+    use crate::fixtures::{assert_invalid, temp_dir};
 
     fn exercise_with(name: &str, files: &[&str]) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("publisher-test-{name}"));
-        fs::create_dir_all(&dir).unwrap();
+        let dir = temp_dir(name);
         for file in files {
             fs::write(dir.join(file), "").unwrap();
         }
         dir
-    }
-
-    #[track_caller]
-    fn assert_invalid(result: io::Result<PathBuf>) {
-        assert_matches!(result, Err(error) if error.kind() == io::ErrorKind::InvalidData);
     }
 
     #[test]
@@ -64,13 +68,26 @@ mod tests {
         assert_invalid(statement(&exercise_with("statement-none", &[])));
     }
 
+    #[test]
+    fn directory_beside_a_statement_is_refused() {
+        let exercise = exercise_with("statement-dir", &["statement.typ"]);
+        fs::create_dir(exercise.join("statement.md")).unwrap();
+        assert_invalid(statement(&exercise));
+    }
+
     #[cfg(unix)]
     #[test]
     fn symbolic_link_is_not_a_statement() {
         let exercise = exercise_with("statement-link", &[]);
-        let link = exercise.join("statement.md");
-        let _ = fs::remove_file(&link); // left by a previous run
-        std::os::unix::fs::symlink("/etc/passwd", &link).unwrap();
+        std::os::unix::fs::symlink("/etc/passwd", exercise.join("statement.md")).unwrap();
+        assert_invalid(statement(&exercise));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symbolic_link_beside_a_statement_is_refused() {
+        let exercise = exercise_with("statement-link-beside", &["statement.typ"]);
+        std::os::unix::fs::symlink("/etc/passwd", exercise.join("statement.md")).unwrap();
         assert_invalid(statement(&exercise));
     }
 }

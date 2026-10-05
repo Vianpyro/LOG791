@@ -31,20 +31,15 @@ pub fn exercises(content: &Path) -> io::Result<BTreeMap<Id, PathBuf>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::assert_matches;
+    use crate::fixtures::{assert_invalid, temp_dir};
 
     fn content_with(name: &str, ids: &[&str]) -> PathBuf {
-        let content = std::env::temp_dir().join(format!("publisher-test-{name}"));
+        let content = temp_dir(name);
         fs::create_dir_all(content.join("exercises")).unwrap();
         for id in ids {
             fs::create_dir_all(content.join("exercises").join(id)).unwrap();
         }
         content
-    }
-
-    #[track_caller]
-    fn assert_invalid(result: io::Result<BTreeMap<Id, PathBuf>>) {
-        assert_matches!(result, Err(error) if error.kind() == io::ErrorKind::InvalidData);
     }
 
     #[test]
@@ -73,7 +68,6 @@ mod tests {
     fn symbolic_link_is_not_an_exercise() {
         let content = content_with("exercises-link", &[]);
         let link = content.join("exercises").join("link");
-        let _ = fs::remove_file(&link); // left by a previous run
         std::os::unix::fs::symlink(std::env::temp_dir(), &link).unwrap();
         assert_invalid(exercises(&content));
     }
