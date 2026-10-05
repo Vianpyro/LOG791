@@ -150,7 +150,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "needs Docker with runsc"]
     async fn filesystem_is_read_only() {
-        let write = "open('/tmp/escape', 'w')";
+        let write = "open('/var/tmp/escape', 'w')";
         assert_failed(python("read-only", write, START).await);
     }
 
