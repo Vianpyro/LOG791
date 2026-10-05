@@ -39,6 +39,7 @@
   [#adr("0027", body: "0027")], [Self-assessed activities], [Proposed],
   [#adr("0028", body: "0028")], [LaTeX statements], [Proposed],
   [#adr("0029", body: "0029")], [Importing existing course material], [Proposed],
+  [#adr("0030", body: "0030")], [Run progress shown as a pipeline], [Proposed],
 )
 
 Relations declared in the status of each ADR: a solid arrow refines, a thick arrow supersedes, a dotted arrow applies, extends or feeds the ADR it points to. ADRs without a declared relation are not shown.
@@ -68,6 +69,7 @@ Relations declared in the status of each ADR: a solid arrow refines, a thick arr
     A0027[0027 Self-assessment]
     A0028[0028 LaTeX statements]
     A0029[0029 Content import]
+    A0030[0030 Run pipeline view]
 
     A0006 ==> A0003
     A0010 --> A0001
@@ -103,6 +105,9 @@ Relations declared in the status of each ADR: a solid arrow refines, a thick arr
     A0029 -.->|feeds| A0015
     A0029 -.->|extends| A0005
     A0029 -.->|applies| A0023
+    A0030 --> A0001
+    A0030 -.->|extends| A0008
+    A0030 -.->|applies| A0014
   ",
   document-context: true,
   width: 100%,
@@ -137,3 +142,4 @@ Relations declared in the status of each ADR: a solid arrow refines, a thick arr
 #include "0027-self-assessment.typ"
 #include "0028-latex-statements.typ"
 #include "0029-content-import.typ"
+#include "0030-run-pipeline-view.typ"
