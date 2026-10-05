@@ -293,6 +293,9 @@ dependencies = [
 [[package]]
 name = "publisher"
 version = "0.1.7"
+dependencies = [
+ "contracts",
+]
 
 [[package]]
 name = "quote"
