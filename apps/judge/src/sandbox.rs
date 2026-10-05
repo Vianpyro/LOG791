@@ -7,9 +7,9 @@ use std::{
 };
 
 use tokio::{
-    io::{AsyncReadExt, copy, sink},
+    io::{AsyncReadExt, AsyncWriteExt, copy, sink},
     process::Command,
-    time,
+    time, try_join,
 };
 
 /// gVisor, as registered with Docker
@@ -36,25 +36,40 @@ pub async fn run_in_sandbox(
     name: &str,
     image: &str,
     command: &[&str],
+    input: &[u8],
     timeout: Duration,
 ) -> io::Result<Outcome> {
     let mut child = container(name, image, command)
-        .stdin(Stdio::null())
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .kill_on_drop(true)
         .spawn()?;
+    let mut stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| io::Error::other("stdin is not piped"))?;
     let mut stdout = child
         .stdout
         .take()
         .ok_or_else(|| io::Error::other("stdout is not piped"))?;
     let finished = time::timeout(timeout, async {
-        let mut kept = Vec::new();
-        (&mut stdout)
-            .take(MAX_OUTPUT)
-            .read_to_end(&mut kept)
-            .await?;
-        copy(&mut stdout, &mut sink()).await?;
+        let feed = async move {
+            match stdin.write_all(input).await {
+                Err(error) if error.kind() == io::ErrorKind::BrokenPipe => Ok(()),
+                result => result,
+            }
+        };
+        let read = async {
+            let mut kept = Vec::new();
+            (&mut stdout)
+                .take(MAX_OUTPUT)
+                .read_to_end(&mut kept)
+                .await?;
+            copy(&mut stdout, &mut sink()).await?;
+            Ok::<_, io::Error>(kept)
+        };
+        let ((), kept) = try_join!(feed, read)?;
         Ok::<_, io::Error>((child.wait().await?, kept))
     })
     .await;
@@ -76,7 +91,8 @@ fn container(name: &str, image: &str, command: &[&str]) -> Command {
     let memory = MEMORY.to_string();
     let mut docker = Command::new("docker");
     docker
-        .args(["run", "--rm", "--name", name, "--runtime", RUNTIME])
+        .args(["run", "--rm", "--interactive"])
+        .args(["--name", name, "--runtime", RUNTIME])
         .args(["--log-driver", "none", "--network", "none"]) // Docker would keep the program's output on the host and logs would be lost otherwise
         .arg("--read-only")
         .args(["--memory", &memory]) // Hard limit on RAM available to the sandbox
@@ -114,11 +130,12 @@ mod tests {
         format!("judge-test-{name}")
     }
 
-    async fn python(name: &str, code: &str, timeout: Duration) -> Outcome {
+    async fn python(name: &str, code: &str, input: &[u8], timeout: Duration) -> Outcome {
         run_in_sandbox(
             &test_container(name),
             IMAGE,
             &["python3", "-c", code],
+            input,
             timeout,
         )
         .await
@@ -135,7 +152,7 @@ mod tests {
     async fn command_runs_as_nobody() {
         let ids = format!("{SANDBOX_USER} {SANDBOX_USER}\n");
         assert_matches!(
-            python("nobody", "import os; print(os.getuid(), os.getgid())", START).await,
+            python("nobody", "import os; print(os.getuid(), os.getgid())", b"", START).await,
             Outcome::Exited { status, stdout } if status.success() && stdout == ids.as_bytes()
         );
     }
@@ -144,21 +161,21 @@ mod tests {
     #[ignore = "needs Docker with runsc"]
     async fn network_is_unreachable() {
         let connect = "import socket; socket.create_connection(('1.1.1.1', 53), timeout=5)";
-        assert_failed(python("network", connect, START).await);
+        assert_failed(python("network", connect, b"", START).await);
     }
 
     #[tokio::test]
     #[ignore = "needs Docker with runsc"]
     async fn filesystem_is_read_only() {
         let write = "open('/var/tmp/escape', 'w')";
-        assert_failed(python("read-only", write, START).await);
+        assert_failed(python("read-only", write, b"", START).await);
     }
 
     #[tokio::test]
     #[ignore = "needs Docker with runsc"]
     async fn memory_is_limited() {
         let flood = format!("b'A' * {}", 2 * MEMORY);
-        assert_failed(python("memory", &flood, START).await);
+        assert_failed(python("memory", &flood, b"", START).await);
     }
 
     #[tokio::test]
@@ -166,7 +183,7 @@ mod tests {
     async fn stdout_is_bounded() {
         let flood = format!("import sys; sys.stdout.write('A' * {})", 2 * MAX_OUTPUT);
         assert_matches!(
-            python("flood", &flood, START).await,
+            python("flood", &flood, b"", START).await,
             Outcome::Exited { status, stdout } if status.success() && stdout.len() as u64 == MAX_OUTPUT
         );
     }
@@ -174,7 +191,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "needs Docker with runsc"]
     async fn endless_command_is_stopped_and_removed() {
-        let outcome = python("endless", "while True: pass", DEADLINE).await;
+        let outcome = python("endless", "while True: pass", b"", DEADLINE).await;
         assert_matches!(outcome, Outcome::TimedOut);
         let inspect = Command::new("docker")
             .args(["container", "inspect"])
@@ -185,5 +202,25 @@ mod tests {
             .await
             .unwrap();
         assert!(!inspect.success(), "the container is still there");
+    }
+
+    #[tokio::test]
+    #[ignore = "needs Docker with runsc"]
+    async fn input_reaches_stdin() {
+        let sum = "import sys; print(sum(int, sys.stdin.read().split())))";
+        assert_matches!(
+            python("stdin", sum, b"3 5\n", START).await,
+            Outcome::Exited { status, stdout } if status.success() && stdout == b"8\n"
+        );
+    }
+
+    #[tokio::test]
+    #[ignore = "needs Docker with runsc"]
+    async fn unread_input_is_not_an_error() {
+        let input = vec![b'A'; 2 * MAX_OUTPUT as usize];
+        assert_matches!(
+            python("unread", "pass", &input, START).await,
+            Outcome::Exited { status, .. } if status.success()
+        );
     }
 }
