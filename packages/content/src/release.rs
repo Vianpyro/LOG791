@@ -24,27 +24,18 @@ pub fn active_release(course_dir: &Path) -> io::Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fixtures::{assert_invalid, temp_dir};
     use std::assert_matches;
 
-    fn course_dir(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("content-test-{name}"));
-        fs::create_dir_all(&dir).unwrap();
-        dir
-    }
-
     fn course_with_pointer(name: &str, pointer: &str) -> PathBuf {
-        let dir = course_dir(name);
-        fs::write(dir.join("current"), pointer).unwrap();
-        dir
-    }
-
-    fn assert_invalid(result: io::Result<PathBuf>) {
-        assert_matches!(result, Err(error) if error.kind() == io::ErrorKind::InvalidData);
+        let course = temp_dir(name);
+        fs::write(course.join("current"), pointer).unwrap();
+        course
     }
 
     #[test]
     fn pointer_names_a_release_directory() {
-        let course = course_with_pointer("valid", "ab12cd\n");
+        let course = course_with_pointer("release-valid", "ab12cd\n");
         assert_eq!(
             active_release(&course).unwrap(),
             course.join("releases").join("ab12cd")
@@ -53,19 +44,19 @@ mod tests {
 
     #[test]
     fn pointer_cannot_escape_the_course() {
-        let course = course_with_pointer("escape", "../abc123");
+        let course = course_with_pointer("release-escape", "../abc123");
         assert_invalid(active_release(&course));
     }
 
     #[test]
     fn empty_pointer_is_invalid() {
-        let course = course_with_pointer("empty", "\n");
+        let course = course_with_pointer("release-empty", "\n");
         assert_invalid(active_release(&course));
     }
 
     #[test]
     fn missing_pointer_is_not_found() {
-        let course = course_dir("missing");
+        let course = temp_dir("release-missing");
         assert_matches!(
             active_release(&course),
             Err(error) if error.kind() == io::ErrorKind::NotFound
