@@ -2,6 +2,8 @@
 
 mod sandbox;
 mod stdio;
+mod verdict;
 
 pub use sandbox::{Outcome, run_in_sandbox};
-pub use stdio::same_output;
+pub use stdio::case_verdict;
+pub use verdict::Verdict;
