@@ -18,6 +18,7 @@ fn main() -> ExitCode {
 
 fn validate(content: &Path) -> io::Result<()> {
     for exercise in publisher::exercises(content)?.values() {
+        publisher::no_import_report(exercise)?;
         publisher::statement(exercise)?;
     }
     Ok(())
