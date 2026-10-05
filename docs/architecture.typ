@@ -1039,7 +1039,7 @@ exams/<id>.json        mode, sections, slots (fixed item or pool draw), points
 
 Invalid content must never replace the active publication.
 
-Validation checks in particular the metadata schema, the uniqueness of identifiers, the consistency of collections and the absence of ambiguity, for example two statement formats for the same exercise. It fails *before* the first write.
+Validation checks in particular the metadata schema, the uniqueness of identifiers, the consistency of collections and the absence of ambiguity, for example two statement formats for the same exercise. It fails *before* the first write. An exercise still carrying the report of a lossy import is refused (#adr("0029")).
 
 #decision[
   A validation error stops publishing, naming the faulty exercise and field. The previous release keeps being served.
@@ -1181,17 +1181,17 @@ An incorrect test produces a wrong verdict that the student cannot contest.
 
 = Statement rendering <arch-statement-rendering>
 
-A programming statement contains text, code, formulas and sometimes tables, figures or diagrams. Two formats are supported, with opposite rendering models. They apply to every text field of every item (stem, choices, feedback, hints), not only to exercise statements, and both accept #ext("mermaid")[Mermaid] diagrams.
+A programming statement contains text, code, formulas and sometimes tables, figures or diagrams. Two formats are supported, with opposite rendering models. They apply to every text field of every item (stem, choices, feedback, hints), not only to exercise statements, and both accept #ext("mermaid")[Mermaid] diagrams. Exercise statements may also be written in #ext("latex")[LaTeX] (#adr("0028")).
 
 #table(
-  columns: (2.8cm, 1fr, 1fr),
+  columns: (2.4cm, 1fr, 1fr, 1fr),
   stroke: 0.5pt,
-  [], [*Markdown*], [*Typst*],
-  [Use], [Default, the vast majority of statements], [Tables, diagrams, figures, multi-page layout],
-  [Rendering], [In the browser, at display time], [At publication time, in a container],
-  [Delivered], [Source text], [HTML, with light and dark SVG as fallback],
-  [Accessibility], [Full], [Reduced for SVG],
-  [Mermaid], [Fenced `mermaid` block, SVG at publication time], [`mermaid(...)` from the template],
+  [], [*Markdown*], [*Typst*], [*LaTeX*],
+  [Use], [Default, the vast majority of statements], [Tables, diagrams, figures, multi-page layout], [Instructors who write LaTeX; exercise statements only],
+  [Rendering], [In the browser, at display time], [At publication time, in a container], [At publication time, by pandoc in a container],
+  [Delivered], [Source text], [HTML, with light and dark SVG as fallback], [HTML and MathML],
+  [Accessibility], [Full], [Reduced for SVG], [Full],
+  [Mermaid], [Fenced `mermaid` block, SVG at publication time], [`mermaid(...)` from the template], [`mermaid` environment, as a fenced block],
 )
 
 == Markdown <arch-markdown>
@@ -1299,6 +1299,14 @@ Typst vectorizes its glyphs in the SVG: the text there is not selectable, not se
 
 #validation[
   The maturity of Typst's HTML export will have to be reassessed with each release. If it becomes sufficient, the SVG fallback can be dropped and the accessibility limitation will disappear.
+]
+
+== LaTeX <arch-latex>
+
+An exercise statement may be a `statement.tex`, for instructors who already write LaTeX. No TeX engine runs: #ext("pandoc")[pandoc] converts the body to HTML and MathML at publication time, in the rendering container, then the output goes through the same sanitizer as Typst's.
+
+#decision(id: "ADR-0028")[
+  LaTeX is accepted as a subset, converted without executing TeX. Anything pandoc would skip, a preamble, `\input` or TikZ stops publishing and names the exercise and the command, rather than reaching students with missing content.
 ]
 
 == Mermaid <arch-mermaid>
@@ -1955,7 +1963,7 @@ Several important questions are deliberately left open.
 16. Is performance graded by a complexity verdict (one reference per exercise) or by a full ranking (one reference per language)? To be settled with the instructor.
 17. Is code that does not pass all tests measured? If the last submission fails while an earlier one passed, which one is measured?
 18. Which languages does each course support, and which of them can run in the browser? A first inventory is given in the #arch("appendix-course-inventory")[appendix] and the tiers in #adr("0013"); it remains to be confirmed with each course coordinator.
-19. Should existing Moodle question banks be imported (Moodle XML, GIFT), and for which families? CTester's importer is a starting point: it converts Moodle XML and reports what it cannot express instead of dropping it. The grader families (#adr("0015")) cover more types than CTester, such as calculated, essay and image drag and drop.
+19. Should existing Moodle question banks be imported (Moodle XML, GIFT), and for which families? A first answer is given in #adr("0029"), which also imports Word statements. CTester's importer is a starting point: it converts Moodle XML and reports what it cannot express instead of dropping it. The grader families (#adr("0015")) cover more types than CTester, such as calculated, essay and image drag and drop.
 20. How do TAs grade manual items (essay, UML diagram, file upload) during a heavy exam period: per item across students, or per student?
 21. Do ÉTS Moodle spaces match one course group each, or merge several groups? In the first case the LTI context gives the group; in the second, group membership comes from the CSV import (#adr("0020")).
 22. Does Moodle accept #ext("ags")[AGS] grade updates after an activity has closed? Grading and performance measurement finish after the session (#adr("0022")); a locked grade item or a grade overridden in the Moodle gradebook would reject them. To confirm with the ÉTS Moodle administrators.
