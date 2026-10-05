@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   # The same environment as locally: PostgreSQL, LDAP and gVisor, checked by check.sh.
-  # Integration tests go in this runCmd once they exist, since the services are up.
+  # Ignored tests need these services: they run here.
   devcontainer:
     runs-on: ubuntu-latest
     steps:
@@ -24,7 +24,7 @@ jobs:
       - uses: devcontainers/ci@v0.3
         with:
           push: never
-          runCmd: bash .devcontainer/check.sh
+          runCmd: bash .devcontainer/check.sh && cargo test --locked -- --ignored
 
   # The runner's rustup installs the toolchain of rust-toolchain.toml on first use.
   rust:
