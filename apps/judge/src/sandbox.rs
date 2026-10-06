@@ -24,7 +24,7 @@ const CPUS: &str = "1";
 const PIDS: &str = "64";
 
 // Drop long outputs (>16 MiB)
-const MAX_OUTPUT: u64 = 16 * 1024 * 1024;
+pub(super) const MAX_OUTPUT: u64 = 16 * 1024 * 1024;
 
 #[derive(Debug)]
 pub enum Outcome {
