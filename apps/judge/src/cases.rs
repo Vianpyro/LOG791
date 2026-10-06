@@ -63,7 +63,8 @@ mod tests {
 
     fn assessment(name: &str, files: &[(&str, &str)]) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("judge-test-cases-{name}"));
-        let _ = fs::remove_dir_all(&dir).unwrap();
+        let _ = fs::remove_dir_all(&dir); // left by a previous run
+        fs::create_dir_all(&dir).unwrap();
         for (file, contents) in files {
             fs::write(dir.join(file), contents).unwrap();
         }
@@ -83,7 +84,19 @@ mod tests {
     }
 
     #[test]
-    fn cases_are_paired_in_name_order() {}
+    fn cases_are_paired_in_name_order() {
+        let dir = assessment(
+            "paired",
+            &[
+                ("2.in", "b"),
+                ("2.out", "B"),
+                ("1.in", "a"),
+                ("1.out", "A"),
+                ("judge.json", "{}"),
+            ],
+        );
+        assert_eq!(read_cases(&dir).unwrap(), [case("a", "A"), case("b", "B")]);
+    }
 
     #[test]
     fn example_exercise_has_its_three_cases() {
@@ -93,13 +106,25 @@ mod tests {
     }
 
     #[test]
-    fn missing_expected_output_is_named() {}
+    fn missing_expected_output_is_named() {
+        let dir = assessment("missing", &[("1.in", "a")]);
+        assert_matches!(read_cases(&dir), Err(error) if error.kind() == io::ErrorKind::NotFound && error.to_string().contains("1.out"));
+    }
 
     #[test]
-    fn exercise_without_case_is_invalid() {}
+    fn exercise_without_case_is_invalid() {
+        assert_invalid(read_cases(&assessment("empty", &[("1.out", "A")])));
+    }
 
     #[test]
-    fn oversized_file_is_invalid() {}
+    fn oversized_file_is_invalid() {
+        let dir = assessment("oversized", &[("1.in", "a")]);
+        fs::File::create(dir.join("1.out"))
+            .unwrap()
+            .set_len(MAX_CASE_FILE + 1)
+            .unwrap();
+        assert_invalid(read_cases(&dir));
+    }
 
     #[cfg(unix)]
     #[test]
