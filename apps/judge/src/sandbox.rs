@@ -207,7 +207,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "needs Docker with runsc"]
     async fn input_reaches_stdin() {
-        let sum = "import sys; print(sum(int, sys.stdin.read().split()))";
+        let sum = "import sys; print(sum(map(int, sys.stdin.read().split())))";
         assert_matches!(
             python("stdin", sum, b"3 5\n", START).await,
             Outcome::Exited { status, stdout } if status.success() && stdout == b"8\n"
