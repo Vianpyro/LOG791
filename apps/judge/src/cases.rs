@@ -3,8 +3,8 @@
 use std::{
     ffi::OsStr,
     fs, io,
-    path::{Path, PathBuf}
-}
+    path::{Path, PathBuf},
+};
 
 use crate::sandbox::MAX_OUTPUT;
 
@@ -17,9 +17,21 @@ pub struct Case {
     pub expected: Vec<u8>,
 }
 
-pub fn read_cases(assessment: &Path) -> io::Result<Vec<Case>> {}
-
-pub fn read_case_file(path: &Path) -> io::Result<Vec<u8>> {}
+// Untrusted content
+fn read_case_file(path: &Path) -> io::Result<Vec<u8>> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|error| io::Error::new(error.kind(), format!("{}: {error}", path.display())))?;
+    (metadata.is_file() && metadata.len() <= MAX_CASE_FILE).ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!(
+                "{}: not a regular file of at most {MAX_CASE_FILE} bytes",
+                path.display()
+            ),
+        )
+    })?;
+    fs::read(path)
+}
 
 #[cfg(test)]
 mod tests {
@@ -52,7 +64,8 @@ mod tests {
 
     #[test]
     fn example_exercise_has_its_three_cases() {
-        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/content/exercises/sum/assessment");
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/content/exercises/sum/assessment");
         assert_eq!(read_cases(&dir).unwrap().len(), 3);
     }
 
