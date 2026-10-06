@@ -26,7 +26,14 @@ mod tests {
     use super::*;
     use std::assert_matches;
 
-    fn assessment(name: &str, files: &[(&str, &str)]) -> PathBuf {}
+    fn assessment(name: &str, files: &[(&str, &str)]) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("judge-test-cases-{name}"));
+        let _ = fs::remove_dir_all(&dir).unwrap();
+        for (file, contents) in files {
+            fs::write(dir.join(file), contents).unwrap();
+        }
+        dir
+    }
 
     fn case(input: &str, expected: &str) -> Case {
         Case {
@@ -36,13 +43,18 @@ mod tests {
     }
 
     #[track_caller]
-    fn assert_invalid(result: io::Result<Vec<Case>>) {}
+    fn assert_invalid(result: io::Result<Vec<Case>>) {
+        assert_matches!(result, Err(error) if error.kind() == io::ErrorKind::InvalidData);
+    }
 
     #[test]
     fn cases_are_paired_in_name_order() {}
 
     #[test]
-    fn example_exercise_has_its_three_cases() {}
+    fn example_exercise_has_its_three_cases() {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/content/exercises/sum/assessment");
+        assert_eq!(read_cases(&dir).unwrap().len(), 3);
+    }
 
     #[test]
     fn missing_expected_output_is_named() {}
@@ -55,5 +67,9 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn symbolic_link_is_invalid() {}
+    fn symbolic_link_is_invalid() {
+        let dir = assessment("link", &[("1.out", "A")]);
+        std::os::unix::fs::symlink("/etc/passwd", dir.join("1.in")).unwrap();
+        assert_invalid(read_cases(&dir));
+    }
 }
