@@ -17,6 +17,29 @@ pub struct Case {
     pub expected: Vec<u8>,
 }
 
+pub fn read_cases(assessment: &Path) -> io::Result<Vec<Case>> {
+    let mut inputs = fs::read_dir(assessment)?
+        .map(|entry| entry.map(|entry| entry.path()))
+        .collect::<io::Result<Vec<PathBuf>>>()?;
+    inputs.retain(|path| path.extension() == Some(OsStr::new("in")));
+    inputs.sort();
+    (!inputs.is_empty()).ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("{}: no .in case", assessment.display()),
+        )
+    })?;
+    inputs
+        .iter()
+        .map(|input| {
+            Ok(Case {
+                input: read_case_file(input)?,
+                expected: read_case_file(&input.with_extension("out"))?,
+            })
+        })
+        .collect()
+}
+
 // Untrusted content
 fn read_case_file(path: &Path) -> io::Result<Vec<u8>> {
     let metadata = fs::symlink_metadata(path)
