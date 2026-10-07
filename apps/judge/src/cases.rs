@@ -99,10 +99,10 @@ mod tests {
     }
 
     #[test]
-    fn example_exercise_has_its_three_cases() {
+    fn example_exercise_has_its_five_cases() {
         let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../examples/content/exercises/sum/assessment");
-        assert_eq!(read_cases(&dir).unwrap().len(), 3);
+        assert_eq!(read_cases(&dir).unwrap().len(), 5);
     }
 
     #[test]

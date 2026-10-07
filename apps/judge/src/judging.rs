@@ -50,7 +50,7 @@ mod tests {
     #[ignore = "needs Docker with runsc"]
     async fn reference_solution_passes_every_case() {
         let sum = "import sys; print(sum(map(int, sys.stdin.read().split())))";
-        assert_eq!(python_on_sum("reference", sum).await, [Verdict::Passed; 3]);
+        assert_eq!(python_on_sum("reference", sum).await, [Verdict::Passed; 5]);
     }
 
     #[tokio::test]
@@ -58,7 +58,7 @@ mod tests {
     async fn wrong_solution_fails_every_case() {
         assert_eq!(
             python_on_sum("wrong", "print(0)").await,
-            [Verdict::WrongAnswer; 3]
+            [Verdict::WrongAnswer; 5]
         );
     }
 }
