@@ -22,6 +22,7 @@ for exercise in "$exercises"/*/; do
     case $solution in
       *.py) run=(python3 "$solution") ;;
       *.java) run=(java "$solution") ;;
+      *.js) run=(node "$solution") ;;
       *) fail "$solution: unknown language"; continue ;;
     esac
 

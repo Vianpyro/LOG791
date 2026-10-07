@@ -46,7 +46,7 @@ jobs:
         run: bash tests/architecture/boundaries.sh
 
   # Reference solutions of the ADR-0018 spike against the example exercises; removed with the spike.
-  # The runner already has Python 3 and Java.
+  # The runner already has Python 3, Java and Node.js.
   exercises:
     runs-on: ubuntu-latest
     steps:
