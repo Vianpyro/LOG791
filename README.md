@@ -1,6 +1,6 @@
-# LOG791 — Programming learning and assessment platform
+# P.A.L.S - Programming Assessment and Learning System
 
-A platform where students write, run and submit code that is judged in an isolated sandbox, built first for LOG200 at ÉTS. The architecture, the ADRs and the project plan are published at <https://vianpyro.github.io/LOG791/>; their sources are in [`docs/`](docs/).
+A platform where students write, run and submit code that is judged in an isolated sandbox, built first for LOG200 at ÉTS. The architecture, the ADRs and the project plan are published at <https://vianpyro.github.io/pals/>; their sources are in [`docs/`](docs/).
 
 ## Getting started
 

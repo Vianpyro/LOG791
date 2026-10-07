@@ -1,6 +1,6 @@
 #!/bin/sh
 # Builds the site: one PDF and one HTML per document, into _site/.
-# The same script runs in CI and locally (from LOG791/):   sh site/build.sh
+# The same script runs in CI and locally (from pals/):   sh site/build.sh
 #
 # Adding a document = one line here + one card in site/index.html.
 # The slug must match the one passed to `document.with(slug: ...)`, which uses
@@ -33,7 +33,7 @@ ids = {f: set(re.findall(r'id="([^"]+)"', open(f, encoding="utf-8").read())) for
 dead = []
 for f in ids:
     for h in re.findall(r'href="([^"]+)"', open(f, encoding="utf-8").read()):
-        m = re.fullmatch(r'(?:https://vianpyro\.github\.io/LOG791/([\w-]+\.html))?#(.+)', h)
+        m = re.fullmatch(r'(?:https://vianpyro\.github\.io/pals/([\w-]+\.html))?#(.+)', h)
         if m and m.group(2) not in ids.get(m.group(1) or f, ()):
             dead.append(f + " -> " + h)
 print("\n".join(dead) or "== links: all anchors resolve")

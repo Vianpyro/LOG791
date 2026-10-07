@@ -31,7 +31,7 @@
 // contains the label, and otherwise to the published document: its HTML page
 // for the site, its PDF for a PDF.
 
-#let site = "https://vianpyro.github.io/LOG791/"
+#let site = "https://vianpyro.github.io/pals/"
 
 #let xref(dest, slug, body) = context {
   if query(dest).len() > 0 {
@@ -82,13 +82,13 @@
   github-actions: "https://docs.github.com/en/actions",
   gvisor: "https://gvisor.dev/",
   iframe-sandbox: "https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#sandbox",
-  icu:"https://unicode-org.github.io/icu/userguide/format_parse/messages/",
+  icu: "https://unicode-org.github.io/icu/userguide/format_parse/messages/",
   import-linter: "https://import-linter.readthedocs.io/",
   judge0: "https://judge0.com/",
   junit: "https://junit.org/",
   latex: "https://www.latex-project.org/",
   ldap: "https://www.rfc-editor.org/rfc/rfc4511",
-  law25:"https://www.publicationsduquebec.gouv.qc.ca/fileadmin/Fichiers_client/lois_et_reglements/LoisAnnuelles/en/2021/2021C25A.PDF",
+  law25: "https://www.publicationsduquebec.gouv.qc.ca/fileadmin/Fichiers_client/lois_et_reglements/LoisAnnuelles/en/2021/2021C25A.PDF",
   leetcode: "https://leetcode.com/",
   listen-notify: "https://www.postgresql.org/docs/current/sql-notify.html",
   lti: "https://www.imsglobal.org/spec/lti/v1p3",
@@ -107,7 +107,7 @@
   numpy: "https://numpy.org/",
   oidc: "https://openid.net/specs/openid-connect-core-1_0.html",
   otel-logs: "https://opentelemetry.io/docs/specs/otel/logs/data-model/",
-  oracle:"https://www.oracle.com/database/free/",
+  oracle: "https://www.oracle.com/database/free/",
   pandoc: "https://pandoc.org/MANUAL.html",
   parsons: "https://js-parsons.github.io/",
   pep8: "https://github.com/StanWarford/pep8",
@@ -141,7 +141,7 @@
   tokio: "https://tokio.rs/",
   typst: "https://typst.app/docs/",
   typst-html-elem: "https://typst.app/docs/reference/html/elem/",
-  typst-html:"https://github.com/typst/typst/issues/5512",
+  typst-html: "https://github.com/typst/typst/issues/5512",
   ubuntu: "https://ubuntu.com/about/release-cycle",
   uvicorn: "https://uvicorn.dev/",
   valgrind: "https://valgrind.org/docs/manual/cl-manual.html",
@@ -255,57 +255,56 @@
     outline(depth: 2)
     body
   } else {
+    set page(
+      paper: "a4",
+      margin: (top: 2.5cm, bottom: 2.5cm, x: 2.4cm),
+      header: context if counter(page).get().first() > 1 {
+        set text(size: 9pt, fill: _grey)
+        running-header
+        v(-0.5em)
+        line(length: 100%, stroke: 0.4pt + luma(210))
+      },
+    )
 
-  set page(
-    paper: "a4",
-    margin: (top: 2.5cm, bottom: 2.5cm, x: 2.4cm),
-    header: context if counter(page).get().first() > 1 {
-      set text(size: 9pt, fill: _grey)
-      running-header
-      v(-0.5em)
-      line(length: 100%, stroke: 0.4pt + luma(210))
-    },
-  )
+    // ---- Title page ----
+    {
+      set align(center)
+      if logo != none {
+        v(0.4cm)
+        image(logo, height: 4.5cm)
+        v(0.4cm)
+      } else {
+        v(1.6cm)
+      }
+      text(size: 14pt, weight: "bold", "École de technologie supérieure")
+      linebreak()
+      text(size: 10.5pt, fill: _grey, department)
 
-  // ---- Title page ----
-  {
-    set align(center)
-    if logo != none {
-      v(0.4cm)
-      image(logo, height: 4.5cm)
-      v(0.4cm)
-    } else {
-      v(1.6cm)
+      v(1.6em)
+      line(length: 58%, stroke: 1.2pt + _red)
+      v(1.6em)
+
+      text(size: 22pt, weight: "bold", fill: _blue, title)
+      if subtitle != none {
+        v(0.4em)
+        text(size: 14pt, fill: _blue, subtitle)
+      }
+      v(0.8em)
+      text(size: 12pt, style: "italic")[#course \u{2014} #course-name]
+
+      v(1.6em)
+      line(length: 58%, stroke: 0.5pt + luma(190))
+      v(1.6em)
+
+      set align(left)
+      info
     }
-    text(size: 14pt, weight: "bold", "École de technologie supérieure")
-    linebreak()
-    text(size: 10.5pt, fill: _grey, department)
 
-    v(1.6em)
-    line(length: 58%, stroke: 1.2pt + _red)
-    v(1.6em)
-
-    text(size: 22pt, weight: "bold", fill: _blue, title)
-    if subtitle != none {
-      v(0.4em)
-      text(size: 14pt, fill: _blue, subtitle)
-    }
-    v(0.8em)
-    text(size: 12pt, style: "italic")[#course \u{2014} #course-name]
-
-    v(1.6em)
-    line(length: 58%, stroke: 0.5pt + luma(190))
-    v(1.6em)
-
-    set align(left)
-    info
+    pagebreak()
+    set page(numbering: "1")
+    counter(page).update(1)
+    outline(depth: 2, indent: auto)
+    pagebreak()
+    body
   }
-
-  pagebreak()
-  set page(numbering: "1")
-  counter(page).update(1)
-  outline(depth: 2, indent: auto)
-  pagebreak()
-  body
-}
 }

@@ -13,7 +13,7 @@ refuses() { if hook "$1"; then echo "hook accepted: $1" >&2; exit 1; fi; }
 
 accepts 'feat(api): add health route'
 accepts 'fix!: drop legacy route'
-accepts "Merge branch 'main' of github.com:Vianpyro/LOG791"
+accepts "Merge branch 'main' of github.com:Vianpyro/pals"
 refuses 'Updated README'
 refuses 'feat: add route.'
 refuses 'feat: Add route'

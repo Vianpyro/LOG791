@@ -15,7 +15,7 @@
   "portsAttributes": {
     "8000": { "label": "API" },
     "8001": { "label": "Admin" },
-    "ldap:17170": { "label": "lldap (admin / log791-admin)" }
+    "ldap:17170": { "label": "lldap (admin / pals-admin)" }
   },
   // Dependencies are fetched once per build; builds go to CARGO_TARGET_DIR, outside the bind mount.
   // The commit-msg hook is enabled in .git/config, shared with the host.
