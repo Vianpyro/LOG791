@@ -101,6 +101,7 @@
   moodle: "https://moodle.org/",
   nginx: "https://nginx.org/en/docs/",
   nginx-limit-req: "https://nginx.org/en/docs/http/ngx_http_limit_req_module.html",
+  nginx-secure-link: "https://nginx.org/en/docs/http/ngx_http_secure_link_module.html",
   nginx-upstream: "https://nginx.org/en/docs/http/ngx_http_upstream_module.html",
   nixos: "https://nixos.org/",
   nrps: "https://www.imsglobal.org/spec/lti-nrps/v2p0",

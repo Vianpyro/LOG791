@@ -291,6 +291,12 @@ An #ext("nginx")[nginx] reverse proxy is the platform's only HTTP entry point. I
   nginx is chosen for its small memory footprint, its native rate limiting and its availability in the Ubuntu repositories.
 ]
 
+The student site is reachable from the Internet, so that exercises can be done from home; only the dashboard is restricted to the VPN (#adr("0019")).
+
+#decision[
+  Nothing is served without a valid session except the sign-in page (with a short presentation of the platform), the interface's static files and the ACME challenge. Every API route checks the session; the default is closed.
+]
+
 #hypothesis[
   If the institution already terminates TLS upstream of the VM, nginx remains useful for static files and rate limiting.
 ]
@@ -1778,7 +1784,7 @@ A content author can push anything to their course's repository and holds the `i
   [Statement HTML and SVG (script, fake sign-in form)],
   [Allow-list sanitizer after Typst and merman; strict CSP with `form-action 'self'`],
 
-  [Files in `public/`], [Separate origin without cookies, `attachment`, `nosniff`],
+  [Files in `public/`], [Separate origin without cookies, `attachment`, `nosniff`; short-lived URL signed by the API after the access gate],
   [Symbolic links, submodules, identifiers such as `../`],
   [Tree read from Git objects and refused; course set by the server; paths prefixed by the course],
 
