@@ -2,6 +2,8 @@
 
 use sqlx::{FromRow, PgConnection, types::Uuid};
 
+use crate::Verdict;
+
 #[derive(Debug, FromRow)]
 pub struct Job {
     pub id: Uuid,
@@ -12,12 +14,22 @@ pub struct Job {
     pub source: String,
 }
 
-const CLAIM: &str = r#"
-    SELECT id, contract, course, exercise, language_pack, source FROM claim_job()
-"#;
-
 pub async fn claim(connection: &mut PgConnection) -> sqlx::Result<Option<Job>> {
-    sqlx::query_as(CLAIM).fetch_optional(connection).await
+    sqlx::query_as("SELECT id, contract, course, exercise, language_pack, source FROM claim_job()")
+        .fetch_optional(connection)
+        .await
+}
+
+pub async fn finish(
+    connection: &mut PgConnection,
+    job: Uuid,
+    verdicts: &[Verdict],
+) -> sqlx::Result<bool> {
+    sqlx::query_scalar("SELECT finish_job($1, $2)")
+        .bind(job)
+        .bind(verdicts)
+        .fetch_one(connection)
+        .await
 }
 
 #[cfg(test)]
@@ -30,16 +42,13 @@ mod tests {
     const AS_JUDGE: &str = "SET LOCAL ROLE judge";
     const AS_API: &str = "SET LOCAL ROLE api";
 
-    const ENQUEUE: &str = r#"
-        INSERT INTO jobs (contract, course, exercise, language_pack, source)
-        VALUES (1, 'log200', 'sum', 'python', 'print(0)')
-        RETURNING id
-    "#;
-
-    const DENIED: &str = "42501"; // SQLSTATE insufficient_privilege
-
     async fn enqueue(pool: &PgPool) -> Uuid {
-        sqlx::query_scalar(ENQUEUE).fetch_one(pool).await.unwrap()
+        sqlx::query_scalar(
+            "INSERT INTO jobs (contract, course, exercise, language_pack, source) VALUES (1, 'log200', 'sum', 'python', 'print(0)') RETURNING id",
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
     }
 
     // Tests connect as a superuser: each check runs with the role's privileges instead
@@ -56,10 +65,25 @@ mod tests {
         job.map(|job| job.id)
     }
 
+    async fn finish_as_judge(pool: &PgPool, job: Uuid, verdicts: &[Verdict]) -> bool {
+        let mut transaction = begin_as(pool, AS_JUDGE).await;
+        let finished = finish(&mut transaction, job, verdicts).await.unwrap();
+        transaction.commit().await.unwrap();
+        finished
+    }
+
+    async fn state_and_result(pool: &PgPool, job: Uuid) -> (String, Option<String>) {
+        sqlx::query_as("SELECT state::text, result::text FROM jobs WHERE id = $1")
+            .bind(job)
+            .fetch_one(pool)
+            .await
+            .unwrap()
+    }
+
     #[track_caller]
     fn assert_denied(error: &sqlx::Error) {
         let code = error.as_database_error().and_then(|error| error.code());
-        assert_eq!(code.as_deref(), Some(DENIED), "{error}");
+        assert_eq!(code.as_deref(), Some("42501"), "{error}"); // SQLSTATE insufficient_privilege
     }
 
     #[sqlx::test(migrations = "../../db/migrations")]
@@ -116,5 +140,49 @@ mod tests {
         enqueue(&pool).await;
         let mut transaction = begin_as(&pool, AS_API).await;
         assert_denied(&claim(&mut transaction).await.unwrap_err());
+    }
+
+    #[sqlx::test(migrations = "../../db/migrations")]
+    #[ignore = "needs PostgreSQL"]
+    async fn claimed_job_is_finished_once(pool: PgPool) {
+        let job = enqueue(&pool).await;
+        claim_as_judge(&pool).await;
+        let verdicts = [Verdict::Passed, Verdict::WrongAnswer];
+        assert!(finish_as_judge(&pool, job, &verdicts).await);
+        assert!(!finish_as_judge(&pool, job, &verdicts).await);
+        let result = r#"{"cases": ["passed", "wrong-answer"]}"#;
+        assert_eq!(
+            state_and_result(&pool, job).await,
+            ("done".into(), Some(result.into()))
+        );
+    }
+
+    #[sqlx::test(migrations = "../../db/migrations")]
+    #[ignore = "needs PostgreSQL"]
+    async fn waiting_job_cannot_be_finished(pool: PgPool) {
+        let job = enqueue(&pool).await;
+        assert!(!finish_as_judge(&pool, job, &[Verdict::Passed]).await);
+        assert_eq!(state_and_result(&pool, job).await, ("waiting".into(), None));
+    }
+
+    #[sqlx::test(migrations = "../../db/migrations")]
+    #[ignore = "needs PostgreSQL"]
+    async fn job_without_verdict_is_not_finished(pool: PgPool) {
+        let job = enqueue(&pool).await;
+        claim_as_judge(&pool).await;
+        assert!(!finish_as_judge(&pool, job, &[]).await);
+        assert_eq!(state_and_result(&pool, job).await, ("running".into(), None));
+    }
+
+    #[sqlx::test(migrations = "../../db/migrations")]
+    #[ignore = "needs PostgreSQL"]
+    async fn only_the_judge_can_finish(pool: PgPool) {
+        let job = enqueue(&pool).await;
+        claim_as_judge(&pool).await;
+        let mut transaction = begin_as(&pool, AS_API).await;
+        let error = finish(&mut transaction, job, &[Verdict::Passed])
+            .await
+            .unwrap_err();
+        assert_denied(&error);
     }
 }
