@@ -75,21 +75,6 @@ mod tests {
         }
     }
 
-    async fn python_on_sum(name: &str, code: &str) -> Vec<Verdict> {
-        let assessment = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/content");
-        let cases = read_cases(&assessment).unwrap();
-        let command = ["python3", "-c", code];
-        judge_cases(
-            &format!("judge-test-{name}"),
-            IMAGE,
-            &command,
-            &cases,
-            TIMEOUT,
-        )
-        .await
-        .unwrap()
-    }
-
     #[tokio::test]
     async fn unknown_language_pack_is_unsupported() {
         let result = judge(content(), &job("invalid", "")).await;
@@ -100,6 +85,7 @@ mod tests {
     #[ignore = "needs Docker with runsc"]
     async fn reference_solution_passes_the_sum_exercise() {
         let sum = "import sys; print(sum(map(int, sys.stdin.read().split())))";
-        assert_eq!(python_on_sum("reference", sum).await, [Verdict::Passed; 5])
+        let verdicts = judge(content(), &job("python", sum)).await.unwrap();
+        assert_eq!(verdicts, [Verdict::Passed; 5]);
     }
 }
