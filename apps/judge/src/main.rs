@@ -1,43 +1,105 @@
 //! Pulls jobs, runs the sandbox and writes the verdict.
 
-use std::{
-    env, fs, io,
-    path::Path,
-    process::{self, ExitCode},
-    time::Duration,
-};
+use std::{env, error::Error, io, path::Path, time::Duration};
 
-use judge::{Verdict, judge_cases, read_cases};
+use judge::{Job, Verdict, claim, finish, judge_cases, read_cases};
+use sqlx::{Connection, PgConnection};
+use tokio::time;
 
 // Python pack until packs are data (ADR-0013)
 const IMAGE: &str = "python:3.14-alpine";
 const TIMEOUT: Duration = Duration::from_secs(10);
+const POLL: Duration = Duration::from_secs(1);
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> ExitCode {
-    let mut args = env::args_os().skip(1);
-    let (Some(exercise), Some(solution), None) = (args.next(), args.next(), args.next()) else {
-        eprintln!("usage: judge <exercise> <solution.py>");
-        return ExitCode::FAILURE;
-    };
-    match judge(Path::new(&exercise), Path::new(&solution)).await {
-        Ok(true) => ExitCode::SUCCESS,
-        Ok(false) => ExitCode::FAILURE,
-        Err(error) => {
-            eprintln!("judge: {error}");
-            ExitCode::FAILURE
+async fn main() -> Result<(), Box<dyn Error>> {
+    let database = env::var("DATABASE_URL")?;
+    let content = env::var_os("CONTENT").ok_or("CONTENT is not set")?;
+    let mut connection = PgConnection::connect(&database).await?;
+
+    loop {
+        let Some(job) = claim(&mut connection).await? else {
+            time::sleep(POLL).await;
+            continue;
+        };
+
+        match judge(content.as_ref(), &job).await {
+            Ok(verdicts) => {
+                if !finish(&mut connection, job.id, &verdicts).await? {
+                    eprintln!("judge: job {} was no longer running", job.id);
+                }
+            }
+            Err(error) => eprintln!("judge: job {}: {error}", job.id),
         }
     }
 }
 
-async fn judge(exercise: &Path, solution: &Path) -> io::Result<bool> {
-    let cases = read_cases(&exercise.join("assessment"))?;
-    let source = fs::read_to_string(solution)?;
-    let name = format!("judge-{}", process::id());
-    let command = ["python3", "-c", &source];
-    let verdicts = judge_cases(&name, IMAGE, &command, &cases, TIMEOUT).await?;
-    for (index, verdict) in verdicts.iter().enumerate() {
-        println!("{} {verdict:?}", index + 1);
+async fn judge(content: &Path, job: &Job) -> io::Result<Vec<Verdict>> {
+    if job.language_pack != "python" {
+        return Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            format!("language pack {}", job.language_pack),
+        ));
     }
-    Ok(verdicts.iter().all(|&verdict| verdict == Verdict::Passed))
+    let assessment = content
+        .join("exercises")
+        .join(&job.exercise)
+        .join("assessment");
+    let cases = read_cases(&assessment)?;
+    let name = format!("judge-{}", job.id);
+    let command = ["python3", "-c", &job.source];
+    judge_cases(&name, IMAGE, &command, &cases, TIMEOUT).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::types::Uuid;
+    use std::assert_matches;
+
+    fn content() -> &'static Path {
+        Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../examples/content"
+        ))
+    }
+
+    fn job(language_pack: &str, source: &str) -> Job {
+        Job {
+            id: Uuid::default(),
+            contract: 1,
+            course: "log791".to_string(),
+            exercise: "sum".into(),
+            language_pack: language_pack.into(),
+            source: source.into(),
+        }
+    }
+
+    async fn python_on_sum(name: &str, code: &str) -> Vec<Verdict> {
+        let assessment = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/content");
+        let cases = read_cases(&assessment).unwrap();
+        let command = ["python3", "-c", code];
+        judge_cases(
+            &format!("judge-test-{name}"),
+            IMAGE,
+            &command,
+            &cases,
+            TIMEOUT,
+        )
+        .await
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn unknown_language_pack_is_unsupported() {
+        let result = judge(content(), &job("invalid", "")).await;
+        assert_matches!(result, Err(error) if error.kind() == io::ErrorKind::Unsupported);
+    }
+
+    #[tokio::test]
+    #[ignore = "needs Docker with runsc"]
+    async fn reference_solution_passes_the_sum_exercise() {
+        let sum = "import sys; print(sum(map(int, sys.stdin.read().split())))";
+        assert_eq!(python_on_sum("reference", sum).await, [Verdict::Passed; 5])
+    }
 }
