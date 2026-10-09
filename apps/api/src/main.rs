@@ -4,13 +4,13 @@ use std::{env, error::Error};
 
 use axum::{
     Json, Router,
-    extract::State,
+    extract::{Path, State},
     http::StatusCode,
     routing::{get, post},
 };
 use contracts::Id;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 
 const CONTRACT: i32 = 1;
@@ -29,6 +29,7 @@ fn app(pool: PgPool) -> Router {
     Router::new()
         .route("/health", get(|| async { StatusCode::OK }))
         .route("/submissions", post(submit))
+        .route("/submissions/{id}", get(progress))
         .with_state(pool)
 }
 
@@ -73,6 +74,32 @@ async fn submit(
     Ok((StatusCode::ACCEPTED, Json(Submitted { id })))
 }
 
+#[derive(Serialize, FromRow)]
+struct Progress {
+    state: String,
+    passed: Option<bool>,
+}
+
+const PROGRESS: &str = r#"
+    SELECT state::text, (result -> 'cases') <@ '["passed"]' AS passed
+    FROM jobs WHERE id = $1
+"#;
+
+async fn progress(
+    State(pool): State<PgPool>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Progress>, StatusCode> {
+    let progress = sqlx::query_as(PROGRESS)
+        .bind(id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|error| {
+            eprintln!("api: progress: {error}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    progress.map(Json).ok_or(StatusCode::NOT_FOUND)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -90,11 +117,46 @@ mod tests {
         app(pool.clone()).oneshot(request).await.unwrap().status()
     }
 
+    async fn get_submission(pool: &PgPool, id: &str) -> (StatusCode, String) {
+        let request = Request::get(format!("/submissions/{id}"))
+            .body(Body::empty())
+            .unwrap();
+        let response = app(pool.clone()).oneshot(request).await.unwrap();
+        let status = response.status();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        (status, String::from_utf8(body.to_vec()).unwrap())
+    }
+
     async fn waiting_jobs(pool: &PgPool) -> i64 {
         sqlx::query_scalar("SELECT count(*) FROM jobs WHERE state = 'waiting'")
             .fetch_one(pool)
             .await
             .unwrap()
+    }
+
+    async fn enqueue(pool: &PgPool) -> Uuid {
+        sqlx::query_scalar(
+            "INSERT INTO jobs (contract, course, exercise, language_pack, source) VALUES (1, 'log200', 'sum', 'python', 'print(0)') RETURNING id",
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn judge(pool: &PgPool, job: Uuid, verdicts: &str) {
+        sqlx::query("SELECT id FROM claim_job()")
+            .execute(pool)
+            .await
+            .unwrap();
+        let finished: bool = sqlx::query_scalar("SELECT finish_job($1, $2::case_verdict[])")
+            .bind(job)
+            .bind(verdicts)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+        assert!(finished);
     }
 
     #[tokio::test]
@@ -134,5 +196,60 @@ mod tests {
             StatusCode::UNPROCESSABLE_ENTITY
         );
         assert_eq!(waiting_jobs(&pool).await, 0);
+    }
+
+    #[tokio::test]
+    async fn malformed_id_is_a_bad_request() {
+        let pool = PgPool::connect_lazy("postgres://unused").unwrap();
+        assert_eq!(
+            get_submission(&pool, "not-a-uuid").await.0,
+            StatusCode::BAD_REQUEST
+        );
+    }
+
+    #[sqlx::test(migrations = "../../db/migrations")]
+    #[ignore = "needs PostgreSQL"]
+    async fn unknown_submission_is_not_found(pool: PgPool) {
+        assert_eq!(
+            get_submission(&pool, &Uuid::nil().to_string()).await,
+            (StatusCode::NOT_FOUND, String::new())
+        );
+    }
+
+    #[sqlx::test(migrations = "../../db/migrations")]
+    #[ignore = "needs PostgreSQL"]
+    async fn queued_submission_is_waiting(pool: PgPool) {
+        let job = enqueue(&pool).await;
+        assert_eq!(
+            get_submission(&pool, &job.to_string()).await,
+            (
+                StatusCode::OK,
+                r#"{"state":"waiting","passed":null}"#.to_string()
+            )
+        );
+    }
+
+    #[sqlx::test(migrations = "../../db/migrations")]
+    #[ignore = "needs PostgreSQL"]
+    async fn judged_submission_shows_only_whether_all_passed(pool: PgPool) {
+        let failed = enqueue(&pool).await;
+        judge(&pool, failed, "{passed,wrong-answer}").await;
+        assert_eq!(
+            get_submission(&pool, &failed.to_string()).await,
+            (
+                StatusCode::OK,
+                r#"{"state":"done","passed":false}"#.to_string()
+            )
+        );
+
+        let passed = enqueue(&pool).await;
+        judge(&pool, passed, "{passed,passed}").await;
+        assert_eq!(
+            get_submission(&pool, &passed.to_string()).await,
+            (
+                StatusCode::OK,
+                r#"{"state":"done","passed":true}"#.to_string()
+            )
+        );
     }
 }
